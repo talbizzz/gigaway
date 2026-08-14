@@ -1,145 +1,205 @@
+import { nightCount } from '@gigaway/shared'
 import * as Clipboard from 'expo-clipboard'
 import { Stack, useRouter } from 'expo-router'
 import { Pressable, Share, StyleSheet, Text, View } from 'react-native'
 
-import { Button } from '@/components/button'
+import { Button, TextLink } from '@/components/button'
 import { Callout } from '@/components/callout'
 import { Screen } from '@/components/screen'
-import { useMyProfile } from '@/features/profile/use-profile'
 import {
-  useCreateInvite,
-  useMyInvites,
-  useRemainingQuota,
-  useRevokeInvite,
-} from '@/features/invites/use-invites'
+  useCancelAvailability,
+  useMyAvailability,
+  type Availability,
+} from '@/features/availability/use-availability'
+import { useCreateInvite, useMyInvites, useRemainingQuota } from '@/features/invites/use-invites'
+import { useMyProfile } from '@/features/profile/use-profile'
+import { useCancelTrip, useMyTrips, type Trip } from '@/features/trips/use-trips'
 import { env } from '@/lib/env'
 import { supabase } from '@/lib/supabase'
 import { radius, spacing, typography } from '@/theme/tokens'
 import { useTheme } from '@/theme/use-theme'
 
-/**
- * Home. Trips, availability and matching arrive in Milestone 2 — for now this
- * is the verified member's landing place and where they invite colleagues,
- * which is the mechanism the whole network depends on.
- */
 export default function HomeScreen() {
   const theme = useTheme()
   const router = useRouter()
   const { data: profile } = useMyProfile()
+  const trips = useMyTrips()
+  const availability = useMyAvailability()
   const invites = useMyInvites()
   const quota = useRemainingQuota()
   const createInvite = useCreateInvite()
-  const revokeInvite = useRevokeInvite()
 
-  const liveInvites = (invites.data ?? []).filter(
+  const activeTrips = (trips.data ?? []).filter((trip) => trip.status === 'active')
+  const activeAvailability = (availability.data ?? []).filter((row) => row.status === 'active')
+  const liveInvite = (invites.data ?? []).find(
     (invite) => !invite.revoked_at && invite.uses < invite.max_uses,
   )
-
-  const shareInvite = async (code: string) => {
-    await Share.share({
-      message:
-        `Join me on GigAway — free couches between working artists.\n\n` +
-        `${env.webBaseUrl}/i/${code}`,
-    })
-  }
 
   return (
     <Screen>
       <Stack.Screen options={{ title: 'GigAway' }} />
 
-      <View style={styles.header}>
-        <Text style={[typography.title, { color: theme.text }]}>
-          Hello, {profile?.display_name?.split(' ')[0] ?? 'there'}
-        </Text>
-        <Text style={[typography.body, { color: theme.textMuted }]}>
-          Trips and matching arrive next. In the meantime, the network only works if the
-          right people are in it.
-        </Text>
+      <Text style={[typography.title, { color: theme.text }]}>
+        Hello, {profile?.display_name?.split(' ')[0] ?? 'there'}
+      </Text>
+
+      {/* ── Trips ───────────────────────────────────────────────────────── */}
+      <View style={styles.section}>
+        <Text style={[typography.heading, { color: theme.text }]}>Your trips</Text>
+
+        {activeTrips.length === 0 ? (
+          <Callout>
+            Going somewhere for a gig or an audition? Post it and see who is there.
+          </Callout>
+        ) : (
+          activeTrips.map((trip) => (
+            <TripRow key={trip.id} trip={trip} onPress={() => router.push(`/trip/${trip.id}`)} />
+          ))
+        )}
+
+        <Button label="Add a trip" onPress={() => router.push('/trip/new')} />
       </View>
 
+      {/* ── Availability ────────────────────────────────────────────────── */}
+      <View style={styles.section}>
+        <Text style={[typography.heading, { color: theme.text }]}>Your couch</Text>
+
+        {activeAvailability.length === 0 ? (
+          <Callout>
+            Free nights at home? Offering them is how the network keeps working — and how
+            someone hosts you next spring.
+          </Callout>
+        ) : (
+          activeAvailability.map((row) => <AvailabilityRow key={row.id} availability={row} />)
+        )}
+
+        <Button
+          label="Offer a couch"
+          variant="secondary"
+          onPress={() => router.push('/availability/new')}
+        />
+      </View>
+
+      {/* ── Invites ─────────────────────────────────────────────────────── */}
       <View style={styles.section}>
         <Text style={[typography.heading, { color: theme.text }]}>Invite a colleague</Text>
         <Text style={[typography.caption, { color: theme.textMuted }]}>
-          {quota.data ?? 0} invite{quota.data === 1 ? '' : 's'} left. Each one vouches for
-          someone — your name is attached to who you bring in.
+          {quota.data ?? 0} left. Your name is attached to whoever you bring in.
         </Text>
 
-        {liveInvites.map((invite) => (
-          <View
-            key={invite.id}
-            style={[styles.invite, { backgroundColor: theme.bgSubtle, borderColor: theme.border }]}
-          >
+        {liveInvite ? (
+          <View style={[styles.invite, { backgroundColor: theme.bgSubtle, borderColor: theme.border }]}>
             <Pressable
               accessibilityRole="button"
-              accessibilityLabel={`Copy invite code ${invite.code}`}
-              onPress={() => Clipboard.setStringAsync(invite.code)}
+              accessibilityLabel={`Copy invite code ${liveInvite.code}`}
+              onPress={() => Clipboard.setStringAsync(liveInvite.code)}
             >
-              <Text style={[styles.code, { color: theme.text }]}>{invite.code}</Text>
+              <Text style={[styles.code, { color: theme.text }]}>{liveInvite.code}</Text>
             </Pressable>
-
-            <View style={styles.inviteActions}>
-              <Button
-                label="Share"
-                variant="secondary"
-                onPress={() => shareInvite(invite.code)}
-                style={styles.action}
-              />
-              <Button
-                label="Revoke"
-                variant="ghost"
-                onPress={() => revokeInvite.mutate(invite.id)}
-                loading={revokeInvite.isPending}
-                style={styles.action}
-              />
-            </View>
+            <TextLink
+              label="Share this invite"
+              onPress={() =>
+                Share.share({
+                  message:
+                    'Join me on GigAway — free couches between working artists.\n\n' +
+                    `${env.webBaseUrl}/i/${liveInvite.code}`,
+                })
+              }
+            />
           </View>
-        ))}
-
-        {liveInvites.length === 0 ? (
-          <Callout>
-            You haven't created any invites yet. Codes last 30 days and can be revoked at
-            any time.
-          </Callout>
-        ) : null}
-
-        <Button
-          label="Create an invite"
-          onPress={() => createInvite.mutate()}
-          loading={createInvite.isPending}
-          disabled={(quota.data ?? 0) <= 0}
-        />
-
-        {createInvite.isError ? (
-          <Callout tone="danger">{(createInvite.error as Error).message}</Callout>
-        ) : null}
+        ) : (
+          <Button
+            label="Create an invite"
+            variant="secondary"
+            onPress={() => createInvite.mutate()}
+            loading={createInvite.isPending}
+            disabled={(quota.data ?? 0) <= 0}
+          />
+        )}
       </View>
 
-      <Button
-        label="Your profile"
-        variant="secondary"
-        onPress={() => router.push('/profile')}
-      />
-
+      <Button label="Your profile" variant="ghost" onPress={() => router.push('/profile')} />
       <Button label="Sign out" variant="ghost" onPress={() => supabase.auth.signOut()} />
     </Screen>
   )
 }
 
+function TripRow({ trip, onPress }: { trip: Trip; onPress: () => void }) {
+  const theme = useTheme()
+  const router = useRouter()
+  const cancel = useCancelTrip()
+  const nights = nightCount({ start: trip.start_date, end: trip.end_date })
+
+  return (
+    <Pressable
+      accessibilityRole="button"
+      onPress={onPress}
+      style={({ pressed }) => [
+        styles.row,
+        { backgroundColor: theme.bgSubtle, borderColor: theme.border },
+        pressed && styles.pressed,
+      ]}
+    >
+      <View style={styles.rowText}>
+        <Text style={[typography.bodyStrong, { color: theme.text }]}>{trip.cities?.name}</Text>
+        <Text style={[typography.caption, { color: theme.textMuted }]}>
+          {trip.start_date} → {trip.end_date} · {nights} night{nights === 1 ? '' : 's'}
+        </Text>
+      </View>
+      <View style={styles.rowActions}>
+        <TextLink label="Edit" onPress={() => router.push(`/trip/edit/${trip.id}`)} />
+        <TextLink label="Cancel" onPress={() => cancel.mutate(trip.id)} />
+      </View>
+    </Pressable>
+  )
+}
+
+function AvailabilityRow({ availability }: { availability: Availability }) {
+  const theme = useTheme()
+  const router = useRouter()
+  const cancel = useCancelAvailability()
+  const nights = nightCount({ start: availability.start_date, end: availability.end_date })
+
+  return (
+    <View style={[styles.row, { backgroundColor: theme.bgSubtle, borderColor: theme.border }]}>
+      <View style={styles.rowText}>
+        <Text style={[typography.bodyStrong, { color: theme.text }]}>
+          {availability.cities?.name}
+        </Text>
+        <Text style={[typography.caption, { color: theme.textMuted }]}>
+          {availability.start_date} → {availability.end_date} · {nights} night
+          {nights === 1 ? '' : 's'}
+        </Text>
+      </View>
+      <View style={styles.rowActions}>
+        <TextLink
+          label="Edit"
+          onPress={() => router.push(`/availability/edit/${availability.id}`)}
+        />
+        <TextLink label="Cancel" onPress={() => cancel.mutate(availability.id)} />
+      </View>
+    </View>
+  )
+}
+
 const styles = StyleSheet.create({
-  header: { gap: spacing.sm },
   section: { gap: spacing.md },
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    padding: spacing.lg,
+    borderRadius: radius.md,
+    borderWidth: StyleSheet.hairlineWidth,
+  },
+  rowText: { flex: 1, gap: 2 },
+  rowActions: { gap: spacing.sm, alignItems: 'flex-end' },
+  pressed: { opacity: 0.7 },
   invite: {
     padding: spacing.lg,
     borderRadius: radius.md,
     borderWidth: StyleSheet.hairlineWidth,
     gap: spacing.md,
   },
-  code: {
-    fontSize: 28,
-    letterSpacing: 6,
-    fontWeight: '700',
-    textAlign: 'center',
-  },
-  inviteActions: { flexDirection: 'row', gap: spacing.sm },
-  action: { flex: 1 },
+  code: { fontSize: 26, letterSpacing: 6, fontWeight: '700', textAlign: 'center' },
 })

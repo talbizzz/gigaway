@@ -25,6 +25,9 @@ export type AnalyticsEvent =
   | 'invite_created'
   | 'verification_submitted'
   | 'profile_completed'
+  | 'trip_created'
+  | 'availability_created'
+  | 'matches_viewed'
 
 type AnalyticsProperties = Record<string, string | number | boolean>
 

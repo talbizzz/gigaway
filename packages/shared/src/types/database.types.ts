@@ -52,6 +52,73 @@ export type Database = {
         }
         Relationships: []
       }
+      availability: {
+        Row: {
+          city_id: string
+          constraints: string[]
+          created_at: string
+          end_date: string
+          id: string
+          max_nights: number | null
+          note: string | null
+          offers: string[]
+          profile_id: string
+          start_date: string
+          status: Database["public"]["Enums"]["availability_status"]
+          updated_at: string
+        }
+        Insert: {
+          city_id: string
+          constraints?: string[]
+          created_at?: string
+          end_date: string
+          id?: string
+          max_nights?: number | null
+          note?: string | null
+          offers?: string[]
+          profile_id: string
+          start_date: string
+          status?: Database["public"]["Enums"]["availability_status"]
+          updated_at?: string
+        }
+        Update: {
+          city_id?: string
+          constraints?: string[]
+          created_at?: string
+          end_date?: string
+          id?: string
+          max_nights?: number | null
+          note?: string | null
+          offers?: string[]
+          profile_id?: string
+          start_date?: string
+          status?: Database["public"]["Enums"]["availability_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "availability_city_id_fkey"
+            columns: ["city_id"]
+            isOneToOne: false
+            referencedRelation: "cities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "availability_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "availability_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "v_recent_signups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cities: {
         Row: {
           aliases: string[]
@@ -124,6 +191,13 @@ export type Database = {
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "contact_details_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: true
+            referencedRelation: "v_recent_signups"
+            referencedColumns: ["id"]
+          },
         ]
       }
       contact_grants: {
@@ -160,10 +234,24 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "contact_grants_profile_a_fkey"
+            columns: ["profile_a"]
+            isOneToOne: false
+            referencedRelation: "v_recent_signups"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "contact_grants_profile_b_fkey"
             columns: ["profile_b"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contact_grants_profile_b_fkey"
+            columns: ["profile_b"]
+            isOneToOne: false
+            referencedRelation: "v_recent_signups"
             referencedColumns: ["id"]
           },
         ]
@@ -200,6 +288,13 @@ export type Database = {
             columns: ["redeemed_by"]
             isOneToOne: true
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invite_redemptions_redeemed_by_fkey"
+            columns: ["redeemed_by"]
+            isOneToOne: true
+            referencedRelation: "v_recent_signups"
             referencedColumns: ["id"]
           },
         ]
@@ -241,6 +336,13 @@ export type Database = {
             columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invites_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "v_recent_signups"
             referencedColumns: ["id"]
           },
         ]
@@ -315,6 +417,74 @@ export type Database = {
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "profiles_invited_by_fkey"
+            columns: ["invited_by"]
+            isOneToOne: false
+            referencedRelation: "v_recent_signups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      trips: {
+        Row: {
+          city_id: string
+          created_at: string
+          end_date: string
+          id: string
+          needs: string[]
+          note: string | null
+          profile_id: string
+          start_date: string
+          status: Database["public"]["Enums"]["trip_status"]
+          updated_at: string
+        }
+        Insert: {
+          city_id: string
+          created_at?: string
+          end_date: string
+          id?: string
+          needs?: string[]
+          note?: string | null
+          profile_id: string
+          start_date: string
+          status?: Database["public"]["Enums"]["trip_status"]
+          updated_at?: string
+        }
+        Update: {
+          city_id?: string
+          created_at?: string
+          end_date?: string
+          id?: string
+          needs?: string[]
+          note?: string | null
+          profile_id?: string
+          start_date?: string
+          status?: Database["public"]["Enums"]["trip_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trips_city_id_fkey"
+            columns: ["city_id"]
+            isOneToOne: false
+            referencedRelation: "cities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trips_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trips_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "v_recent_signups"
+            referencedColumns: ["id"]
+          },
         ]
       }
       verification_applications: {
@@ -369,24 +539,98 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "verification_applications_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: true
+            referencedRelation: "v_recent_signups"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "verification_applications_reviewed_by_fkey"
             columns: ["reviewed_by"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "verification_applications_reviewed_by_fkey"
+            columns: ["reviewed_by"]
+            isOneToOne: false
+            referencedRelation: "v_recent_signups"
+            referencedColumns: ["id"]
+          },
         ]
       }
     }
     Views: {
-      [_ in never]: never
+      v_docs_awaiting_purge: {
+        Row: {
+          application_id: string | null
+          doc_paths: string[] | null
+          docs_deletion_requested_at: string | null
+          seconds_waiting: number | null
+          status: Database["public"]["Enums"]["verification_status"] | null
+        }
+        Insert: {
+          application_id?: string | null
+          doc_paths?: string[] | null
+          docs_deletion_requested_at?: string | null
+          seconds_waiting?: never
+          status?: Database["public"]["Enums"]["verification_status"] | null
+        }
+        Update: {
+          application_id?: string | null
+          doc_paths?: string[] | null
+          docs_deletion_requested_at?: string | null
+          seconds_waiting?: never
+          status?: Database["public"]["Enums"]["verification_status"] | null
+        }
+        Relationships: []
+      }
+      v_pending_verifications: {
+        Row: {
+          application_id: string | null
+          days_waiting: number | null
+          discipline: string | null
+          display_name: string | null
+          doc_paths: string[] | null
+          email: string | null
+          links: Json | null
+          note: string | null
+          specialisation: string | null
+          submitted_at: string | null
+        }
+        Relationships: []
+      }
+      v_recent_signups: {
+        Row: {
+          created_at: string | null
+          discipline: string | null
+          display_name: string | null
+          home_city: string | null
+          id: string | null
+          invited_by: string | null
+          joined_via: string | null
+          status: Database["public"]["Enums"]["profile_status"] | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
+      call_edge_function: {
+        Args: { fn_name: string; payload?: Json }
+        Returns: number
+      }
       config_int: { Args: { config_key: string }; Returns: number }
       current_status: {
         Args: never
         Returns: Database["public"]["Enums"]["profile_status"]
       }
+      distance_km: {
+        Args: { lat1: number; lat2: number; lon1: number; lon2: number }
+        Returns: number
+      }
+      expire_verification_docs: { Args: never; Returns: number }
       generate_invite_code: { Args: never; Returns: string }
       has_contact_grant: { Args: { other: string }; Returns: boolean }
       is_approved: { Args: never; Returns: boolean }
@@ -404,14 +648,17 @@ export type Database = {
           population: number
         }[]
       }
+      search_matches: { Args: { p_trip_id: string }; Returns: Json }
     }
     Enums: {
+      availability_status: "active" | "cancelled"
       profile_status:
         | "pending"
         | "approved"
         | "rejected"
         | "suspended"
         | "deleted"
+      trip_status: "active" | "cancelled" | "completed"
       verification_status: "pending" | "approved" | "rejected" | "docs_expired"
     }
     CompositeTypes: {
@@ -543,6 +790,7 @@ export const Constants = {
   },
   public: {
     Enums: {
+      availability_status: ["active", "cancelled"],
       profile_status: [
         "pending",
         "approved",
@@ -550,6 +798,7 @@ export const Constants = {
         "suspended",
         "deleted",
       ],
+      trip_status: ["active", "cancelled", "completed"],
       verification_status: ["pending", "approved", "rejected", "docs_expired"],
     },
   },

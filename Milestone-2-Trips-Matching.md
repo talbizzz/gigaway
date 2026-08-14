@@ -1,5 +1,28 @@
 # Milestone 2: Trips & Matching
 
+> **Plan updated during implementation (14 Aug 2026).**
+>
+> 1. **Date semantics corrected.** This file previously said ranges were
+>    inclusive *and* that "the 3rd to the 10th is 7 nights" — which cannot both
+>    be true. `Project-Raw.md` settles it: *"his couch for the 3rd to the 5th —
+>    ... three nights"*. So **`start_date` and `end_date` are the first and last
+>    NIGHT, inclusive, and nights = end − start + 1**. A single-date range is one
+>    night; ranges touching on one date overlap by that night. Every `daterange`
+>    is therefore built with `'[]'` — the Postgres default `'[)'` would silently
+>    drop exactly the case the brief's example turns on.
+> 2. **`search_matches` takes `p_trip_id`, not `trip_id`.** A bare `trip_id`
+>    collides with the column of the same name inside the query bodies and
+>    PL/pgSQL raises rather than guessing. The client sends `{ p_trip_id }`.
+> 3. **`search_cities` and `CityPicker` were built in Milestone 1**, because
+>    profiles carry a home city. This milestone reuses them unchanged.
+> 4. **CHECK constraints on array columns need `coalesce`.**
+>    `array_length('{}', 1)` is NULL, not 0, and a CHECK evaluating to NULL
+>    passes — an empty `needs` array slipped through until the pgTAP test caught
+>    it.
+> 5. **`women_only` is stored and displayed, not filtered**, as this file
+>    already anticipated. There is no gender field to filter on and adding one
+>    carries its own privacy cost; the host applies it when responding.
+
 ## Goal
 
 A verified member can post a trip to a city for a date range, or post availability in their

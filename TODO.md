@@ -50,15 +50,22 @@ Progress checklist. Detail lives in the `Milestone-N-*.md` files.
 
 ## Milestone 2: Trips & Matching
 
-- [ ] Trips schema + CRUD
-- [ ] Availability schema + CRUD
-- [ ] City picker component
-- [ ] Date range picker
-- [ ] search_matches SQL function
-- [ ] Nearby-city fallback (haversine)
-- [ ] Match screen: hosts + travellers
-- [ ] Empty states that read as encouraging
-- [ ] Unit tests for date overlap logic
+> ✅ Code complete. 88 pgTAP tests, 37 unit tests, typecheck/lint/bundle clean.
+> Date semantics were corrected against the brief — see the milestone file.
+
+- [x] Trips schema + CRUD
+- [x] Availability schema + CRUD
+- [x] City picker component (built in Milestone 1, reused)
+- [x] Date range picker
+- [x] search_matches SQL function
+- [x] Nearby-city fallback (haversine)
+- [x] Match screen: hosts + travellers
+- [x] Empty states that read as encouraging
+- [x] Unit tests for date overlap logic
+
+**Outstanding (same blocker as Milestone 1):**
+
+- [ ] Walk the flow on a real device / simulator (needs an EAS dev build)
 
 ## Milestone 3: Core Loop
 
