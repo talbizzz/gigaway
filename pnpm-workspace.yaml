@@ -1,0 +1,26 @@
+packages:
+  - 'apps/*'
+  - 'packages/*'
+
+# Metro resolves modules by walking directories on disk, and pnpm's default
+# symlink-into-a-store layout leaves transitive dependencies unreachable from
+# the app (e.g. @tanstack/query-core, a dependency of @tanstack/react-query).
+# `hoisted` produces an npm-style flat node_modules while keeping workspace
+# linking, the lockfile, and pnpm's speed.
+#
+# NOTE: pnpm 11 reads these settings from this file, NOT from .npmrc.
+nodeLinker: hoisted
+
+allowBuilds:
+  # esbuild ships a native binary that its postinstall script places. Vitest
+  # depends on it, so this build must be allowed to run.
+  # @sentry/cli's postinstall downloads a prebuilt binary and reliably stalls
+  # here. It is only needed to upload source maps at build time, which happens
+  # on EAS (Milestone 5) where the binary is fetched fresh. Local development
+  # does not need it, and blocking the script keeps installs fast.
+  '@sentry/cli': false
+  esbuild: true
+  # Native resolver binary for the ESLint import plugin. Its postinstall stalls
+  # in this environment the same way @sentry/cli's does; the plugin falls back
+  # to a JavaScript resolver without it.
+  unrs-resolver: false

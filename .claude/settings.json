@@ -1,0 +1,35 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pnpm --version)",
+      "Bash(npm --version)",
+      "Bash(git --version)",
+      "Bash(supabase --version)",
+      "Bash(docker --version)",
+      "Bash(open -a Docker)",
+      "Bash(git init *)",
+      "Bash(pnpm install *)",
+      "Bash(docker info *)",
+      "Bash(pnpm typecheck *)",
+      "Bash(pnpm sync:shared)",
+      "Bash(pnpm sync:shared:check)",
+      "Bash(supabase init *)",
+      "Bash(supabase start *)",
+      "Bash(pnpm create *)",
+      "Bash(cd /Users/aziztalbi/Documents/GigAway/apps/mobile && rm -rf .claude .vscode scripts AGENTS.md CLAUDE.md LICENSE README.md app.json src/global.css src/components src/app/explore.tsx && echo \"removed template cruft\" && find . -type f -not -path './node_modules/*' | sort)",
+      "Bash(psql \"postgresql://postgres:postgres@127.0.0.1:54322/postgres\" -c \"select name, default_version, installed_version from pg_available_extensions where name in \\('pg_cron','pg_net','pg_trgm','btree_gist','pgtap','uuid-ossp','pgcrypto'\\) order by name;\")",
+      "Bash(psql \"postgresql://postgres:postgres@127.0.0.1:54322/postgres\" -c \"select name, default_version, installed_version from pg_available_extensions where name in \\('pg_cron','pg_net','pg_trgm','btree_gist','pgtap','pgcrypto','uuid-ossp'\\) order by name;\")",
+      "Bash(npx expo *)",
+      "Bash(pnpm config *)",
+      "Bash(rm -f .npmrc && echo \"removed .npmrc \\(settings now live in pnpm-workspace.yaml\\)\")",
+      "Bash(rm -rf /private/tmp/claude-502/-Users-aziztalbi-Documents-GigAway/e4db023c-09c6-4e21-be79-33840de1a0d9/scratchpad/export-check)",
+      "Bash(supabase migration *)",
+      "Bash(node scripts/build-cities-seed.mjs)",
+      "Bash(supabase db *)"
+    ],
+    "additionalDirectories": [
+      "/Users/aziztalbi/Documents/GigAway/apps/mobile/.claude",
+      "/Users/aziztalbi/Documents/GigAway"
+    ]
+  }
+}
