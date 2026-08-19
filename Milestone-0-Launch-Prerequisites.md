@@ -129,11 +129,30 @@ two-week wall at the end.
    full migration, and your users are in the EU.
 4. Save the project URL, `anon` key and `service_role` key into a password manager. The
    `service_role` key must never appear in the mobile app or in the web repo.
-5. Under Settings → Legal, **accept / sign the Data Processing Addendum (DPA)**. You are
-   the controller; Supabase is your processor, and GDPR requires this in writing.
+5. **The DPA needs no separate signature.** Supabase's Data Processing Addendum states
+   that acceptance of their Terms of Service has the same effect as signing the SCCs, so
+   accepting the terms at sign-up already covers it — there is no Settings → Legal page to
+   hunt for on a standard plan. You are still the controller and Supabase the processor,
+   and the obligation that *does* need action is naming Supabase as a subprocessor in the
+   privacy policy.
 6. Note the free tier pauses a project after ~7 days of inactivity. Plan to upgrade to
    **Pro (~$25/month)** when the closed beta begins — a paused backend during a beta is a
    silent, confusing failure.
+
+7. Wire the repo to it: `supabase link --project-ref <ref>`, then `supabase db push` and
+   `pnpm functions:deploy`. Three things are **not** carried by migrations and must be done
+   once per project:
+   - **Vault secrets.** `scheduled_jobs.sql` seeds local defaults. Overwrite both, or all
+     three cron jobs fail silently: `edge_function_base_url` becomes
+     `https://<ref>.supabase.co/functions/v1`, and `edge_function_service_key` must be the
+     **`sb_secret_…` key** (`supabase projects api-keys --reveal`) — on projects using the new
+     API key system that is what the runtime injects as `SUPABASE_SERVICE_ROLE_KEY`, and
+     `requireServiceRole` compares the bearer token against it byte for byte. The legacy
+     `service_role` JWT is silently rejected with a 401.
+   - **pgTAP.** `create extension pgtap with schema extensions;` — no migration creates it.
+     `supabase test db --linked` connects as `cli_login_postgres`, a NOINHERIT role the CLI
+     recreates on every run, so each test file claims privileges with `set local role postgres`
+     before calling `plan()`. That line is already in every file under `supabase/tests/`.
 
 **Time:** 20 minutes. **Cost:** free now, ~$25/month from beta.
 
@@ -147,7 +166,7 @@ Create all three now so the keys exist when Milestone 1 needs them.
 |---|---|---|
 | **Sentry** | Create org and a React Native project. Choose the **EU region** at org creation. | Save the DSN. Free tier is sufficient. |
 | **PostHog** | Sign up on **EU Cloud** (`eu.posthog.com`, not US). Create a project. | Save the project API key and host. |
-| **Resend** | Create account, verify your domain by adding the DNS records they provide. | Domain verification takes up to a few hours for DNS propagation. Save the API key. |
+| ~~**Resend**~~ | **Moved to Milestone 5.** It is blocked on owning the domain, and the default sender is adequate until a second person needs an account. | See `Milestone-5-Ship-It.md`, component 10. |
 
 **Also decide:** the moderator email address that receives verification nudges and report
 alerts. A dedicated address (`moderation@<domain>`) is better than a personal one.
@@ -244,8 +263,8 @@ to learn this now than after the beta.
 - [ ] Apple trader status verification submitted (approval may still be pending)
 - [ ] Google Play developer account approved
 - [ ] Google Play closed test track created and beta testers' emails collected
-- [ ] Supabase project created **in EU Frankfurt**, DPA signed, keys in a password manager
-- [ ] Sentry (EU), PostHog (EU), Resend accounts created; domain verified in Resend
+- [x] Supabase project created **in EU Frankfurt**, keys in a password manager *(DPA needs no separate signature — it is incorporated into the Supabase ToS accepted at sign-up)*
+- [ ] Sentry (EU) and PostHog (EU) accounts created *(Resend deferred to Milestone 5)*
 - [ ] Moderator email address chosen and receiving mail
 - [ ] Privacy policy, terms/EULA and community guidelines drafted in Markdown
 - [ ] 5–10 artists asked about self-funding; answers written down
@@ -260,7 +279,7 @@ to learn this now than after the beta.
   you have any installable build.
 - **Supabase region is permanent.** Choosing a US region and noticing in Milestone 4 means
   recreating the project.
-- **Resend domain verification needs DNS propagation.** Add the records early; the wait is
-  hours, not minutes.
+- **Resend domain verification needs DNS propagation.** Deferred to Milestone 5, but the
+  point still stands there: add the records early, because the wait is hours, not minutes.
 - **The privacy policy must name every processor you actually use.** Adding PostHog later
   without updating it is exactly the kind of gap that makes a complaint stick.

@@ -40,6 +40,9 @@ requiring external review is submitted first and polished while it queues.
 - **Demo account and a live invite code for App Review**
 - Supabase upgraded to Pro
 - Production environment configuration and analytics flag enabled
+- Resend account and sending-domain verification (SPF, DKIM, DMARC)
+- Supabase Auth on custom SMTP, off the 2-emails-per-hour shared sender
+- Auth email templates, `site_url` and redirect URLs set to production values
 - TestFlight build distributed; Google Play closed test track live
 
 ### Out of Scope
@@ -192,6 +195,41 @@ merging.
 
 ---
 
+#### 10. Email and deliverability
+
+Until this is done the project sends auth mail through Supabase's built-in sender, which
+is capped at **2 emails per hour project-wide**. Supabase's own production checklist
+states that cap is only changeable by configuring custom SMTP. Twelve Play testers
+signing up against it will stall on the first afternoon, so this belongs before testers
+arrive, not after.
+
+**Resend and the domain.** Create the account, add the domain, publish the DNS records.
+DKIM and SPF must both verify before anything sent from that domain will land. Add a
+DMARC record even though Resend does not require one — without it, Gmail and Outlook are
+markedly more willing to treat a new sending domain as spam. The default sender in code
+is `GigAway <notifications@gigaway.app>`, which presumes both the domain and its
+verification.
+
+**Custom SMTP.** Authentication → SMTP Settings, pointed at Resend's SMTP credentials.
+The sender address must be on the verified domain and must match `RESEND_FROM`, or the
+two channels disagree about who the product is.
+
+**Auth configuration that was never pushed.** `supabase/config.toml` describes the local
+stack, not the hosted project — `supabase config push` has never been run against it, so
+the cloud project is still on Supabase defaults. `site_url` in that file is
+`http://127.0.0.1:3000`; pushing it verbatim would point every production confirmation
+link at localhost. Set the hosted values explicitly rather than pushing wholesale. Raise
+`[auth.rate_limit] email_sent` off its shared-sender default of 2 at the same time.
+
+**Two things that are easy to miss.** Member zero was created through the admin API with
+`email_confirm: true`, so no confirmation mail was ever sent — the second real user is
+the first to depend on any of this. And `moderation-digest` treats absent credentials as
+success: it logs and returns `{ ok: true, emailed: false }`, so a misconfiguration here
+looks exactly like a quiet week while applications pile up unreviewed. Confirm
+`emailed: true` at least once rather than trusting `ok: true`.
+
+---
+
 ### Data Model Changes
 
 None. This milestone adds no tables.
@@ -206,6 +244,10 @@ None. This milestone adds no tables.
 | `NEXT_PUBLIC_APP_STORE_URL` / `_PLAY_STORE_URL` | Web | Store links on `/i/[code]` |
 | `EXPO_TOKEN` | GitHub Actions secret | For EAS builds from CI |
 | All Edge Function secrets | Production Supabase | `DISPATCH_SECRET`, `RESEND_API_KEY`, `RESEND_FROM`, `MODERATOR_EMAIL`, `SUPABASE_SERVICE_ROLE_KEY` |
+| `RESEND_FROM` | Edge Function secret | Must be on the Resend-verified domain, and identical to the SMTP sender |
+| SMTP host / port / user / pass | Supabase Auth settings | From Resend; these are not function secrets |
+| `site_url` | Supabase Auth settings | Real domain — **not** the `127.0.0.1:3000` in `config.toml` |
+| `additional_redirect_urls` | Supabase Auth settings | App scheme, for deep-linked auth returns |
 
 ---
 
@@ -223,10 +265,15 @@ None. This milestone adds no tables.
 6. **EAS profiles and channels**; produce a production build.
 7. **Prove OTA works** — publish a visible change and see it land on a device.
 8. **Production Supabase setup:** Pro upgrade, secrets, function deploy, cron verification.
-9. **CI workflow.** Later than ideal, but it protects the maintenance phase.
-10. **Create the demo account and a long-lived invite code for review.**
-11. **Submit to TestFlight**, then to Play closed testing.
-12. **Full end-to-end smoke test on real devices**, ideally two people on two platforms.
+9. **Resend account and domain verification.** Publish the DNS records early — propagation
+   is hours, not minutes, and every other email task waits on it.
+10. **Custom SMTP and auth email configuration.** Point Supabase Auth at Resend, raise the
+    rate limits off the 2/hour cap, set `site_url` and redirect URLs to production. **Do
+    this before any tester exists**, or onboarding stalls on the first afternoon.
+11. **CI workflow.** Later than ideal, but it protects the maintenance phase.
+12. **Create the demo account and a long-lived invite code for review.**
+13. **Submit to TestFlight**, then to Play closed testing.
+14. **Full end-to-end smoke test on real devices**, ideally two people on two platforms.
 
 ## Done Criteria
 
@@ -250,6 +297,14 @@ None. This milestone adds no tables.
 - [ ] **Full loop completed by two real people on two real devices:** invite link →
       verified account → trip → match → request → offer → accept → contact revealed →
       push received → review submitted → reviews published
+- [ ] Sending domain shows DKIM and SPF verified in Resend; a DMARC record exists
+- [ ] A test send from the domain lands in a Gmail inbox, not its spam folder
+- [ ] Supabase Auth uses custom SMTP; the 2-emails-per-hour cap no longer applies
+- [ ] `RESEND_API_KEY`, `RESEND_FROM` and `MODERATOR_EMAIL` are set on the project
+- [ ] `moderation-digest` returns `emailed: true` and the mail actually arrives
+- [ ] A new account created through the app receives its confirmation email
+- [ ] The confirmation link resolves to the production domain, never `127.0.0.1`
+- [ ] Password reset completes end to end from a production build
 - [ ] A test report reaches the moderator email from a production build
 - [ ] Account deletion works from a production build
 
@@ -276,5 +331,12 @@ None. This milestone adds no tables.
 - **Do not skip the OTA verification.** A misconfigured channel means your ability to hot-
   fix during the beta silently does not exist — and you will discover it during an
   incident.
+- **A brand-new sending domain has no reputation.** The first few hundred messages are the
+  ones most likely to be filtered. Send the test traffic before the testers arrive, not
+  alongside them.
+- **Pushing `config.toml` wholesale** points production auth links at `127.0.0.1:3000` and
+  silently breaks every confirmation email. Set the hosted values explicitly.
+- **The digest's silent-success behaviour** means a mail misconfiguration is invisible —
+  `ok: true` with `emailed: false` looks like a quiet week, not a fault.
 - **Store review timing is not under your control.** Submit early, polish while queued,
   and expect at least one rejection cycle.

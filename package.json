@@ -15,8 +15,8 @@
     "db:start": "supabase start",
     "db:stop": "supabase stop",
     "db:reset": "supabase db reset",
-    "db:test": "supabase test db",
-    "db:types": "supabase gen types typescript --local > packages/shared/src/types/database.types.ts",
+    "db:test": "supabase test db --linked",
+    "db:types": "supabase gen types typescript --linked > packages/shared/src/types/database.types.ts",
     "functions:deploy": "pnpm sync:shared && supabase functions deploy"
   },
   "devDependencies": {

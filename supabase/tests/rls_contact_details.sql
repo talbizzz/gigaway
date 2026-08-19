@@ -5,6 +5,11 @@
 -- feature can leak a phone number by forgetting to filter.
 
 begin;
+
+-- `supabase test db --linked` connects as cli_login_postgres, a NOINHERIT role
+-- the CLI recreates on every run, so the privileges these fixtures need (writing
+-- to auth.users) must be claimed explicitly. Locally this is a no-op.
+set local role postgres;
 select plan(12);
 
 -- ── fixtures ───────────────────────────────────────────────────────────────

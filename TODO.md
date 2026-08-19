@@ -9,12 +9,12 @@ Progress checklist. Detail lives in the `Milestone-N-*.md` files.
 - [ ] Enrol in Apple Developer Program ($99/yr)
 - [ ] Register Google Play developer account ($25)
 - [ ] Start Google Play closed test track early
-- [ ] Create Supabase project in EU (Frankfurt)
-- [ ] Create Sentry, PostHog (EU), Resend accounts
+- [x] Create Supabase project in EU (Frankfurt) — `gigaway`, ref `hrhoqmmxgfpyxwncmpjx`, eu-central-1
+- [ ] Create Sentry, PostHog (EU) accounts *(Resend moved to Milestone 5)*
 - [ ] Draft privacy policy
 - [ ] Draft terms of service / EULA
 - [ ] Draft community guidelines
-- [ ] Sign Supabase DPA, list subprocessors
+- [ ] List subprocessors in the privacy policy *(the DPA is incorporated into Supabase's ToS — nothing separate to sign)*
 
 ## Milestone 1: Foundations & Access
 
@@ -109,6 +109,15 @@ Progress checklist. Detail lives in the `Milestone-N-*.md` files.
 - [ ] App icon, splash, store screenshots
 - [ ] Store listings + demo account for review
 - [ ] Upgrade Supabase to Pro
+- [ ] Create Resend account
+- [ ] Verify sending domain (SPF + DKIM, plus a DMARC record)
+- [ ] Set RESEND_API_KEY, RESEND_FROM, MODERATOR_EMAIL function secrets
+- [ ] Confirm moderation-digest returns emailed: true and the mail arrives
+- [ ] Point Supabase Auth at Resend via custom SMTP
+- [ ] Raise auth email rate limits off the shared-sender defaults
+- [ ] Set site_url and redirect URLs to production (never 127.0.0.1)
+- [ ] Confirmation email round trip from a production build
+- [ ] Password reset round trip from a production build
 - [ ] TestFlight build to beta testers
 - [ ] Play closed test track live
 - [ ] End-to-end smoke test on real devices
