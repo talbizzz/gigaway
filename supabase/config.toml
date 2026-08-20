@@ -225,9 +225,12 @@ enable_signup = true
 # addresses. If disabled, only the new email is required to confirm.
 double_confirm_changes = true
 # If enabled, users need to confirm their email address before signing in.
-# On, so local development mirrors production. Locally the confirmation email
-# is caught by Mailpit at http://127.0.0.1:54324 rather than being delivered.
-enable_confirmations = true
+# OFF for now. Development runs against the cloud project, whose built-in sender
+# is capped at two emails per hour project-wide and only delivers to addresses
+# on the Supabase organisation — so confirmation links never arrive and no
+# account can be created. Turned back on in Milestone 5 component 10, together
+# with custom SMTP through Resend, before any outside tester signs up.
+enable_confirmations = false
 # If enabled, users will need to reauthenticate or have logged in recently to change their password.
 secure_password_change = false
 # Controls the minimum amount of time that must pass before sending another signup confirmation or password reset email.

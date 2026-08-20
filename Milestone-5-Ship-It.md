@@ -221,6 +221,12 @@ the cloud project is still on Supabase defaults. `site_url` in that file is
 link at localhost. Set the hosted values explicitly rather than pushing wholesale. Raise
 `[auth.rate_limit] email_sent` off its shared-sender default of 2 at the same time.
 
+**Email confirmation is currently off.** It was disabled on the hosted project during
+development, because the built-in sender never delivered the confirmation link and no
+account could be created at all. `supabase/config.toml` records the same setting. Turning
+it back on — dashboard toggle and config file together — is part of this component, and
+must happen before the first outside tester signs up, not after.
+
 **Two things that are easy to miss.** Member zero was created through the admin API with
 `email_confirm: true`, so no confirmation mail was ever sent — the second real user is
 the first to depend on any of this. And `moderation-digest` treats absent credentials as
@@ -302,6 +308,8 @@ None. This milestone adds no tables.
 - [ ] Supabase Auth uses custom SMTP; the 2-emails-per-hour cap no longer applies
 - [ ] `RESEND_API_KEY`, `RESEND_FROM` and `MODERATOR_EMAIL` are set on the project
 - [ ] `moderation-digest` returns `emailed: true` and the mail actually arrives
+- [ ] Email confirmation is switched back on (Authentication → Sign In / Providers, and
+      `enable_confirmations` in `supabase/config.toml`)
 - [ ] A new account created through the app receives its confirmation email
 - [ ] The confirmation link resolves to the production domain, never `127.0.0.1`
 - [ ] Password reset completes end to end from a production build

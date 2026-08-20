@@ -31,7 +31,7 @@ export default function SignUpScreen() {
 
     // display_name and discipline travel as auth metadata so the database
     // trigger can build a complete profile row at sign-up.
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email: values.email,
       password: values.password,
       options: {
@@ -48,6 +48,12 @@ export default function SignUpScreen() {
     }
 
     track('signup_completed', { discipline: values.discipline })
+
+    // With email confirmation off, sign-up returns a session straight away and
+    // the auth gate routes on from here. With it on there is no session until
+    // the link is followed, and the only thing to show is "check your email".
+    if (data.session) return
+
     router.replace('/check-email')
   })
 
