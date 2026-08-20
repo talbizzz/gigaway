@@ -24,3 +24,6 @@ allowBuilds:
   # in this environment the same way @sentry/cli's does; the plugin falls back
   # to a JavaScript resolver without it.
   unrs-resolver: false
+
+patchedDependencies:
+  expo-modules-jsi@57.0.4: patches/expo-modules-jsi@57.0.4.patch
