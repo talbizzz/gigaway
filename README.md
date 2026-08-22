@@ -93,7 +93,7 @@ Supabase dashboard through saved SQL views. No real-time subscriptions.
 
 ## Project status
 
-Milestones 1 to 3 are code complete: 17 migrations, 178 pgTAP policy tests, 57
+Milestones 1 to 3 are code complete: 18 migrations, 194 pgTAP policy tests, 57
 unit tests, typecheck and lint clean.
 
 | Area | State |
@@ -206,7 +206,7 @@ The entire backend runs locally from the migrations in this repository.
   ```
 
   The first run pulls several GB of Docker images. With images cached it takes
-  about three and a half minutes. It applies all 17 migrations and finishes by
+  about three and a half minutes. It applies all 18 migrations and finishes by
   printing a block of URLs and keys — **keep that output**, you need `ANON_KEY`
   in the next step.
 
@@ -369,7 +369,7 @@ If all five hold, your environment is sound.
 pnpm typecheck            # every workspace package
 pnpm lint
 pnpm test                 # vitest, in packages/shared
-supabase test db --local  # pgTAP: 178 policy and function tests
+supabase test db --local  # pgTAP: 194 policy and function tests
 ```
 
 The root `pnpm db:test` script targets a *linked* cloud project and is for

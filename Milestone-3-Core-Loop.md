@@ -1,6 +1,6 @@
 # Milestone 3: Core Loop
 
-> **Plan updated during implementation (session 2026-08-20).** Nine corrections,
+> **Plan updated during implementation (session 2026-08-20).** Ten corrections,
 > each recorded inline in the section it affects and summarised under
 > "Corrections made during implementation" at the foot of this file. The
 > largest are: the acceptance transaction lives in SQL rather than in the Edge
@@ -107,6 +107,34 @@ everything after is protection. If time is short elsewhere, protect this.
     themselves, with no prior request.
   - A trip may have several pending offers. **Accepting one automatically declines the
     others** — handled inside `accept-offer`, atomically.
+
+#### 2b. Expiry (ADDED)
+
+- **Why it was added:** both status enums declared `expired` and nothing ever
+  set it. The cosmetic cost was a request for a trip that happened in March
+  sitting in the host's "waiting on you" list forever. The real cost was worse:
+  `accept_offer` guarded on offer status, trip status and profile status but
+  **never on dates**, and nothing sets `trips.completed` either — so a
+  months-old offer was still `pending` against a still-`active` trip, and
+  accepting it wrote a `stays` row wholly in the past. Milestone 4 decides when
+  to prompt for a review by comparing `stays.end_date` against `current_date`,
+  so that backdated stay would have read as already finished and immediately
+  asked both people to review a stay that never happened.
+- **Fixed in two places, deliberately:**
+  - `expire_stale_requests_and_offers()` on a daily `pg_cron` job at 04:00 UTC
+    — housekeeping. A request expires with its **trip**; an offer expires with
+    its **own** last night, which may fall earlier.
+  - A date guard inside `accept_offer` and `accept_co_request` — the actual
+    correctness fix. The sweep can always be a run behind, so it can never be
+    the guarantee. New error codes `offer_expired` and `request_expired`, both
+    409.
+- **Boundary is exclusive** (`end_date < current_date`): a couch for tonight is
+  still acceptable. Compared in Postgres, never against a client clock.
+- **Idempotency outranks the guard.** An already-accepted offer keeps returning
+  its stay after the nights pass, so a traveller reopening the app after the
+  trip still reaches the contact card rather than an error.
+- Expiry enqueues no notification — there is no expiry type in the design, and
+  telling somebody their months-old request has been tidied away is noise.
 
 #### 3. Edge Function: `accept-offer`
 
@@ -385,7 +413,8 @@ payloads travel through Apple's and Google's infrastructure and appear on lock s
 | HTTP | `error` | When |
 |---|---|---|
 | 404 | `offer_not_found` | No such offer, or caller is not `to_profile` |
-| 409 | `offer_not_pending` | Withdrawn, declined or expired |
+| 409 | `offer_not_pending` | Withdrawn or declined |
+| 409 | `offer_expired` | The offered nights are wholly in the past (ADDED) |
 | 409 | `trip_cancelled` | Trip is no longer active |
 | 403 | `not_approved` | Either party is not `approved` |
 | 401 | `unauthenticated` | Missing or invalid JWT |
@@ -522,6 +551,10 @@ Recorded so the next agent reads a plan that matches the code.
    navigator; Milestones 1 and 2 built on a plain `Stack`.
 9. **A `requests` decline policy was added** for the recipient of a co-accommodation
    request, who otherwise had no way to say no.
+10. **Expiry was implemented** — see component 2b. Both status enums declared
+    `expired` and nothing set it, and more seriously the acceptance path had no
+    date check at all, so a stale offer could still be accepted into a backdated
+    stay that Milestone 4 would immediately prompt for a review of.
 
 Also worth knowing for Milestone 4:
 
@@ -529,6 +562,8 @@ Also worth knowing for Milestone 4:
   the function body is all that is needed.
 - `stays` is populated and readable by both parties, with `end_date` as a plain
   date — compare it against `current_date` in Postgres, never a client clock.
+  Nothing can now create a stay whose nights are already past, so a stay that
+  reads as "ended" genuinely ended.
 - `notifications.type` has a CHECK constraint listing every valid type. Milestone 4's
   review notifications must extend it in their migration.
 

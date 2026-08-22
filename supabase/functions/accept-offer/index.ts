@@ -32,6 +32,7 @@ import {
 const STATUS_BY_ERROR: Record<AcceptOfferErrorCode, number> = {
   offer_not_found: 404,
   offer_not_pending: 409,
+  offer_expired: 409,
   trip_cancelled: 409,
   not_approved: 403,
 }

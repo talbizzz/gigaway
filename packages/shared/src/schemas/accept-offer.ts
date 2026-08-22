@@ -25,6 +25,7 @@ export type AcceptOfferResponse = z.infer<typeof AcceptOfferResponseSchema>
 export const ACCEPT_OFFER_ERRORS = {
   offer_not_found: 'offer_not_found',
   offer_not_pending: 'offer_not_pending',
+  offer_expired: 'offer_expired',
   trip_cancelled: 'trip_cancelled',
   not_approved: 'not_approved',
 } as const
@@ -42,6 +43,7 @@ export type AcceptOfferErrorCode =
 export const ACCEPT_OFFER_MESSAGES: Record<AcceptOfferErrorCode, string> = {
   offer_not_found: 'That offer is no longer available.',
   offer_not_pending: 'That offer has been withdrawn or has already been answered.',
+  offer_expired: 'Those nights have already passed.',
   trip_cancelled: 'This trip has been cancelled, so the offer no longer applies.',
   not_approved: 'This account is not active, so contact details cannot be shared.',
 }

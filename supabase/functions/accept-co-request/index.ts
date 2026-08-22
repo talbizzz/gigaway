@@ -26,6 +26,7 @@ import {
 const STATUS_BY_ERROR: Record<AcceptCoRequestErrorCode, number> = {
   request_not_found: 404,
   request_not_pending: 409,
+  request_expired: 409,
   trip_cancelled: 409,
   not_approved: 403,
 }

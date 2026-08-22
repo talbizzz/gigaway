@@ -69,7 +69,7 @@ Progress checklist. Detail lives in the `Milestone-N-*.md` files.
 
 ## Milestone 3: Core Loop
 
-> ✅ Code complete. 5 new migrations, 178 pgTAP tests, 57 unit tests, 54 end-to-end
+> ✅ Code complete. 6 new migrations, 194 pgTAP tests, 57 unit tests, 54 end-to-end
 > checks against a live stack. Typecheck, lint and iOS bundle clean.
 > Request → offer → accept → contact revealed works end to end, including the
 > partial-range offer, the sibling auto-decline and the idempotent double-accept.
@@ -92,6 +92,9 @@ Progress checklist. Detail lives in the `Milestone-N-*.md` files.
 - [x] In-app Activity list
 - [x] Host-side discovery of open trips *(added — the proactive offer path had
       no way to find a trip; see the milestone file)*
+- [x] Expiry sweep, and a date guard in the acceptance path *(added — the
+      acceptance path had no date check, so a stale offer could be accepted
+      into a backdated stay; see the milestone file)*
 
 **Outstanding before Milestone 3 can be called done:**
 
