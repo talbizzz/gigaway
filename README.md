@@ -93,7 +93,7 @@ Supabase dashboard through saved SQL views. No real-time subscriptions.
 
 ## Project status
 
-Milestones 1 and 2 are code complete: 12 migrations, 88 pgTAP policy tests, 37
+Milestones 1 to 3 are code complete: 17 migrations, 178 pgTAP policy tests, 57
 unit tests, typecheck and lint clean.
 
 | Area | State |
@@ -102,13 +102,38 @@ unit tests, typecheck and lint clean.
 | Full RLS policy set, tested per policy | Built |
 | Trips and availability, create / edit / cancel | Built |
 | City search and date-overlap matching, with a nearby-city fallback | Built |
-| Requests, offers, contact reveal, push notifications | Not yet — Milestone 3 |
+| Requests, partial-night offers, acceptance, contact reveal | Built |
+| Notification outbox, retry sweep, receipts, email fallback | Built |
+| Push delivery on a real device | Needs an EAS build — see `TODO.md` |
 | Reviews, blocking, reporting, account deletion | Not yet — Milestone 4 |
 | Landing page, store builds, CI | Not yet — Milestone 5 |
 
 So today you can sign up, get verified, build a profile, post trips and
-availability, and see who matches. You cannot yet send a request or reveal a
-contact. Detail lives in `TODO.md` and the `Milestone-N-*.md` files.
+availability, see who matches, ask a colleague for a couch, answer with an offer
+covering however many nights you can manage, and — on acceptance — exchange
+contact details. What you cannot yet do is review anyone or block them. Detail
+lives in `TODO.md` and the `Milestone-N-*.md` files.
+
+### The loop, in the database
+
+The parts worth knowing before reading the code:
+
+- **Acceptance is one transaction.** `accept_offer` is a plpgsql function, not
+  Edge Function code, because it has to set the offer accepted, decline every
+  competing offer, close the originating request, write the contact grant and
+  create the stay together or not at all. The Edge Function around it only
+  authenticates and maps errors. It is idempotent — a double tap returns the
+  existing stay rather than a second one.
+- **Contact reveal is a row-level rule, not a screen.** The contact card asks for
+  the row and shows whatever comes back; `contact_details` returns nothing until a
+  `contact_grants` row links the two profiles. No client code decides whether to
+  reveal a phone number.
+- **Notifications are an outbox, not a push call.** Triggers write rows inside the
+  transaction that caused them; `pg_net` dispatches immediately for latency and a
+  `pg_cron` sweep every minute is the actual guarantee. Rows are claimed with
+  `for update skip locked` and their attempt counted *before* the send, so a
+  dispatcher killed mid-run loses nothing. Payloads carry IDs, names, cities and
+  dates — never a phone number, an email address or a location.
 
 ## Built with
 
@@ -181,7 +206,7 @@ The entire backend runs locally from the migrations in this repository.
   ```
 
   The first run pulls several GB of Docker images. With images cached it takes
-  about three and a half minutes. It applies all 12 migrations and finishes by
+  about three and a half minutes. It applies all 17 migrations and finishes by
   printing a block of URLs and keys — **keep that output**, you need `ANON_KEY`
   in the next step.
 
@@ -344,7 +369,7 @@ If all five hold, your environment is sound.
 pnpm typecheck            # every workspace package
 pnpm lint
 pnpm test                 # vitest, in packages/shared
-supabase test db --local  # pgTAP: 88 policy and function tests
+supabase test db --local  # pgTAP: 178 policy and function tests
 ```
 
 The root `pnpm db:test` script targets a *linked* cloud project and is for

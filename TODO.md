@@ -69,18 +69,39 @@ Progress checklist. Detail lives in the `Milestone-N-*.md` files.
 
 ## Milestone 3: Core Loop
 
-- [ ] Requests schema + send request
-- [ ] Offers with partial date ranges
-- [ ] Proactive offers against open trips
-- [ ] accept-offer Edge Function
-- [ ] Co-accommodation request + accept
-- [ ] contact_grants + contact reveal UI
-- [ ] Push token registration
-- [ ] Notifications outbox + triggers
-- [ ] dispatch-notifications Edge Function
-- [ ] Retry sweep + Expo receipt handling
-- [ ] Email fallback on offer_accepted
-- [ ] In-app Activity list
+> ✅ Code complete. 5 new migrations, 178 pgTAP tests, 57 unit tests, 54 end-to-end
+> checks against a live stack. Typecheck, lint and iOS bundle clean.
+> Request → offer → accept → contact revealed works end to end, including the
+> partial-range offer, the sibling auto-decline and the idempotent double-accept.
+>
+> ⚠️ Three Done Criteria remain unverified because they need hardware or an
+> account this machine does not have — see "Outstanding" below.
+> Plan corrections made during implementation are recorded in the milestone file.
+
+- [x] Requests schema + send request
+- [x] Offers with partial date ranges
+- [x] Proactive offers against open trips
+- [x] accept-offer Edge Function
+- [x] Co-accommodation request + accept
+- [x] contact_grants + contact reveal UI
+- [x] Push token registration
+- [x] Notifications outbox + triggers
+- [x] dispatch-notifications Edge Function
+- [x] Retry sweep + Expo receipt handling
+- [x] Email fallback on offer_accepted
+- [x] In-app Activity list
+- [x] Host-side discovery of open trips *(added — the proactive offer path had
+      no way to find a trip; see the milestone file)*
+
+**Outstanding before Milestone 3 can be called done:**
+
+- [ ] Push arriving on a real device for request, offer and acceptance
+      (needs an EAS dev build with APNs and FCM credentials — remote push does
+      not work in Expo Go, and this is the same blocker as Milestones 1 and 2)
+- [ ] Confirm the offer_accepted fallback email actually sends
+      (the claim-and-stamp logic is under pgTAP, but the Resend call needs
+      RESEND_API_KEY, which arrives in Milestone 5)
+- [ ] Walk the request → offer → accept → contact flow on a device or simulator
 
 ## Milestone 4: Reputation & Safety
 

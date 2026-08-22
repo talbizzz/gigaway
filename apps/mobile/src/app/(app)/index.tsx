@@ -1,8 +1,10 @@
 import { nightCount } from '@gigaway/shared'
+import type { ReactNode } from 'react'
 import * as Clipboard from 'expo-clipboard'
 import { Stack, useRouter } from 'expo-router'
 import { Pressable, Share, StyleSheet, Text, View } from 'react-native'
 
+import { Badge, CountBadge } from '@/components/badge'
 import { Button, TextLink } from '@/components/button'
 import { Callout } from '@/components/callout'
 import { Screen } from '@/components/screen'
@@ -12,9 +14,12 @@ import {
   type Availability,
 } from '@/features/availability/use-availability'
 import { useCreateInvite, useMyInvites, useRemainingQuota } from '@/features/invites/use-invites'
+import { useUnreadCount } from '@/features/notifications/use-notifications'
 import { useMyProfile } from '@/features/profile/use-profile'
+import { useIncomingRequests } from '@/features/requests/use-requests'
 import { useCancelTrip, useMyTrips, type Trip } from '@/features/trips/use-trips'
 import { env } from '@/lib/env'
+import { unregisterPush } from '@/lib/push'
 import { supabase } from '@/lib/supabase'
 import { radius, spacing, typography } from '@/theme/tokens'
 import { useTheme } from '@/theme/use-theme'
@@ -28,6 +33,10 @@ export default function HomeScreen() {
   const invites = useMyInvites()
   const quota = useRemainingQuota()
   const createInvite = useCreateInvite()
+  const unread = useUnreadCount()
+  const incoming = useIncomingRequests()
+
+  const waitingOnYou = (incoming.data ?? []).filter((row) => row.status === 'pending').length
 
   const activeTrips = (trips.data ?? []).filter((trip) => trip.status === 'active')
   const activeAvailability = (availability.data ?? []).filter((row) => row.status === 'active')
@@ -42,6 +51,30 @@ export default function HomeScreen() {
       <Text style={[typography.title, { color: theme.text }]}>
         Hello, {profile?.display_name?.split(' ')[0] ?? 'there'}
       </Text>
+
+      {/*
+        The two entry points into the loop. Requests comes first when somebody
+        is actually waiting on an answer — a colleague who asked and heard
+        nothing is the worst outcome this product has.
+      */}
+      <View style={styles.entries}>
+        <EntryRow
+          label="Requests"
+          detail={
+            waitingOnYou > 0
+              ? `${waitingOnYou} waiting on you`
+              : 'Asks and offers, sent and received'
+          }
+          badge={waitingOnYou > 0 ? <Badge label={String(waitingOnYou)} tone="accent" /> : null}
+          onPress={() => router.push('/requests')}
+        />
+        <EntryRow
+          label="Activity"
+          detail={unread > 0 ? 'New since you last looked' : 'Everything that has happened'}
+          badge={<CountBadge count={unread} />}
+          onPress={() => router.push('/activity')}
+        />
+      </View>
 
       {/* ── Trips ───────────────────────────────────────────────────────── */}
       <View style={styles.section}>
@@ -78,6 +111,16 @@ export default function HomeScreen() {
           variant="secondary"
           onPress={() => router.push('/availability/new')}
         />
+
+        {/* The host's half of discovery. Only worth showing once there are
+            nights to match against. */}
+        {activeAvailability.length > 0 ? (
+          <Button
+            label="See who's coming your way"
+            variant="ghost"
+            onPress={() => router.push('/travellers')}
+          />
+        ) : null}
       </View>
 
       {/* ── Invites ─────────────────────────────────────────────────────── */}
@@ -119,8 +162,51 @@ export default function HomeScreen() {
       </View>
 
       <Button label="Your profile" variant="ghost" onPress={() => router.push('/profile')} />
-      <Button label="Sign out" variant="ghost" onPress={() => supabase.auth.signOut()} />
+      <Button
+        label="Sign out"
+        variant="ghost"
+        onPress={async () => {
+          // Release this device's push token first. Otherwise the next person
+          // to sign in on a shared or resold phone keeps receiving the
+          // previous member's notifications.
+          await unregisterPush()
+          await supabase.auth.signOut()
+        }}
+      />
     </Screen>
+  )
+}
+
+function EntryRow({
+  label,
+  detail,
+  badge,
+  onPress,
+}: {
+  label: string
+  detail: string
+  badge?: ReactNode
+  onPress: () => void
+}) {
+  const theme = useTheme()
+
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={`${label} — ${detail}`}
+      onPress={onPress}
+      style={({ pressed }) => [
+        styles.row,
+        { backgroundColor: theme.bgSubtle, borderColor: theme.border },
+        pressed && styles.pressed,
+      ]}
+    >
+      <View style={styles.rowText}>
+        <Text style={[typography.bodyStrong, { color: theme.text }]}>{label}</Text>
+        <Text style={[typography.caption, { color: theme.textMuted }]}>{detail}</Text>
+      </View>
+      {badge}
+    </Pressable>
   )
 }
 
@@ -184,6 +270,7 @@ function AvailabilityRow({ availability }: { availability: Availability }) {
 
 const styles = StyleSheet.create({
   section: { gap: spacing.md },
+  entries: { gap: spacing.sm },
   row: {
     flexDirection: 'row',
     alignItems: 'center',

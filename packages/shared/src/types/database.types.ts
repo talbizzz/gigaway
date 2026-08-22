@@ -352,6 +352,170 @@ export type Database = {
           },
         ]
       }
+      notifications: {
+        Row: {
+          attempts: number
+          created_at: string
+          email_fallback_sent_at: string | null
+          expo_receipt_id: string | null
+          id: string
+          last_error: string | null
+          next_attempt_at: string
+          payload: Json
+          profile_id: string
+          read_at: string | null
+          receipt_checked_at: string | null
+          receipt_ok: boolean | null
+          sent_at: string | null
+          type: string
+        }
+        Insert: {
+          attempts?: number
+          created_at?: string
+          email_fallback_sent_at?: string | null
+          expo_receipt_id?: string | null
+          id?: string
+          last_error?: string | null
+          next_attempt_at?: string
+          payload?: Json
+          profile_id: string
+          read_at?: string | null
+          receipt_checked_at?: string | null
+          receipt_ok?: boolean | null
+          sent_at?: string | null
+          type: string
+        }
+        Update: {
+          attempts?: number
+          created_at?: string
+          email_fallback_sent_at?: string | null
+          expo_receipt_id?: string | null
+          id?: string
+          last_error?: string | null
+          next_attempt_at?: string
+          payload?: Json
+          profile_id?: string
+          read_at?: string | null
+          receipt_checked_at?: string | null
+          receipt_ok?: boolean | null
+          sent_at?: string | null
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notifications_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notifications_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "v_recent_signups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      offers: {
+        Row: {
+          auto_declined: boolean
+          city_id: string | null
+          created_at: string
+          end_date: string
+          from_profile: string
+          id: string
+          message: string | null
+          request_id: string | null
+          responded_at: string | null
+          start_date: string
+          status: Database["public"]["Enums"]["offer_status"]
+          to_profile: string
+          trip_id: string
+        }
+        Insert: {
+          auto_declined?: boolean
+          city_id?: string | null
+          created_at?: string
+          end_date: string
+          from_profile: string
+          id?: string
+          message?: string | null
+          request_id?: string | null
+          responded_at?: string | null
+          start_date: string
+          status?: Database["public"]["Enums"]["offer_status"]
+          to_profile: string
+          trip_id: string
+        }
+        Update: {
+          auto_declined?: boolean
+          city_id?: string | null
+          created_at?: string
+          end_date?: string
+          from_profile?: string
+          id?: string
+          message?: string | null
+          request_id?: string | null
+          responded_at?: string | null
+          start_date?: string
+          status?: Database["public"]["Enums"]["offer_status"]
+          to_profile?: string
+          trip_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "offers_city_id_fkey"
+            columns: ["city_id"]
+            isOneToOne: false
+            referencedRelation: "cities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "offers_from_profile_fkey"
+            columns: ["from_profile"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "offers_from_profile_fkey"
+            columns: ["from_profile"]
+            isOneToOne: false
+            referencedRelation: "v_recent_signups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "offers_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "requests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "offers_to_profile_fkey"
+            columns: ["to_profile"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "offers_to_profile_fkey"
+            columns: ["to_profile"]
+            isOneToOne: false
+            referencedRelation: "v_recent_signups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "offers_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: false
+            referencedRelation: "trips"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           bio: string | null
@@ -427,6 +591,199 @@ export type Database = {
             columns: ["invited_by"]
             isOneToOne: false
             referencedRelation: "v_recent_signups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      push_tokens: {
+        Row: {
+          created_at: string
+          id: string
+          invalidated_at: string | null
+          last_seen_at: string
+          platform: string
+          profile_id: string
+          token: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          invalidated_at?: string | null
+          last_seen_at?: string
+          platform: string
+          profile_id: string
+          token: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          invalidated_at?: string | null
+          last_seen_at?: string
+          platform?: string
+          profile_id?: string
+          token?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "push_tokens_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "push_tokens_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "v_recent_signups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      requests: {
+        Row: {
+          created_at: string
+          from_profile: string
+          id: string
+          kind: Database["public"]["Enums"]["request_kind"]
+          message: string | null
+          responded_at: string | null
+          status: Database["public"]["Enums"]["request_status"]
+          to_profile: string
+          trip_id: string
+        }
+        Insert: {
+          created_at?: string
+          from_profile: string
+          id?: string
+          kind: Database["public"]["Enums"]["request_kind"]
+          message?: string | null
+          responded_at?: string | null
+          status?: Database["public"]["Enums"]["request_status"]
+          to_profile: string
+          trip_id: string
+        }
+        Update: {
+          created_at?: string
+          from_profile?: string
+          id?: string
+          kind?: Database["public"]["Enums"]["request_kind"]
+          message?: string | null
+          responded_at?: string | null
+          status?: Database["public"]["Enums"]["request_status"]
+          to_profile?: string
+          trip_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "requests_from_profile_fkey"
+            columns: ["from_profile"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "requests_from_profile_fkey"
+            columns: ["from_profile"]
+            isOneToOne: false
+            referencedRelation: "v_recent_signups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "requests_to_profile_fkey"
+            columns: ["to_profile"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "requests_to_profile_fkey"
+            columns: ["to_profile"]
+            isOneToOne: false
+            referencedRelation: "v_recent_signups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "requests_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: false
+            referencedRelation: "trips"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      stays: {
+        Row: {
+          city_id: string
+          created_at: string
+          end_date: string
+          guest_id: string
+          host_id: string
+          id: string
+          offer_id: string
+          start_date: string
+        }
+        Insert: {
+          city_id: string
+          created_at?: string
+          end_date: string
+          guest_id: string
+          host_id: string
+          id?: string
+          offer_id: string
+          start_date: string
+        }
+        Update: {
+          city_id?: string
+          created_at?: string
+          end_date?: string
+          guest_id?: string
+          host_id?: string
+          id?: string
+          offer_id?: string
+          start_date?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stays_city_id_fkey"
+            columns: ["city_id"]
+            isOneToOne: false
+            referencedRelation: "cities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stays_guest_id_fkey"
+            columns: ["guest_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stays_guest_id_fkey"
+            columns: ["guest_id"]
+            isOneToOne: false
+            referencedRelation: "v_recent_signups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stays_host_id_fkey"
+            columns: ["host_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stays_host_id_fkey"
+            columns: ["host_id"]
+            isOneToOne: false
+            referencedRelation: "v_recent_signups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stays_offer_id_fkey"
+            columns: ["offer_id"]
+            isOneToOne: true
+            referencedRelation: "offers"
             referencedColumns: ["id"]
           },
         ]
@@ -592,6 +949,19 @@ export type Database = {
         }
         Relationships: []
       }
+      v_notification_health: {
+        Row: {
+          confirmed: number | null
+          emailed: number | null
+          exhausted: number | null
+          failing: number | null
+          latest: string | null
+          sent: number | null
+          total: number | null
+          type: string | null
+        }
+        Relationships: []
+      }
       v_pending_verifications: {
         Row: {
           application_id: string | null
@@ -622,18 +992,90 @@ export type Database = {
       }
     }
     Functions: {
+      accept_co_request: {
+        Args: { p_request_id: string; p_user: string }
+        Returns: Json
+      }
+      accept_offer: {
+        Args: { p_offer_id: string; p_user: string }
+        Returns: Json
+      }
       call_edge_function: {
         Args: { fn_name: string; payload?: Json }
         Returns: number
+      }
+      claim_notification_emails: {
+        Args: { p_limit?: number }
+        Returns: {
+          email: string
+          id: string
+          payload: Json
+          profile_id: string
+        }[]
+      }
+      claim_notification_receipts: {
+        Args: { p_limit?: number }
+        Returns: {
+          attempts: number
+          created_at: string
+          email_fallback_sent_at: string | null
+          expo_receipt_id: string | null
+          id: string
+          last_error: string | null
+          next_attempt_at: string
+          payload: Json
+          profile_id: string
+          read_at: string | null
+          receipt_checked_at: string | null
+          receipt_ok: boolean | null
+          sent_at: string | null
+          type: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "notifications"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      claim_notifications: {
+        Args: { p_limit?: number }
+        Returns: {
+          attempts: number
+          created_at: string
+          email_fallback_sent_at: string | null
+          expo_receipt_id: string | null
+          id: string
+          last_error: string | null
+          next_attempt_at: string
+          payload: Json
+          profile_id: string
+          read_at: string | null
+          receipt_checked_at: string | null
+          receipt_ok: boolean | null
+          sent_at: string | null
+          type: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "notifications"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       config_int: { Args: { config_key: string }; Returns: number }
       current_status: {
         Args: never
         Returns: Database["public"]["Enums"]["profile_status"]
       }
+      display_name_of: { Args: { p_profile_id: string }; Returns: string }
       distance_km: {
         Args: { lat1: number; lat2: number; lon1: number; lon2: number }
         Returns: number
+      }
+      enqueue_notification: {
+        Args: { p_payload?: Json; p_profile_id: string; p_type: string }
+        Returns: string
       }
       expire_verification_docs: { Args: never; Returns: number }
       generate_invite_code: { Args: never; Returns: string }
@@ -641,6 +1083,27 @@ export type Database = {
       is_approved: { Args: never; Returns: boolean }
       is_blocked: { Args: { other: string }; Returns: boolean }
       live_invite_count: { Args: never; Returns: number }
+      notification_trip_payload: { Args: { p_trip_id: string }; Returns: Json }
+      offerable_windows: {
+        Args: { p_trip_id: string }
+        Returns: {
+          availability_id: string
+          city_id: string
+          city_name: string
+          distance_km: number
+          max_nights: number
+          window_end: string
+          window_start: string
+        }[]
+      }
+      record_notification_receipts: {
+        Args: { p_results: Json }
+        Returns: number
+      }
+      record_notification_results: {
+        Args: { p_results: Json }
+        Returns: number
+      }
       redeem_invite: { Args: { p_code: string; p_user: string }; Returns: Json }
       remaining_invite_quota: { Args: never; Returns: number }
       search_cities: {
@@ -654,15 +1117,52 @@ export type Database = {
         }[]
       }
       search_matches: { Args: { p_trip_id: string }; Returns: Json }
+      search_open_trips: {
+        Args: never
+        Returns: {
+          already_asked: boolean
+          already_offered: boolean
+          city_id: string
+          city_name: string
+          discipline: string
+          display_name: string
+          distance_km: number
+          needs: string[]
+          note: string
+          overlap_end: string
+          overlap_nights: number
+          overlap_start: string
+          photo_path: string
+          profile_id: string
+          specialisation: string
+          trip_end: string
+          trip_id: string
+          trip_start: string
+        }[]
+      }
+      trip_request_count: { Args: { p_trip_id: string }; Returns: number }
     }
     Enums: {
       availability_status: "active" | "cancelled"
+      offer_status:
+        | "pending"
+        | "accepted"
+        | "declined"
+        | "withdrawn"
+        | "expired"
       profile_status:
         | "pending"
         | "approved"
         | "rejected"
         | "suspended"
         | "deleted"
+      request_kind: "host_stay" | "co_accommodation"
+      request_status:
+        | "pending"
+        | "accepted"
+        | "declined"
+        | "withdrawn"
+        | "expired"
       trip_status: "active" | "cancelled" | "completed"
       verification_status: "pending" | "approved" | "rejected" | "docs_expired"
     }
@@ -796,6 +1296,7 @@ export const Constants = {
   public: {
     Enums: {
       availability_status: ["active", "cancelled"],
+      offer_status: ["pending", "accepted", "declined", "withdrawn", "expired"],
       profile_status: [
         "pending",
         "approved",
@@ -803,8 +1304,17 @@ export const Constants = {
         "suspended",
         "deleted",
       ],
+      request_kind: ["host_stay", "co_accommodation"],
+      request_status: [
+        "pending",
+        "accepted",
+        "declined",
+        "withdrawn",
+        "expired",
+      ],
       trip_status: ["active", "cancelled", "completed"],
       verification_status: ["pending", "approved", "rejected", "docs_expired"],
     },
   },
 } as const
+

@@ -1,11 +1,13 @@
-import { nightCount } from '@gigaway/shared'
+import { formatDateRange, nightCount } from '@gigaway/shared'
 import { Image } from 'expo-image'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useEffect } from 'react'
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native'
 
-import { Button } from '@/components/button'
+import { Badge } from '@/components/badge'
+import { Button, TextLink } from '@/components/button'
 import { Callout } from '@/components/callout'
+import { PersonRow } from '@/components/person'
 import { Screen } from '@/components/screen'
 import {
   isCompletelyEmpty,
@@ -13,7 +15,14 @@ import {
   type HostMatch,
   type TravellerMatch,
 } from '@/features/matches/use-matches'
+import {
+  useAcceptOffer,
+  useDeclineOffer,
+  useOffersForTrip,
+  type Offer,
+} from '@/features/offers/use-offers'
 import { avatarUrl } from '@/features/profile/use-update-profile'
+import { useRequestsForTrip, useSendRequest } from '@/features/requests/use-requests'
 import { useTrip } from '@/features/trips/use-trips'
 import { track } from '@/lib/analytics'
 import { radius, spacing, typography } from '@/theme/tokens'
@@ -47,6 +56,18 @@ export default function TripMatchesScreen() {
   const { id } = useLocalSearchParams<{ id: string }>()
   const { data: trip } = useTrip(id)
   const matches = useMatches(id)
+  const offers = useOffersForTrip(id)
+  const sentRequests = useRequestsForTrip(id)
+
+  // Who has already been asked, so a host's button reads "Asked" rather than
+  // letting the user tap into a unique-constraint violation.
+  const askedProfiles = new Set(
+    (sentRequests.data ?? [])
+      .filter((request) => request.status !== 'withdrawn')
+      .map((request) => request.to_profile),
+  )
+  const pendingOffers = (offers.data ?? []).filter((offer) => offer.status === 'pending')
+  const acceptedOffer = (offers.data ?? []).find((offer) => offer.status === 'accepted')
 
   const tripNights = trip ? nightCount({ start: trip.start_date, end: trip.end_date }) : 0
 
@@ -87,6 +108,41 @@ export default function TripMatchesScreen() {
         </Text>
       </View>
 
+      {/* ── Offers ──────────────────────────────────────────────────────────
+          Above everything else: an offer is a person waiting on an answer,
+          which outranks a list of people who have not replied yet. */}
+      {acceptedOffer ? (
+        <View style={styles.section}>
+          <Callout tone="success" title="You have a couch">
+            {acceptedOffer.host?.display_name} is hosting you for{' '}
+            {nightCount({ start: acceptedOffer.start_date, end: acceptedOffer.end_date })}{' '}
+            night
+            {nightCount({ start: acceptedOffer.start_date, end: acceptedOffer.end_date }) === 1
+              ? ''
+              : 's'}
+            , {formatDateRange(acceptedOffer.start_date, acceptedOffer.end_date)}.
+          </Callout>
+          <Button
+            label="See their contact details"
+            onPress={() => router.push(`/contact/${acceptedOffer.from_profile}`)}
+          />
+        </View>
+      ) : pendingOffers.length > 0 ? (
+        <View style={styles.section}>
+          <Text style={[typography.heading, { color: theme.text }]}>
+            {pendingOffers.length === 1 ? 'An offer for you' : `${pendingOffers.length} offers for you`}
+          </Text>
+          {pendingOffers.length > 1 ? (
+            <Text style={[typography.caption, { color: theme.textMuted }]}>
+              Accepting one lets the others know their nights are free again.
+            </Text>
+          ) : null}
+          {pendingOffers.map((offer) => (
+            <OfferCard key={offer.id} offer={offer} tripNights={tripNights} />
+          ))}
+        </View>
+      ) : null}
+
       {/* ── Hosts ───────────────────────────────────────────────────────── */}
       {hosts.length > 0 ? (
         <View style={styles.section}>
@@ -94,7 +150,13 @@ export default function TripMatchesScreen() {
             {hosts.length} {hosts.length === 1 ? 'host' : 'hosts'} free during your dates
           </Text>
           {hosts.map((host) => (
-            <HostCard key={host.availabilityId} host={host} tripNights={tripNights} />
+            <HostCard
+              key={host.availabilityId}
+              host={host}
+              tripNights={tripNights}
+              tripId={id}
+              asked={askedProfiles.has(host.profile.id)}
+            />
           ))}
         </View>
       ) : null}
@@ -107,7 +169,12 @@ export default function TripMatchesScreen() {
             Artists heading to {trip.cities?.name} the same week. You might split a place.
           </Text>
           {travellers.map((traveller) => (
-            <TravellerCard key={traveller.tripId} traveller={traveller} />
+            <TravellerCard
+              key={traveller.tripId}
+              traveller={traveller}
+              tripId={id}
+              asked={askedProfiles.has(traveller.profile.id)}
+            />
           ))}
         </View>
       ) : null}
@@ -122,7 +189,13 @@ export default function TripMatchesScreen() {
               : 'A little further out, if the dates above do not work.'}
           </Text>
           {nearbyHosts.map((host) => (
-            <HostCard key={host.availabilityId} host={host} tripNights={tripNights} />
+            <HostCard
+              key={host.availabilityId}
+              host={host}
+              tripNights={tripNights}
+              tripId={id}
+              asked={askedProfiles.has(host.profile.id)}
+            />
           ))}
         </View>
       ) : null}
@@ -149,16 +222,23 @@ export default function TripMatchesScreen() {
         />
       ) : null}
 
-      <Callout tone="neutral">
-        Requesting a stay arrives in the next release. For now this shows you who is there
-        and when.
-      </Callout>
     </Screen>
   )
 }
 
-function HostCard({ host, tripNights }: { host: HostMatch; tripNights: number }) {
+function HostCard({
+  host,
+  tripNights,
+  tripId,
+  asked,
+}: {
+  host: HostMatch
+  tripNights: number
+  tripId: string
+  asked: boolean
+}) {
   const theme = useTheme()
+  const sendRequest = useSendRequest()
   const photo = avatarUrl(host.profile.photoPath)
   const partial = host.overlapNights < tripNights
 
@@ -207,12 +287,49 @@ function HostCard({ host, tripNights }: { host: HostMatch; tripNights: number })
           />
         ))}
       </View>
+
+      {/*
+        One tap, no form. Asking is the action this product needs to happen
+        most often, and putting a message box in the way turns it into a small
+        piece of writing that people put off. The host can be told more later,
+        on WhatsApp, once there is something to arrange.
+      */}
+      {asked ? (
+        <View style={styles.action}>
+          <Badge label="Asked" tone="accent" />
+          <Text style={[typography.caption, { color: theme.textMuted }]}>
+            They will see it next time they open the app.
+          </Text>
+        </View>
+      ) : (
+        <Button
+          label="Ask about these nights"
+          onPress={() =>
+            sendRequest.mutate({
+              kind: 'host_stay',
+              tripId,
+              toProfile: host.profile.id,
+            })
+          }
+          loading={sendRequest.isPending}
+          style={styles.actionButton}
+        />
+      )}
     </View>
   )
 }
 
-function TravellerCard({ traveller }: { traveller: TravellerMatch }) {
+function TravellerCard({
+  traveller,
+  tripId,
+  asked,
+}: {
+  traveller: TravellerMatch
+  tripId: string
+  asked: boolean
+}) {
   const theme = useTheme()
+  const sendRequest = useSendRequest()
   const photo = avatarUrl(traveller.profile.photoPath)
 
   return (
@@ -241,6 +358,80 @@ function TravellerCard({ traveller }: { traveller: TravellerMatch }) {
           Looking for {traveller.needs.map((need) => NEED_LABELS[need] ?? need).join(', ')}
         </Text>
       ) : null}
+
+      {/*
+        Co-accommodation has no offer step: neither of them has a couch, so
+        there is nothing to negotiate here. Accepting reveals contact and they
+        book something together off-platform.
+      */}
+      {asked ? (
+        <View style={styles.action}>
+          <Badge label="Asked" tone="accent" />
+        </View>
+      ) : (
+        <Button
+          label="Ask about splitting a place"
+          variant="secondary"
+          onPress={() =>
+            sendRequest.mutate({
+              kind: 'co_accommodation',
+              tripId,
+              toProfile: traveller.profile.id,
+            })
+          }
+          loading={sendRequest.isPending}
+          style={styles.actionButton}
+        />
+      )}
+    </View>
+  )
+}
+
+/**
+ * An offer waiting on an answer.
+ *
+ * The nights lead, and a partial offer is stated as a gain — "4 of your 7
+ * nights" — never as a shortfall. Accepting is deliberately one clear primary
+ * action; it is the moment the whole product exists for.
+ */
+function OfferCard({ offer, tripNights }: { offer: Offer; tripNights: number }) {
+  const theme = useTheme()
+  const router = useRouter()
+  const acceptOffer = useAcceptOffer()
+  const declineOffer = useDeclineOffer()
+
+  const nights = nightCount({ start: offer.start_date, end: offer.end_date })
+  const partial = nights < tripNights
+
+  return (
+    <View style={[styles.card, { backgroundColor: theme.bgSubtle, borderColor: theme.accent }]}>
+      <PersonRow person={offer.host} />
+
+      <Text style={[typography.bodyStrong, { color: theme.accent }]}>
+        {partial ? `${nights} of your ${tripNights} nights` : `All ${tripNights} nights`}
+      </Text>
+      <Text style={[typography.caption, { color: theme.textMuted }]}>
+        {formatDateRange(offer.start_date, offer.end_date)}
+        {offer.cities?.name ? ` · ${offer.cities.name}` : ''}
+      </Text>
+
+      {offer.message ? (
+        <Text style={[typography.body, { color: theme.text, marginTop: spacing.xs }]}>
+          “{offer.message}”
+        </Text>
+      ) : null}
+
+      <Button
+        label="Accept"
+        onPress={() =>
+          acceptOffer.mutate(offer.id, {
+            onSuccess: () => router.push(`/contact/${offer.from_profile}`),
+          })
+        }
+        loading={acceptOffer.isPending}
+        style={styles.actionButton}
+      />
+      <TextLink label="No thanks" onPress={() => declineOffer.mutate(offer.id)} />
     </View>
   )
 }
@@ -290,6 +481,8 @@ const styles = StyleSheet.create({
   avatar: { width: 44, height: 44, borderRadius: radius.pill, overflow: 'hidden' },
   avatarImage: { width: '100%', height: '100%' },
   tags: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, marginTop: spacing.sm },
+  action: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginTop: spacing.md },
+  actionButton: { marginTop: spacing.md },
   tag: {
     paddingHorizontal: spacing.sm,
     paddingVertical: 4,

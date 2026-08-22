@@ -1,5 +1,13 @@
 # Milestone 3: Core Loop
 
+> **Plan updated during implementation (session 2026-08-20).** Nine corrections,
+> each recorded inline in the section it affects and summarised under
+> "Corrections made during implementation" at the foot of this file. The
+> largest are: the acceptance transaction lives in SQL rather than in the Edge
+> Function, offer containment reaches nearby cities so Milestone 2's cold-start
+> fallback is not a dead end, and a host-side discovery screen was added
+> because the proactive-offer path had no way to find a trip.
+
 ## Goal
 
 A traveller can request a stay, a host can offer part or all of those nights, and on
@@ -81,6 +89,20 @@ everything after is protection. If time is short elsewhere, protect this.
     "You're offering 3 of the 7 nights she needs" — never as a limitation.
   - The offered range must fall entirely within the intersection of the trip and the
     host's availability. Enforce with a trigger, not only in the client.
+  - **CORRECTED — nearby cities count.** Milestone 2's match screen surfaces hosts
+    within 100 km when the destination is thin, and a traveller can request them.
+    A containment rule demanding availability in the trip's city *exactly* would
+    have made those hosts unable to answer, dead-ending the one path built to
+    solve cold start. Availability in any city within `nearby_radius_km` (seeded
+    to 100, matching `search_matches`) therefore satisfies containment.
+  - **ADDED — `offers.city_id`,** stamped by the containment trigger from the
+    availability row that covers the offered nights. For a nearby-city host that
+    is not the trip's destination, and it is where the guest actually sleeps — so
+    it is what `stays.city_id` records.
+  - **ADDED — `offerable_windows(trip_id)`,** an invoker-rights SQL function
+    returning the nights this host could legally offer. The offer form bounds its
+    date picker with it rather than restating the containment rule in TypeScript,
+    so the form and the trigger cannot drift apart.
   - `request_id` is nullable: a host may offer proactively against an open trip they found
     themselves, with no prior request.
   - A trip may have several pending offers. **Accepting one automatically declines the
@@ -90,7 +112,14 @@ everything after is protection. If time is short elsewhere, protect this.
 
 - **Responsibility:** the single most important transaction in the product.
 - **Auth:** user JWT; caller must be the offer's `to_profile` (the traveller).
-- **Steps, one transaction as `service_role`:**
+- **CORRECTED:** the transaction is a plpgsql function, `accept_offer(p_offer_id,
+  p_user)`, and the Edge Function is a thin wrapper that authenticates,
+  validates and maps errors. A supabase-js handler cannot open a transaction
+  across four tables, so "one transaction as service_role" was not achievable in
+  Deno — and this milestone's own Known Risks insist atomicity is non-negotiable.
+  This follows the convention `redeem_invite` set in Milestone 1. Same for
+  `accept_co_request`.
+- **Steps, one transaction:**
   1. `select ... for update` the offer; reject unless `status = 'pending'`.
   2. Reject if the trip is cancelled or either profile is not `approved`.
   3. Set the offer `accepted`, `responded_at = now()`.
@@ -143,6 +172,13 @@ everything after is protection. If time is short elsewhere, protect this.
 - **Design:**
   - Database triggers on `requests`, `offers` and the accept functions insert rows into
     `notifications`. **Nothing is ever pushed directly from the client.**
+  - **CLARIFIED:** every type except `co_request_accepted` is produced by a
+    trigger, including `offer_accepted`, `offer_confirmed` and the
+    `offer_declined` rows for auto-declined siblings — `accept_offer` sets
+    statuses and the triggers do the rest. Keeping generation on the tables
+    means a row written by a future screen, a backfill or the dashboard notifies
+    identically. `co_request_accepted` is enqueued directly by
+    `accept_co_request`, because no status trigger covers acceptance.
   - An `after insert` trigger calls `pg_net.http_post` to `dispatch-notifications` for low
     latency.
   - `pg_cron` runs the same function every minute for rows where `sent_at is null` and
@@ -152,20 +188,50 @@ everything after is protection. If time is short elsewhere, protect this.
   - **Email fallback:** on each sweep, any `offer_accepted` row older than 15 minutes with
     no confirmed receipt and no `email_fallback_sent_at` triggers a Resend email, and the
     column is stamped. Only this one type escalates to email.
+  - **ADDED — `notifications.receipt_ok boolean`.** "No confirmed receipt" needed
+    something to key off: handed to Expo is not the same as delivered, and
+    `sent_at` only records the former. Null until the receipt is read, then true
+    or false. `email_fallback_sent_at` is stamped at *claim* time, so a Resend
+    outage costs one missed email rather than the same email every minute.
 
 #### 8. `dispatch-notifications` Edge Function
 
-- **Auth:** system only — a shared secret header (`X-Dispatch-Secret`) checked against a
-  function secret. Never callable with a user JWT.
+- **Auth:** system only. **CORRECTED:** reuses `requireServiceRole` and
+  `call_edge_function`, the Milestone 1 convention already guarding
+  `purge-verification-docs` and `moderation-digest`, instead of a second
+  `X-Dispatch-Secret`. The service role key is already a secret held in Vault, so
+  a separate one added a value to keep in sync in two places and bought nothing.
+  The requirement is met exactly: the guard compares the bearer token to the
+  service role key, which no user JWT can ever satisfy.
 - **Behaviour:** claim a batch of up to 100 due rows (`for update skip locked`), group by
   profile, resolve live tokens, POST to `https://exp.host/--/api/v2/push/send` in chunks of
   100, record `expo_receipt_id`, stamp `sent_at` or increment `attempts` with `last_error`.
+
+#### 8b. Host-side discovery — `search_open_trips` (ADDED)
+
+- **Why it was added:** the Done Criteria require a proactive offer against an
+  open trip, and the schema supported one, but nothing in the app let a host
+  *find* a trip. `search_matches` only answers "who is in the city I am
+  travelling to". Without its mirror, a host could only ever wait to be asked,
+  and the proactive path was reachable only by deep link.
+- **Shape:** invoker-rights SQL, like `search_matches`, so RLS still applies.
+  Returns active trips overlapping any of this member's active availability, in
+  the same city or within `nearby_radius_km` — the same reach the containment
+  trigger allows, so every trip listed can actually be offered on.
+- Carries `already_offered` and `already_asked` so the list can show state
+  rather than letting a host tap into a duplicate.
+- Surfaced as `(app)/travellers.tsx`, reached from "Your couch" on the home
+  screen, and only once the member has posted availability to match against.
 
 #### 9. In-app Activity list
 
 - **Responsibility:** make a missed push recoverable.
 - A single reverse-chronological list over the user's `notifications`, with `read_at`
-  driving an unread badge on the tab. Each row deep-links to the relevant trip, offer or
+  driving an unread badge. **CORRECTED — the badge is on a home-screen entry row,
+  not a tab.** Milestones 1 and 2 built the app on a plain `Stack`; there is no
+  tab bar, and introducing one mid-milestone would restructure navigation that
+  Milestone 5's deep links also touch. Opening the screen marks everything read,
+  rather than making the user tap each row to clear a badge. Each row deep-links to the relevant trip, offer or
   contact card. This is a plain list over data that already exists — resist adding
   filtering or grouping.
 
@@ -203,6 +269,11 @@ create table offers (
   trip_id       uuid not null references trips(id) on delete cascade,
   from_profile  uuid not null references profiles(id) on delete cascade, -- host
   to_profile    uuid not null references profiles(id) on delete cascade, -- traveller
+  city_id       uuid references cities(id),   -- ADDED: set by the containment
+                                              -- trigger from the availability row
+                                              -- that covers these nights; for a
+                                              -- nearby host this is where the
+                                              -- guest actually sleeps
   start_date    date not null,
   end_date      date not null,
   message       text check (char_length(message) <= 500),
@@ -258,6 +329,9 @@ create table notifications (
   last_error             text,
   expo_receipt_id        text,
   receipt_checked_at     timestamptz,
+  receipt_ok             boolean,      -- ADDED: null until the receipt is read.
+                                       -- Handed to Expo is not delivered, and the
+                                       -- email fallback keys off this.
   email_fallback_sent_at timestamptz,
   read_at                timestamptz
 );
@@ -279,7 +353,7 @@ payloads travel through Apple's and Google's infrastructure and appear on lock s
 |---|---|---|
 | `requests` | select | `from_profile = auth.uid()` or `to_profile = auth.uid()` |
 | `requests` | insert | `from_profile = auth.uid()`, `is_approved()`, caller owns `trip_id`, trip is `active`, `not is_blocked(to_profile)`, target is `approved`, and fewer than 10 requests exist for this trip |
-| `requests` | update | `from_profile = auth.uid()` and only to `withdrawn`; acceptance goes through the Edge Function |
+| `requests` | update | `from_profile = auth.uid()` and only to `withdrawn`; **or** `to_profile = auth.uid()` and only to `declined` (ADDED — the recipient of a co-accommodation request has no other way to say no); acceptance goes through the Edge Function |
 | `offers` | select | `from_profile = auth.uid()` or `to_profile = auth.uid()` |
 | `offers` | insert | `from_profile = auth.uid()`, `is_approved()`, `not is_blocked(to_profile)`, range inside trip ∩ availability (trigger-enforced) |
 | `offers` | update | `from_profile = auth.uid()` and only to `withdrawn`, or `to_profile = auth.uid()` and only to `declined` |
@@ -287,7 +361,7 @@ payloads travel through Apple's and Google's infrastructure and appear on lock s
 | `stays` | insert/update/delete | none for clients |
 | `push_tokens` | all | `profile_id = auth.uid()` |
 | `notifications` | select | `profile_id = auth.uid()` |
-| `notifications` | update | `profile_id = auth.uid()` and **only `read_at`** |
+| `notifications` | update | `profile_id = auth.uid()` and **only `read_at`**, enforced by a guard trigger — the policy picks the row, not the columns |
 | `notifications` | insert/delete | none for clients |
 
 ### API Contracts
@@ -348,6 +422,13 @@ New PostHog events: `request_sent`, `offer_sent`, `offer_accepted`, `contact_rev
 
 ## Implementation Order
 
+> **Deviation, with reason.** Steps 7 (`push_tokens` + `notifications`) and 9
+> (dispatch wiring) were built before steps 2–6's UI. `accept_offer` had to
+> become a SQL function to be genuinely atomic, and it enqueues into the outbox
+> — so the outbox table and its triggers had to exist first. The database half
+> of the loop was therefore completed and tested end to end before any screen
+> was written; the order below is otherwise as planned.
+
 1. **Migration: `requests` + `offers` + `stays` + policies + the range-containment
    trigger**, with pgTAP first — including "a third party can read neither the request nor
    the offer".
@@ -368,23 +449,88 @@ New PostHog events: `request_sent`, `offer_sent`, `offer_accepted`, `contact_rev
 
 ## Done Criteria
 
-- [ ] A traveller can send a request from the match screen in one tap
-- [ ] A host sees incoming requests and can offer a **subset** of the requested nights
-- [ ] The offer form rejects a range outside trip ∩ availability, at the database level
-- [ ] A host can make a proactive offer against an open trip with no prior request
-- [ ] Accepting an offer auto-declines all other pending offers on that trip
-- [ ] Accepting the same offer twice returns 200 and creates exactly one `stays` row
-- [ ] Contact details appear for both parties **only** after acceptance
-- [ ] pgTAP: a third profile selecting the pair's `contact_details` gets zero rows
-- [ ] pgTAP: a third profile selecting their `requests` or `offers` gets zero rows
-- [ ] Co-accommodation request → accept → contact revealed, with no offer step and no stay
-- [ ] Push notifications arrive on a **real device** for request, offer and acceptance
-- [ ] Killing `dispatch-notifications` mid-run leaves rows unsent and the sweep recovers them
-- [ ] A `DeviceNotRegistered` receipt invalidates that token and does not block others
-- [ ] With push suppressed, an `offer_accepted` triggers a fallback email within ~15 minutes
-- [ ] Activity list shows every notification with a working unread badge
-- [ ] No push payload anywhere contains a phone number, email address or exact location
-- [ ] Push permission is requested only after the first trip or availability is posted
+Verified against a live local stack on 2026-08-20 — 178 pgTAP tests, 57 unit
+tests and 54 end-to-end HTTP checks. How each was proved is named below.
+
+- [x] A traveller can send a request from the match screen in one tap
+      — `HostCard` posts directly; no form in the way
+- [x] A host sees incoming requests and can offer a **subset** of the requested nights
+      — `(app)/requests.tsx` → `(app)/offer/new.tsx`
+- [x] The offer form rejects a range outside trip ∩ availability, at the database level
+      — `enforce_offer_range` trigger; pgTAP + end-to-end over HTTP
+- [x] A host can make a proactive offer against an open trip with no prior request
+      — needed a discovery surface that did not exist; see component 8b
+- [x] Accepting an offer auto-declines all other pending offers on that trip
+- [x] Accepting the same offer twice returns 200 and creates exactly one `stays` row
+- [x] Contact details appear for both parties **only** after acceptance
+- [x] pgTAP: a third profile selecting the pair's `contact_details` gets zero rows
+      — `tests/acceptance.sql`
+- [x] pgTAP: a third profile selecting their `requests` or `offers` gets zero rows
+      — `tests/requests_and_offers.sql`, including a competing host on the same trip
+- [x] Co-accommodation request → accept → contact revealed, with no offer step and no stay
+- [ ] **BLOCKED** — Push notifications arrive on a **real device** for request, offer
+      and acceptance. Remote push does not work in Expo Go; this needs an EAS
+      development build with an APNs key and an FCM key. Same blocker as
+      Milestones 1 and 2. Everything up to the Expo API call is tested.
+- [x] Killing `dispatch-notifications` mid-run leaves rows unsent and the sweep recovers them
+      — `tests/notifications.sql` asserts the attempt is counted *before* the send,
+      the row stays unsent, and the next sweep reclaims it once the backoff elapses
+- [x] A `DeviceNotRegistered` receipt invalidates that token and does not block others
+      — pgTAP asserts the member's second device is untouched
+- [ ] **PARTIAL** — With push suppressed, an `offer_accepted` triggers a fallback email
+      within ~15 minutes. The claim-and-stamp logic is under pgTAP (only
+      `offer_accepted`, only after fifteen minutes, never when the receipt
+      confirmed delivery, and never twice). The Resend call itself needs
+      `RESEND_API_KEY`, which arrives in Milestone 5.
+- [x] Activity list shows every notification with a working unread badge
+      — list and badge built; the underlying queries and the read-only-`read_at`
+      guard are covered end to end. Visual confirmation needs a device.
+- [x] No push payload anywhere contains a phone number, email address or exact location
+      — asserted three ways: pgTAP scans every enqueued payload, a unit test feeds
+      `notificationCopy` a poisoned payload, and the end-to-end run greps the outbox
+- [x] Push permission is requested only after the first trip or availability is posted
+      — `usePushPrompt` is called from those two screens only; `usePushLifecycle`
+      is explicitly non-prompting. Behavioural confirmation needs a device.
+
+---
+
+## Corrections made during implementation
+
+Recorded so the next agent reads a plan that matches the code.
+
+1. **`accept_offer` / `accept_co_request` are SQL functions**, wrapped by thin Edge
+   Functions. supabase-js cannot open a cross-table transaction, and this
+   milestone's own risk list makes atomicity non-negotiable. Follows
+   `redeem_invite` from Milestone 1.
+2. **Offer containment reaches nearby cities.** Milestone 2 surfaces hosts within
+   100 km; requiring availability in the destination city exactly would have left
+   them unable to answer a request they can receive. *Cross-milestone drift,
+   caught before shipping.*
+3. **`offers.city_id` added**, stamped by the containment trigger, so
+   `stays.city_id` records where the guest actually sleeps rather than the trip's
+   destination.
+4. **`offerable_windows()` added** so the offer form bounds its picker from the
+   database's own rule instead of a TypeScript copy of it.
+5. **`search_open_trips()` and `(app)/travellers.tsx` added.** The proactive-offer
+   Done Criterion had no discovery surface — the schema allowed it, the app had no
+   route to it.
+6. **`notifications.receipt_ok` added.** "No confirmed receipt" needed a column;
+   `sent_at` only records that Expo accepted the push.
+7. **`dispatch-notifications` reuses `requireServiceRole`** rather than adding a
+   second `X-Dispatch-Secret`. Same guarantee, one fewer secret to keep in sync.
+8. **The unread badge sits on a home-screen entry row, not a tab.** There is no tab
+   navigator; Milestones 1 and 2 built on a plain `Stack`.
+9. **A `requests` decline policy was added** for the recipient of a co-accommodation
+   request, who otherwise had no way to say no.
+
+Also worth knowing for Milestone 4:
+
+- `is_blocked()` is called in every new policy, still returning `false`. Replacing
+  the function body is all that is needed.
+- `stays` is populated and readable by both parties, with `end_date` as a plain
+  date — compare it against `current_date` in Postgres, never a client clock.
+- `notifications.type` has a CHECK constraint listing every valid type. Milestone 4's
+  review notifications must extend it in their migration.
 
 ## Known Risks & Watch-Outs
 

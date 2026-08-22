@@ -17,6 +17,9 @@ export function DateRangePicker({
   onChange,
   maxNights = 61,
   error,
+  windowStart,
+  windowEnd,
+  hint,
 }: {
   label: string
   value: DateRange | null
@@ -24,9 +27,21 @@ export function DateRangePicker({
   /** Cap matching the database constraint (end - start <= 60). */
   maxNights?: number
   error?: string
+  /**
+   * Clamps selection to a window — used by the offer form, where the host may
+   * only offer nights inside trip ∩ their availability. The database enforces
+   * the same rule; this exists so the host cannot pick a date that will be
+   * rejected, not to replace the check.
+   */
+  windowStart?: string
+  windowEnd?: string
+  /** Replaces the default instruction under the calendar. */
+  hint?: string
 }) {
   const theme = useTheme()
-  const minDate = today()
+  // The later of today and the window start: a host cannot offer nights in the
+  // past even if their availability technically began there.
+  const minDate = windowStart && windowStart > today() ? windowStart : today()
 
   const marked = useMemo(() => {
     if (!value) return {}
@@ -49,6 +64,8 @@ export function DateRangePicker({
 
   const handleDayPress = (day: DateData) => {
     const picked = day.dateString
+    if (windowStart && picked < windowStart) return
+    if (windowEnd && picked > windowEnd) return
 
     // No range yet, or a complete range: start a new one.
     if (!value || value.start !== value.end) {
@@ -88,6 +105,7 @@ export function DateRangePicker({
       <View style={[styles.calendar, { borderColor: theme.border, backgroundColor: theme.bgSubtle }]}>
         <Calendar
           minDate={minDate}
+          maxDate={windowEnd}
           markingType="period"
           markedDates={marked}
           onDayPress={handleDayPress}
@@ -106,6 +124,7 @@ export function DateRangePicker({
 
       <Text style={[typography.caption, { color: error ? theme.danger : theme.textMuted }]}>
         {error ??
+          hint ??
           (value
             ? 'Tap a new date to start again.'
             : 'Tap your first night, then your last night.')}

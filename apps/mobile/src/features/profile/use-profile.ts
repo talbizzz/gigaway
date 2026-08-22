@@ -57,3 +57,26 @@ export const DISCIPLINES = [
 ] as const
 
 export type DisciplineValue = (typeof DISCIPLINES)[number]['value']
+
+/**
+ * Another member's profile.
+ *
+ * RLS decides what comes back: an approved member sees other approved members,
+ * a pending applicant sees nobody, and a blocked pair (Milestone 4) sees
+ * nothing of each other. A null result is a legitimate answer, not an error.
+ */
+export function useMemberProfile(profileId: string | undefined) {
+  return useQuery({
+    queryKey: ['profile', profileId ?? ''],
+    enabled: Boolean(profileId),
+    queryFn: async (): Promise<Profile | null> => {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', profileId!)
+        .maybeSingle()
+      if (error) throw error
+      return data
+    },
+  })
+}

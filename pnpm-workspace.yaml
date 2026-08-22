@@ -27,3 +27,7 @@ allowBuilds:
 
 patchedDependencies:
   expo-modules-jsi@57.0.4: patches/expo-modules-jsi@57.0.4.patch
+
+minimumReleaseAgeExclude:
+  - expo-constants@57.0.13
+  - expo-notifications@57.0.13

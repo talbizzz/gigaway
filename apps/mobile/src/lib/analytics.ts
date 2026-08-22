@@ -28,6 +28,12 @@ export type AnalyticsEvent =
   | 'trip_created'
   | 'availability_created'
   | 'matches_viewed'
+  | 'request_sent'
+  | 'offer_sent'
+  | 'offer_accepted'
+  | 'contact_revealed'
+  | 'push_permission_granted'
+  | 'push_permission_denied'
 
 type AnalyticsProperties = Record<string, string | number | boolean>
 

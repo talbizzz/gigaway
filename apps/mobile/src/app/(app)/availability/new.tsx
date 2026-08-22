@@ -4,6 +4,7 @@ import { Stack, useRouter } from 'expo-router'
 import type { City } from '@/components/city-picker'
 import { AvailabilityForm } from '@/features/availability/availability-form'
 import { useCreateAvailability } from '@/features/availability/use-availability'
+import { usePushPrompt } from '@/features/notifications/use-push'
 import { useMyProfile } from '@/features/profile/use-profile'
 import { track } from '@/lib/analytics'
 import { supabase } from '@/lib/supabase'
@@ -12,6 +13,7 @@ export default function NewAvailabilityScreen() {
   const router = useRouter()
   const { data: profile } = useMyProfile()
   const create = useCreateAvailability()
+  const promptForPush = usePushPrompt()
 
   // Defaults to the host's home city, but stays editable — people sublet, or
   // are temporarily somewhere else.
@@ -51,6 +53,10 @@ export default function NewAvailabilityScreen() {
             note,
           })
           track('availability_created', { offers: offers.length })
+          // A host who has just posted a couch is exactly who needs to hear
+          // that somebody asked for it — so this is where the notification
+          // prompt earns its one shot.
+          await promptForPush()
           router.back()
         }}
       />
