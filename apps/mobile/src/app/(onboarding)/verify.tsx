@@ -42,8 +42,10 @@ export default function VerifyScreen() {
       track('invite_redeemed')
       if (session) identify(session.user.id)
       await queryClient.invalidateQueries({ queryKey: profileKeys.mine(session?.user.id) })
-      // The auth gate takes over once status flips to 'approved'.
-      router.replace('/profile')
+      // The auth gate takes over once status flips to 'approved'. Addressed
+      // through the group: /profile alone is ambiguous now that the tab bar
+      // has one too.
+      router.replace('/(onboarding)/profile')
       return result
     } catch (caught) {
       setError(

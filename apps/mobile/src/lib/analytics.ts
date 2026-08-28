@@ -30,10 +30,17 @@ export type AnalyticsEvent =
   | 'matches_viewed'
   | 'request_sent'
   | 'offer_sent'
+  | 'offer_revised'
   | 'offer_accepted'
   | 'contact_revealed'
   | 'push_permission_granted'
   | 'push_permission_denied'
+  | 'review_submitted'
+  | 'review_published'
+  | 'user_blocked'
+  | 'report_submitted'
+  | 'account_deleted'
+  | 'data_exported'
 
 type AnalyticsProperties = Record<string, string | number | boolean>
 

@@ -10,7 +10,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.15"
+    PostgrestVersion: "14.17"
   }
   graphql_public: {
     Tables: {
@@ -122,6 +122,74 @@ export type Database = {
             referencedRelation: "v_recent_signups"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "availability_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "v_user_summary"
+            referencedColumns: ["profile_id"]
+          },
+        ]
+      }
+      blocks: {
+        Row: {
+          blocked_id: string
+          blocker_id: string
+          created_at: string
+        }
+        Insert: {
+          blocked_id: string
+          blocker_id: string
+          created_at?: string
+        }
+        Update: {
+          blocked_id?: string
+          blocker_id?: string
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "blocks_blocked_id_fkey"
+            columns: ["blocked_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "blocks_blocked_id_fkey"
+            columns: ["blocked_id"]
+            isOneToOne: false
+            referencedRelation: "v_recent_signups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "blocks_blocked_id_fkey"
+            columns: ["blocked_id"]
+            isOneToOne: false
+            referencedRelation: "v_user_summary"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "blocks_blocker_id_fkey"
+            columns: ["blocker_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "blocks_blocker_id_fkey"
+            columns: ["blocker_id"]
+            isOneToOne: false
+            referencedRelation: "v_recent_signups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "blocks_blocker_id_fkey"
+            columns: ["blocker_id"]
+            isOneToOne: false
+            referencedRelation: "v_user_summary"
+            referencedColumns: ["profile_id"]
+          },
         ]
       }
       cities: {
@@ -203,6 +271,13 @@ export type Database = {
             referencedRelation: "v_recent_signups"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "contact_details_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: true
+            referencedRelation: "v_user_summary"
+            referencedColumns: ["profile_id"]
+          },
         ]
       }
       contact_grants: {
@@ -246,6 +321,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "contact_grants_profile_a_fkey"
+            columns: ["profile_a"]
+            isOneToOne: false
+            referencedRelation: "v_user_summary"
+            referencedColumns: ["profile_id"]
+          },
+          {
             foreignKeyName: "contact_grants_profile_b_fkey"
             columns: ["profile_b"]
             isOneToOne: false
@@ -258,6 +340,53 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "v_recent_signups"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contact_grants_profile_b_fkey"
+            columns: ["profile_b"]
+            isOneToOne: false
+            referencedRelation: "v_user_summary"
+            referencedColumns: ["profile_id"]
+          },
+        ]
+      }
+      data_exports: {
+        Row: {
+          created_at: string
+          id: string
+          profile_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          profile_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          profile_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "data_exports_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "data_exports_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "v_recent_signups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "data_exports_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "v_user_summary"
+            referencedColumns: ["profile_id"]
           },
         ]
       }
@@ -301,6 +430,13 @@ export type Database = {
             isOneToOne: true
             referencedRelation: "v_recent_signups"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invite_redemptions_redeemed_by_fkey"
+            columns: ["redeemed_by"]
+            isOneToOne: true
+            referencedRelation: "v_user_summary"
+            referencedColumns: ["profile_id"]
           },
         ]
       }
@@ -349,6 +485,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "v_recent_signups"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invites_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "v_user_summary"
+            referencedColumns: ["profile_id"]
           },
         ]
       }
@@ -415,6 +558,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "v_recent_signups"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notifications_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "v_user_summary"
+            referencedColumns: ["profile_id"]
           },
         ]
       }
@@ -487,6 +637,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "offers_from_profile_fkey"
+            columns: ["from_profile"]
+            isOneToOne: false
+            referencedRelation: "v_user_summary"
+            referencedColumns: ["profile_id"]
+          },
+          {
             foreignKeyName: "offers_request_id_fkey"
             columns: ["request_id"]
             isOneToOne: false
@@ -506,6 +663,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "v_recent_signups"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "offers_to_profile_fkey"
+            columns: ["to_profile"]
+            isOneToOne: false
+            referencedRelation: "v_user_summary"
+            referencedColumns: ["profile_id"]
           },
           {
             foreignKeyName: "offers_trip_id_fkey"
@@ -593,6 +757,13 @@ export type Database = {
             referencedRelation: "v_recent_signups"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "profiles_invited_by_fkey"
+            columns: ["invited_by"]
+            isOneToOne: false
+            referencedRelation: "v_user_summary"
+            referencedColumns: ["profile_id"]
+          },
         ]
       }
       push_tokens: {
@@ -637,6 +808,98 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "v_recent_signups"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "push_tokens_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "v_user_summary"
+            referencedColumns: ["profile_id"]
+          },
+        ]
+      }
+      reports: {
+        Row: {
+          body: string
+          category: string
+          created_at: string
+          id: string
+          moderator_note: string | null
+          related_id: string | null
+          related_type: string | null
+          reporter_id: string | null
+          resolved_at: string | null
+          status: Database["public"]["Enums"]["report_status"]
+          subject_id: string | null
+        }
+        Insert: {
+          body: string
+          category: string
+          created_at?: string
+          id?: string
+          moderator_note?: string | null
+          related_id?: string | null
+          related_type?: string | null
+          reporter_id?: string | null
+          resolved_at?: string | null
+          status?: Database["public"]["Enums"]["report_status"]
+          subject_id?: string | null
+        }
+        Update: {
+          body?: string
+          category?: string
+          created_at?: string
+          id?: string
+          moderator_note?: string | null
+          related_id?: string | null
+          related_type?: string | null
+          reporter_id?: string | null
+          resolved_at?: string | null
+          status?: Database["public"]["Enums"]["report_status"]
+          subject_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reports_reporter_id_fkey"
+            columns: ["reporter_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reports_reporter_id_fkey"
+            columns: ["reporter_id"]
+            isOneToOne: false
+            referencedRelation: "v_recent_signups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reports_reporter_id_fkey"
+            columns: ["reporter_id"]
+            isOneToOne: false
+            referencedRelation: "v_user_summary"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "reports_subject_id_fkey"
+            columns: ["subject_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reports_subject_id_fkey"
+            columns: ["subject_id"]
+            isOneToOne: false
+            referencedRelation: "v_recent_signups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reports_subject_id_fkey"
+            columns: ["subject_id"]
+            isOneToOne: false
+            referencedRelation: "v_user_summary"
+            referencedColumns: ["profile_id"]
           },
         ]
       }
@@ -690,6 +953,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "requests_from_profile_fkey"
+            columns: ["from_profile"]
+            isOneToOne: false
+            referencedRelation: "v_user_summary"
+            referencedColumns: ["profile_id"]
+          },
+          {
             foreignKeyName: "requests_to_profile_fkey"
             columns: ["to_profile"]
             isOneToOne: false
@@ -704,11 +974,101 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "requests_to_profile_fkey"
+            columns: ["to_profile"]
+            isOneToOne: false
+            referencedRelation: "v_user_summary"
+            referencedColumns: ["profile_id"]
+          },
+          {
             foreignKeyName: "requests_trip_id_fkey"
             columns: ["trip_id"]
             isOneToOne: false
             referencedRelation: "trips"
             referencedColumns: ["id"]
+          },
+        ]
+      }
+      reviews: {
+        Row: {
+          author_id: string | null
+          body: string | null
+          id: string
+          published_at: string | null
+          stay_id: string
+          subject_id: string
+          submitted_at: string
+          would_again: boolean
+        }
+        Insert: {
+          author_id?: string | null
+          body?: string | null
+          id?: string
+          published_at?: string | null
+          stay_id: string
+          subject_id: string
+          submitted_at?: string
+          would_again: boolean
+        }
+        Update: {
+          author_id?: string | null
+          body?: string | null
+          id?: string
+          published_at?: string | null
+          stay_id?: string
+          subject_id?: string
+          submitted_at?: string
+          would_again?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reviews_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reviews_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "v_recent_signups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reviews_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "v_user_summary"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "reviews_stay_id_fkey"
+            columns: ["stay_id"]
+            isOneToOne: false
+            referencedRelation: "stays"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reviews_subject_id_fkey"
+            columns: ["subject_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reviews_subject_id_fkey"
+            columns: ["subject_id"]
+            isOneToOne: false
+            referencedRelation: "v_recent_signups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reviews_subject_id_fkey"
+            columns: ["subject_id"]
+            isOneToOne: false
+            referencedRelation: "v_user_summary"
+            referencedColumns: ["profile_id"]
           },
         ]
       }
@@ -721,6 +1081,9 @@ export type Database = {
           host_id: string
           id: string
           offer_id: string
+          prompted_at: string | null
+          reminded_at: string | null
+          review_closes_at: string | null
           start_date: string
         }
         Insert: {
@@ -731,6 +1094,9 @@ export type Database = {
           host_id: string
           id?: string
           offer_id: string
+          prompted_at?: string | null
+          reminded_at?: string | null
+          review_closes_at?: string | null
           start_date: string
         }
         Update: {
@@ -741,6 +1107,9 @@ export type Database = {
           host_id?: string
           id?: string
           offer_id?: string
+          prompted_at?: string | null
+          reminded_at?: string | null
+          review_closes_at?: string | null
           start_date?: string
         }
         Relationships: [
@@ -766,6 +1135,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "stays_guest_id_fkey"
+            columns: ["guest_id"]
+            isOneToOne: false
+            referencedRelation: "v_user_summary"
+            referencedColumns: ["profile_id"]
+          },
+          {
             foreignKeyName: "stays_host_id_fkey"
             columns: ["host_id"]
             isOneToOne: false
@@ -778,6 +1154,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "v_recent_signups"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stays_host_id_fkey"
+            columns: ["host_id"]
+            isOneToOne: false
+            referencedRelation: "v_user_summary"
+            referencedColumns: ["profile_id"]
           },
           {
             foreignKeyName: "stays_offer_id_fkey"
@@ -847,6 +1230,13 @@ export type Database = {
             referencedRelation: "v_recent_signups"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "trips_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "v_user_summary"
+            referencedColumns: ["profile_id"]
+          },
         ]
       }
       verification_applications: {
@@ -908,6 +1298,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "verification_applications_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: true
+            referencedRelation: "v_user_summary"
+            referencedColumns: ["profile_id"]
+          },
+          {
             foreignKeyName: "verification_applications_reviewed_by_fkey"
             columns: ["reviewed_by"]
             isOneToOne: false
@@ -920,6 +1317,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "v_recent_signups"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "verification_applications_reviewed_by_fkey"
+            columns: ["reviewed_by"]
+            isOneToOne: false
+            referencedRelation: "v_user_summary"
+            referencedColumns: ["profile_id"]
           },
         ]
       }
@@ -962,6 +1366,69 @@ export type Database = {
         }
         Relationships: []
       }
+      v_open_reports: {
+        Row: {
+          body: string | null
+          category: string | null
+          created_at: string | null
+          days_open: number | null
+          related_id: string | null
+          related_type: string | null
+          report_id: string | null
+          reporter_id: string | null
+          reporter_name: string | null
+          status: Database["public"]["Enums"]["report_status"] | null
+          subject_id: string | null
+          subject_name: string | null
+          subject_prior_reporters: number | null
+          subject_prior_reports: number | null
+          subject_status: Database["public"]["Enums"]["profile_status"] | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reports_reporter_id_fkey"
+            columns: ["reporter_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reports_reporter_id_fkey"
+            columns: ["reporter_id"]
+            isOneToOne: false
+            referencedRelation: "v_recent_signups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reports_reporter_id_fkey"
+            columns: ["reporter_id"]
+            isOneToOne: false
+            referencedRelation: "v_user_summary"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "reports_subject_id_fkey"
+            columns: ["subject_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reports_subject_id_fkey"
+            columns: ["subject_id"]
+            isOneToOne: false
+            referencedRelation: "v_recent_signups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reports_subject_id_fkey"
+            columns: ["subject_id"]
+            isOneToOne: false
+            referencedRelation: "v_user_summary"
+            referencedColumns: ["profile_id"]
+          },
+        ]
+      }
       v_pending_verifications: {
         Row: {
           application_id: string | null
@@ -990,6 +1457,68 @@ export type Database = {
         }
         Relationships: []
       }
+      v_stuck_notifications: {
+        Row: {
+          attempts: number | null
+          created_at: string | null
+          display_name: string | null
+          email_fallback_sent_at: string | null
+          id: string | null
+          last_error: string | null
+          next_attempt_at: string | null
+          profile_id: string | null
+          seconds_waiting: number | null
+          type: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notifications_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notifications_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "v_recent_signups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notifications_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "v_user_summary"
+            referencedColumns: ["profile_id"]
+          },
+        ]
+      }
+      v_user_summary: {
+        Row: {
+          availability: number | null
+          blocks_made: number | null
+          blocks_received: number | null
+          discipline: string | null
+          display_name: string | null
+          distinct_reporters: number | null
+          home_city: string | null
+          invited_by: string | null
+          invites_created: number | null
+          joined_at: string | null
+          profile_id: string | null
+          reports_filed: number | null
+          reports_received: number | null
+          reviews_received: number | null
+          reviews_written: number | null
+          status: Database["public"]["Enums"]["profile_status"] | null
+          stays_as_guest: number | null
+          stays_hosted: number | null
+          trips: number | null
+          would_again_pct: number | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       accept_co_request: {
@@ -1000,6 +1529,7 @@ export type Database = {
         Args: { p_offer_id: string; p_user: string }
         Returns: Json
       }
+      are_blocked: { Args: { a: string; b: string }; Returns: boolean }
       call_edge_function: {
         Args: { fn_name: string; payload?: Json }
         Returns: number
@@ -1068,6 +1598,7 @@ export type Database = {
         Args: never
         Returns: Database["public"]["Enums"]["profile_status"]
       }
+      delete_account: { Args: { p_user: string }; Returns: Json }
       display_name_of: { Args: { p_profile_id: string }; Returns: string }
       distance_km: {
         Args: { lat1: number; lat2: number; lon1: number; lon2: number }
@@ -1077,12 +1608,15 @@ export type Database = {
         Args: { p_payload?: Json; p_profile_id: string; p_type: string }
         Returns: string
       }
+      expire_stale_requests_and_offers: { Args: never; Returns: number }
       expire_verification_docs: { Args: never; Returns: number }
+      export_user_data: { Args: { p_user: string }; Returns: Json }
       generate_invite_code: { Args: never; Returns: string }
       has_contact_grant: { Args: { other: string }; Returns: boolean }
       is_approved: { Args: never; Returns: boolean }
       is_blocked: { Args: { other: string }; Returns: boolean }
       live_invite_count: { Args: never; Returns: number }
+      notification_stay_payload: { Args: { p_stay_id: string }; Returns: Json }
       notification_trip_payload: { Args: { p_trip_id: string }; Returns: Json }
       offerable_windows: {
         Args: { p_trip_id: string }
@@ -1096,6 +1630,10 @@ export type Database = {
           window_start: string
         }[]
       }
+      prompt_reviews: { Args: never; Returns: number }
+      publish_reviews_for_stay: { Args: { p_stay_id: string }; Returns: number }
+      recent_export_count: { Args: { p_user: string }; Returns: number }
+      recent_report_count: { Args: { p_reporter: string }; Returns: number }
       record_notification_receipts: {
         Args: { p_results: Json }
         Returns: number
@@ -1105,7 +1643,16 @@ export type Database = {
         Returns: number
       }
       redeem_invite: { Args: { p_code: string; p_user: string }; Returns: Json }
+      release_reviews: { Args: never; Returns: number }
       remaining_invite_quota: { Args: never; Returns: number }
+      remind_reviews: { Args: never; Returns: number }
+      review_summary: {
+        Args: { p_profile_id: string }
+        Returns: {
+          total: number
+          would_again: number
+        }[]
+      }
       search_cities: {
         Args: { max_results?: number; q: string }
         Returns: {
@@ -1140,6 +1687,18 @@ export type Database = {
           trip_start: string
         }[]
       }
+      submit_report: {
+        Args: {
+          p_also_block?: boolean
+          p_body: string
+          p_category: string
+          p_related_id?: string
+          p_related_type?: string
+          p_reporter: string
+          p_subject: string
+        }
+        Returns: Json
+      }
       trip_request_count: { Args: { p_trip_id: string }; Returns: number }
     }
     Enums: {
@@ -1156,6 +1715,7 @@ export type Database = {
         | "rejected"
         | "suspended"
         | "deleted"
+      report_status: "open" | "reviewing" | "actioned" | "dismissed"
       request_kind: "host_stay" | "co_accommodation"
       request_status:
         | "pending"
@@ -1304,6 +1864,7 @@ export const Constants = {
         "suspended",
         "deleted",
       ],
+      report_status: ["open", "reviewing", "actioned", "dismissed"],
       request_kind: ["host_stay", "co_accommodation"],
       request_status: [
         "pending",
@@ -1317,4 +1878,3 @@ export const Constants = {
     },
   },
 } as const
-

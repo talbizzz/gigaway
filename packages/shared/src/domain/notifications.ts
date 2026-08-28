@@ -23,6 +23,11 @@ export const NOTIFICATION_TYPES = [
   'co_request_accepted',
   'co_request_declined',
   'request_withdrawn',
+  // Milestone 4
+  'review_prompt',
+  'review_reminder',
+  'review_published',
+  'report_received',
 ] as const
 
 export type NotificationType = (typeof NOTIFICATION_TYPES)[number]
@@ -45,6 +50,11 @@ export type NotificationPayload = {
   offerEnd?: string
   nights?: number
   autoDeclined?: boolean
+  // Milestone 4
+  stayId?: string
+  reviewId?: string
+  reportId?: string
+  closesAt?: string
 }
 
 export type NotificationCopy = {
@@ -151,6 +161,33 @@ export function notificationCopy(
         title: `${someone(payload.fromName)} withdrew their request`,
         body: `${city}, ${tripDates}. Nothing to do.`,
       }
+
+    case 'review_prompt':
+      return {
+        title: `How was ${someone(payload.withName)}?`,
+        body: `Your ${city} stay has finished. Neither of you sees the other's review until you have both written one.`,
+      }
+
+    case 'review_reminder':
+      return {
+        title: `${someone(payload.withName)} is still waiting on your review`,
+        body: `A word about your ${city} stay helps the next colleague decide. It only takes a moment.`,
+      }
+
+    case 'review_published':
+      return {
+        title: `${someone(payload.withName)} reviewed you`,
+        body: `Your ${city} stay is now on your profile.`,
+      }
+
+    // Deliberately vague about the subject. This lands on a lock screen, and
+    // naming who was reported would put the reporter at risk if somebody else
+    // picked up the phone.
+    case 'report_received':
+      return {
+        title: 'Your report has gone to a moderator',
+        body: 'A person reads every report. You will not hear back automatically.',
+      }
   }
 }
 
@@ -180,6 +217,18 @@ export function notificationRoute(
     case 'co_request_declined':
     case 'offer_declined':
       return '/requests'
+
+    case 'review_prompt':
+    case 'review_reminder':
+      return payload.stayId ? `/review/${payload.stayId}` : '/activity'
+
+    case 'review_published':
+      return payload.withProfileId ? `/member/${payload.withProfileId}` : '/activity'
+
+    // No deep link. There is no report to open — the reports table has no
+    // client read path at all, which is the point.
+    case 'report_received':
+      return '/activity'
   }
 }
 
