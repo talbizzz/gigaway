@@ -30,7 +30,8 @@ insert into auth.users (id, email, raw_user_meta_data) values
 update public.profiles set status = 'approved';
 
 update public.contact_details
-  set phone = '+49 170 1234567', whatsapp = '+49 170 1234567',
+  -- whatsapp is E.164 only (whatsapp_is_e164); phone carries no such rule.
+  set phone = '+49 170 1234567', whatsapp = '+491701234567',
       preferred_channel = 'whatsapp'
   where profile_id = '22222222-2222-2222-2222-222222222222';
 
@@ -160,7 +161,7 @@ set local request.jwt.claims to
 select is(
   (select whatsapp from public.contact_details
     where profile_id = '22222222-2222-2222-2222-222222222222'),
-  '+49 170 1234567',
+  '+491701234567',
   'the traveller can now read the host''s WhatsApp number'
 );
 

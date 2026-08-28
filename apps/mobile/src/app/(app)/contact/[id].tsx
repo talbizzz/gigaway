@@ -1,7 +1,8 @@
-import { formatDateRange, nightCount } from '@gigaway/shared'
-import { Stack, useLocalSearchParams } from 'expo-router'
+import { formatDateRange, nightCount, whatsAppLink } from '@gigaway/shared'
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { ActivityIndicator, Linking, Pressable, StyleSheet, Text, View } from 'react-native'
 
+import { TextLink } from '@/components/button'
 import { Callout } from '@/components/callout'
 import { PersonRow } from '@/components/person'
 import { Screen } from '@/components/screen'
@@ -26,6 +27,7 @@ import { useTheme } from '@/theme/use-theme'
  */
 export default function ContactScreen() {
   const theme = useTheme()
+  const router = useRouter()
   const { id } = useLocalSearchParams<{ id: string }>()
   const profile = useMemberProfile(id)
   const contact = useContact(id)
@@ -101,6 +103,12 @@ export default function ContactScreen() {
       <Text style={[typography.caption, { color: theme.textMuted }]}>
         GigAway never stores anyone's exact address. Ask {firstName} for it directly.
       </Text>
+
+      {/* The way to their reviews, and to blocking or reporting them. */}
+      <TextLink
+        label={`View ${firstName}'s profile`}
+        onPress={() => router.push(`/member/${id}`)}
+      />
     </Screen>
   )
 }
@@ -134,8 +142,7 @@ function orderChannels(details: {
       label: 'WhatsApp',
       value: details.whatsapp,
       action: 'Open WhatsApp',
-      // wa.me wants digits only — no plus, no spaces, no dashes.
-      url: `https://wa.me/${details.whatsapp.replace(/[^\d]/g, '')}`,
+      url: whatsAppLink(details.whatsapp),
       preferred: details.preferred_channel === 'whatsapp',
     })
   }

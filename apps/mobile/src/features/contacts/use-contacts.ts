@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
 import { useSessionStore } from '@/features/auth/session-store'
 import { supabase } from '@/lib/supabase'
@@ -6,6 +6,7 @@ import { supabase } from '@/lib/supabase'
 export const contactKeys = {
   all: ['contacts'] as const,
   one: (profileId: string) => ['contact', profileId] as const,
+  mine: (userId: string | undefined) => ['contact', 'me', userId] as const,
   stays: ['stays'] as const,
 }
 
@@ -49,6 +50,67 @@ export function useContact(profileId: string | undefined) {
       return data as ContactDetails | null
     },
   })
+}
+
+/**
+ * Your own contact details.
+ *
+ * Always readable — contact_details_select_own does not depend on a grant.
+ * Kept separate from useContact because that one is about somebody else and
+ * an empty result there means "not revealed yet", whereas an empty result
+ * here would mean the sign-up trigger did not run.
+ */
+export function useMyContactDetails() {
+  const session = useSessionStore((state) => state.session)
+  const userId = session?.user.id
+
+  return useQuery({
+    queryKey: contactKeys.mine(userId),
+    enabled: Boolean(userId),
+    queryFn: async (): Promise<ContactDetails | null> => {
+      const { data, error } = await supabase
+        .from('contact_details')
+        .select('profile_id, email, phone, whatsapp, preferred_channel')
+        .eq('profile_id', userId!)
+        .maybeSingle()
+      if (error) throw error
+      return data as ContactDetails | null
+    },
+  })
+}
+
+/**
+ * Writes your own contact details.
+ *
+ * Upserts rather than updates: the row is created by the sign-up trigger, but
+ * an account that predates that trigger — or one whose row was removed — must
+ * still be able to supply a number rather than silently writing nothing.
+ */
+export function useUpdateContactDetails() {
+  const queryClient = useQueryClient()
+  const session = useSessionStore((state) => state.session)
+
+  return useMutation({
+    mutationFn: async (update: { whatsapp?: string | null }) => {
+      const { error } = await supabase
+        .from('contact_details')
+        .upsert({ profile_id: session!.user.id, ...update }, { onConflict: 'profile_id' })
+      if (error) throw error
+    },
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: contactKeys.mine(session?.user.id) })
+    },
+  })
+}
+
+/**
+ * The one contact channel a member has to supply themselves.
+ *
+ * Email arrives from auth at sign-up and is never missing, so WhatsApp is the
+ * only thing standing between a new account and a usable reveal.
+ */
+export function isContactComplete(details: ContactDetails | null | undefined): boolean {
+  return Boolean(details?.whatsapp)
 }
 
 /** Everyone the signed-in member may now contact, newest grant first. */

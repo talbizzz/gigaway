@@ -1,5 +1,6 @@
 export * from './domain/dates.ts'
 export * from './domain/notifications.ts'
+export * from './domain/phone.ts'
 export * from './schemas/accept-co-request.ts'
 export * from './schemas/accept-offer.ts'
 export * from './schemas/delete-account.ts'
