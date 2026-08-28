@@ -8,5 +8,11 @@ export default function AppLayout() {
   // first trip or availability, in the screens that post them.
   usePushLifecycle()
 
-  return <Stack />
+  // The tab bar draws its own headers, so the stack must not draw a second one
+  // above it. Everything else here is a detail screen pushed over the tabs.
+  return (
+    <Stack>
+      <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+    </Stack>
+  )
 }

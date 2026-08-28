@@ -1,7 +1,7 @@
 import { nightCount } from '@gigaway/shared'
 import type { ReactNode } from 'react'
 import * as Clipboard from 'expo-clipboard'
-import { Stack, useRouter } from 'expo-router'
+import { useRouter } from 'expo-router'
 import { Pressable, Share, StyleSheet, Text, View } from 'react-native'
 
 import { Badge, CountBadge } from '@/components/badge'
@@ -17,10 +17,9 @@ import { useCreateInvite, useMyInvites, useRemainingQuota } from '@/features/inv
 import { useUnreadCount } from '@/features/notifications/use-notifications'
 import { useMyProfile } from '@/features/profile/use-profile'
 import { useIncomingRequests } from '@/features/requests/use-requests'
+import { useReviewableStays } from '@/features/reviews/use-reviews'
 import { useCancelTrip, useMyTrips, type Trip } from '@/features/trips/use-trips'
 import { env } from '@/lib/env'
-import { unregisterPush } from '@/lib/push'
-import { supabase } from '@/lib/supabase'
 import { radius, spacing, typography } from '@/theme/tokens'
 import { useTheme } from '@/theme/use-theme'
 
@@ -36,7 +35,10 @@ export default function HomeScreen() {
   const unread = useUnreadCount()
   const incoming = useIncomingRequests()
 
+  const reviewable = useReviewableStays()
+
   const waitingOnYou = (incoming.data ?? []).filter((row) => row.status === 'pending').length
+  const owedReviews = reviewable.data ?? []
 
   const activeTrips = (trips.data ?? []).filter((trip) => trip.status === 'active')
   const activeAvailability = (availability.data ?? []).filter((row) => row.status === 'active')
@@ -46,8 +48,6 @@ export default function HomeScreen() {
 
   return (
     <Screen>
-      <Stack.Screen options={{ title: 'GigAway' }} />
-
       <Text style={[typography.title, { color: theme.text }]}>
         Hello, {profile?.display_name?.split(' ')[0] ?? 'there'}
       </Text>
@@ -75,6 +75,16 @@ export default function HomeScreen() {
           onPress={() => router.push('/activity')}
         />
       </View>
+
+      {/*
+        Reviews owed. Above trips because this is the only thing on the screen
+        with a deadline attached — the window closes after a fortnight and the
+        chance is gone. It persists until written, which is what makes a missed
+        push recoverable.
+      */}
+      {owedReviews.map((stay) => (
+        <ReviewPromptCard key={stay.id} stayId={stay.id} city={stay.cities?.name} />
+      ))}
 
       {/* ── Trips ───────────────────────────────────────────────────────── */}
       <View style={styles.section}>
@@ -160,20 +170,24 @@ export default function HomeScreen() {
           />
         )}
       </View>
-
-      <Button label="Your profile" variant="ghost" onPress={() => router.push('/profile')} />
-      <Button
-        label="Sign out"
-        variant="ghost"
-        onPress={async () => {
-          // Release this device's push token first. Otherwise the next person
-          // to sign in on a shared or resold phone keeps receiving the
-          // previous member's notifications.
-          await unregisterPush()
-          await supabase.auth.signOut()
-        }}
-      />
     </Screen>
+  )
+}
+
+function ReviewPromptCard({ stayId, city }: { stayId: string; city?: string }) {
+  const theme = useTheme()
+  const router = useRouter()
+
+  return (
+    <View style={[styles.prompt, { backgroundColor: theme.accentSubtle }]}>
+      <Text style={[typography.bodyStrong, { color: theme.text }]}>
+        How was your stay{city ? ` in ${city}` : ''}?
+      </Text>
+      <Text style={[typography.caption, { color: theme.textMuted }]}>
+        Neither of you sees the other's review until you have both written one.
+      </Text>
+      <Button label="Write a review" onPress={() => router.push(`/review/${stayId}`)} />
+    </View>
   )
 }
 
@@ -271,6 +285,7 @@ function AvailabilityRow({ availability }: { availability: Availability }) {
 const styles = StyleSheet.create({
   section: { gap: spacing.md },
   entries: { gap: spacing.sm },
+  prompt: { padding: spacing.lg, borderRadius: radius.md, gap: spacing.sm },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
