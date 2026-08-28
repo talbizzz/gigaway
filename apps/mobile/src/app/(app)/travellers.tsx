@@ -8,7 +8,7 @@ import { Callout } from '@/components/callout'
 import { PersonRow } from '@/components/person'
 import { Screen } from '@/components/screen'
 import { useMyAvailability } from '@/features/availability/use-availability'
-import { useOpenTrips, type OpenTrip } from '@/features/offers/use-offers'
+import { useOpenTrips, useSentOffers, type OpenTrip } from '@/features/offers/use-offers'
 import { radius, spacing, typography } from '@/theme/tokens'
 import { useTheme } from '@/theme/use-theme'
 
@@ -31,6 +31,7 @@ export default function TravellersScreen() {
   const theme = useTheme()
   const trips = useOpenTrips()
   const availability = useMyAvailability()
+  const sentOffers = useSentOffers()
 
   if (trips.isPending) {
     return (
@@ -42,6 +43,14 @@ export default function TravellersScreen() {
 
   const rows = trips.data ?? []
   const hasAvailability = (availability.data ?? []).some((row) => row.status === 'active')
+
+  // already_offered tells the card to stop offering the action, but not which
+  // offer to open. At most one can be live per trip.
+  const liveOfferByTrip = new Map(
+    (sentOffers.data ?? [])
+      .filter((offer) => offer.status === 'pending')
+      .map((offer) => [offer.trip_id, offer.id]),
+  )
 
   return (
     <Screen>
@@ -64,7 +73,11 @@ export default function TravellersScreen() {
             you do not need to cover the whole trip.
           </Text>
           {rows.map((trip) => (
-            <OpenTripCard key={trip.trip_id} trip={trip} />
+            <OpenTripCard
+              key={trip.trip_id}
+              trip={trip}
+              liveOfferId={liveOfferByTrip.get(trip.trip_id) ?? null}
+            />
           ))}
         </>
       )}
@@ -72,7 +85,14 @@ export default function TravellersScreen() {
   )
 }
 
-function OpenTripCard({ trip }: { trip: OpenTrip }) {
+function OpenTripCard({
+  trip,
+  liveOfferId,
+}: {
+  trip: OpenTrip
+  /** This host's unanswered offer on the trip, if one exists. */
+  liveOfferId: string | null
+}) {
   const theme = useTheme()
   const router = useRouter()
 
@@ -89,6 +109,12 @@ function OpenTripCard({ trip }: { trip: OpenTrip }) {
             specialisation: trip.specialisation,
             photo_path: trip.photo_path,
           }}
+          onPress={() =>
+            router.push({
+              pathname: '/member/[id]',
+              params: { id: trip.profile_id, tripId: trip.trip_id, action: 'offer' },
+            })
+          }
         />
         {trip.already_offered ? (
           <Badge label="Offered" tone="accent" />
@@ -125,7 +151,16 @@ function OpenTripCard({ trip }: { trip: OpenTrip }) {
         <Text style={[typography.body, { color: theme.text }]}>“{trip.note}”</Text>
       ) : null}
 
-      {!trip.already_offered ? (
+      {trip.already_offered ? (
+        liveOfferId ? (
+          <Button
+            label="Change your offer"
+            variant="secondary"
+            onPress={() => router.push(`/offer/edit/${liveOfferId}`)}
+            style={styles.action}
+          />
+        ) : null
+      ) : (
         <Button
           label="Offer nights"
           onPress={() =>
@@ -133,7 +168,7 @@ function OpenTripCard({ trip }: { trip: OpenTrip }) {
           }
           style={styles.action}
         />
-      ) : null}
+      )}
     </View>
   )
 }

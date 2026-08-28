@@ -149,6 +149,66 @@ export function useCreateOffer() {
   })
 }
 
+/** One offer of mine, for the revise form. */
+export function useOffer(offerId: string | undefined) {
+  return useQuery({
+    queryKey: ['offer', offerId ?? ''],
+    enabled: Boolean(offerId),
+    queryFn: async (): Promise<Offer | null> => {
+      const { data, error } = await supabase
+        .from('offers')
+        .select(OFFER_SELECT)
+        .eq('id', offerId!)
+        .maybeSingle()
+      if (error) throw error
+      return data as unknown as Offer | null
+    },
+  })
+}
+
+/**
+ * Revises an offer that has not been answered yet.
+ *
+ * Replaces making a second one. A host used to be able to answer the same
+ * request twice, which left the traveller holding two overlapping offers from
+ * one person; a partial unique index now makes that impossible, and this is
+ * what the host does instead.
+ *
+ * As with creation, the range is validated by the database trigger against
+ * trip ∩ availability rather than re-checked here.
+ */
+export function useUpdateOffer() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async (input: {
+      offerId: string
+      tripId: string
+      range: DateRange
+      message?: string
+    }) => {
+      const { error } = await supabase
+        .from('offers')
+        .update({
+          start_date: input.range.start,
+          end_date: input.range.end,
+          message: input.message?.trim() || null,
+        })
+        .eq('id', input.offerId)
+      if (error) throw error
+    },
+    onSuccess: async (_data, variables) => {
+      track('offer_revised')
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['offer', variables.offerId] }),
+        queryClient.invalidateQueries({ queryKey: offerKeys.sent }),
+        queryClient.invalidateQueries({ queryKey: offerKeys.forTrip(variables.tripId) }),
+        queryClient.invalidateQueries({ queryKey: ['requests'] }),
+      ])
+    },
+  })
+}
+
 /**
  * The payoff. Reveals contact, creates the stay, and closes every competing
  * offer — all inside one database transaction.
