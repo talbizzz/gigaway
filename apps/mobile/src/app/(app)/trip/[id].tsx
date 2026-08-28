@@ -1,5 +1,4 @@
 import { formatDateRange, nightCount } from '@gigaway/shared'
-import { Image } from 'expo-image'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useEffect } from 'react'
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native'
@@ -13,6 +12,7 @@ import {
   isCompletelyEmpty,
   useMatches,
   type HostMatch,
+  type MatchProfile,
   type TravellerMatch,
 } from '@/features/matches/use-matches'
 import {
@@ -21,7 +21,6 @@ import {
   useOffersForTrip,
   type Offer,
 } from '@/features/offers/use-offers'
-import { avatarUrl } from '@/features/profile/use-update-profile'
 import { useRequestsForTrip, useSendRequest } from '@/features/requests/use-requests'
 import { useTrip } from '@/features/trips/use-trips'
 import { track } from '@/lib/analytics'
@@ -226,6 +225,21 @@ export default function TripMatchesScreen() {
   )
 }
 
+/**
+ * search_matches returns camelCase profiles of its own shape; PersonRow speaks
+ * the snake_case row shape used everywhere else. One place to bridge them, so
+ * the match cards render identically to every other person in the app.
+ */
+function personFrom(profile: MatchProfile) {
+  return {
+    display_name: profile.displayName,
+    discipline: profile.discipline,
+    specialisation: profile.specialisation,
+    photo_path: profile.photoPath,
+    home_district: profile.homeDistrict,
+  }
+}
+
 function HostCard({
   host,
   tripNights,
@@ -238,27 +252,25 @@ function HostCard({
   asked: boolean
 }) {
   const theme = useTheme()
+  const router = useRouter()
   const sendRequest = useSendRequest()
-  const photo = avatarUrl(host.profile.photoPath)
   const partial = host.overlapNights < tripNights
 
   return (
     <View style={[styles.card, { backgroundColor: theme.bgSubtle, borderColor: theme.border }]}>
+      {/* Tappable through to their profile: asking is one tap, so the chance to
+          look at who you are asking has to be right next to it. */}
       <View style={styles.cardHeader}>
-        <View style={[styles.avatar, { backgroundColor: theme.bgRaised }]}>
-          {photo ? <Image source={{ uri: photo }} style={styles.avatarImage} contentFit="cover" /> : null}
-        </View>
-        <View style={styles.cardHeaderText}>
-          <Text style={[typography.bodyStrong, { color: theme.text }]}>
-            {host.profile.displayName}
-          </Text>
-          <Text style={[typography.caption, { color: theme.textMuted }]}>
-            {[host.profile.specialisation ?? host.profile.discipline, host.profile.homeDistrict]
-              .filter(Boolean)
-              .join(' · ')}
-            {host.distanceKm > 0 ? ` · ${host.cityName}, ${host.distanceKm} km` : ''}
-          </Text>
-        </View>
+        <PersonRow
+          person={personFrom(host.profile)}
+          trailing={host.distanceKm > 0 ? `${host.cityName}, ${host.distanceKm} km` : undefined}
+          onPress={() =>
+            router.push({
+              pathname: '/member/[id]',
+              params: { id: host.profile.id, tripId, action: 'ask_host' },
+            })
+          }
+        />
       </View>
 
       {/*
@@ -329,23 +341,21 @@ function TravellerCard({
   asked: boolean
 }) {
   const theme = useTheme()
+  const router = useRouter()
   const sendRequest = useSendRequest()
-  const photo = avatarUrl(traveller.profile.photoPath)
 
   return (
     <View style={[styles.card, { backgroundColor: theme.bgSubtle, borderColor: theme.border }]}>
       <View style={styles.cardHeader}>
-        <View style={[styles.avatar, { backgroundColor: theme.bgRaised }]}>
-          {photo ? <Image source={{ uri: photo }} style={styles.avatarImage} contentFit="cover" /> : null}
-        </View>
-        <View style={styles.cardHeaderText}>
-          <Text style={[typography.bodyStrong, { color: theme.text }]}>
-            {traveller.profile.displayName}
-          </Text>
-          <Text style={[typography.caption, { color: theme.textMuted }]}>
-            {traveller.profile.specialisation ?? traveller.profile.discipline}
-          </Text>
-        </View>
+        <PersonRow
+          person={personFrom(traveller.profile)}
+          onPress={() =>
+            router.push({
+              pathname: '/member/[id]',
+              params: { id: traveller.profile.id, tripId, action: 'ask_co' },
+            })
+          }
+        />
       </View>
 
       <Text style={[typography.caption, { color: theme.textMuted }]}>
@@ -405,7 +415,10 @@ function OfferCard({ offer, tripNights }: { offer: Offer; tripNights: number }) 
 
   return (
     <View style={[styles.card, { backgroundColor: theme.bgSubtle, borderColor: theme.accent }]}>
-      <PersonRow person={offer.host} />
+      <PersonRow
+        person={offer.host}
+        onPress={() => router.push(`/member/${offer.from_profile}`)}
+      />
 
       <Text style={[typography.bodyStrong, { color: theme.accent }]}>
         {partial ? `${nights} of your ${tripNights} nights` : `All ${tripNights} nights`}
@@ -477,9 +490,6 @@ const styles = StyleSheet.create({
     gap: spacing.xs,
   },
   cardHeader: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, marginBottom: spacing.xs },
-  cardHeaderText: { flex: 1, gap: 2 },
-  avatar: { width: 44, height: 44, borderRadius: radius.pill, overflow: 'hidden' },
-  avatarImage: { width: '100%', height: '100%' },
   tags: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, marginTop: spacing.sm },
   action: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginTop: spacing.md },
   actionButton: { marginTop: spacing.md },

@@ -136,7 +136,14 @@ export default function NewOfferScreen() {
     >
       <Stack.Screen options={{ title: 'Offer nights' }} />
 
-      <PersonRow person={trip.data?.traveller} />
+      <PersonRow
+        person={trip.data?.traveller}
+        onPress={
+          trip.data?.profile_id
+            ? () => router.push(`/member/${trip.data!.profile_id}`)
+            : undefined
+        }
+      />
 
       <Text style={[typography.caption, { color: theme.textMuted }]}>
         {trip.data?.cities?.name} · {formatDateRange(trip.data?.start_date, trip.data?.end_date)}{' '}
