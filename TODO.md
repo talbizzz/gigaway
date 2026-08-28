@@ -10,6 +10,7 @@ Progress checklist. Detail lives in the `Milestone-N-*.md` files.
 - [ ] Register Google Play developer account ($25)
 - [ ] Start Google Play closed test track early
 - [x] Create Supabase project in EU (Frankfurt) — `gigaway`, ref `hrhoqmmxgfpyxwncmpjx`, eu-central-1
+- [x] Deploy the schema to it — all 26 migrations applied 2026-08-28, generated types match
 - [ ] Create Sentry, PostHog (EU) accounts *(Resend moved to Milestone 5)*
 - [ ] Draft privacy policy
 - [ ] Draft terms of service / EULA
@@ -108,18 +109,80 @@ Progress checklist. Detail lives in the `Milestone-N-*.md` files.
 
 ## Milestone 4: Reputation & Safety
 
-- [ ] Stays table created on acceptance
-- [ ] Review submission + would-again binary
-- [ ] Double-blind release trigger
-- [ ] 14-day release cron
-- [ ] Review prompts after stay end
-- [ ] Reviews on profile view
-- [ ] Block / unblock, bidirectional invisibility
-- [ ] submit-report Edge Function
-- [ ] Moderator SQL views
-- [ ] Suspension takes effect immediately
-- [ ] export-data Edge Function
-- [ ] delete-account with anonymisation
+> ✅ Code complete. 6 new migrations, 322 pgTAP assertions across 14 test files,
+> typecheck and lint clean. Blocking, reviews, reporting, moderator views, data
+> export and account deletion are all built and covered.
+> Auditing the earlier policies before switching `is_blocked()` on found three
+> that never called it — see the milestone file.
+>
+> ⚠️ Outstanding items below need hardware, an account or a live stack this
+> machine does not have.
+
+- [x] Stays table created on acceptance *(built in Milestone 3)*
+- [x] Review submission + would-again binary
+- [x] Double-blind release trigger
+- [x] 14-day release cron
+- [x] Review prompts after stay end
+- [x] Reviews on profile view
+- [x] Block / unblock, bidirectional invisibility
+- [x] submit-report Edge Function
+- [x] Moderator SQL views
+- [x] Suspension takes effect immediately
+- [x] export-data Edge Function
+- [x] delete-account with anonymisation
+
+**Outstanding before Milestone 4 can be called done:**
+
+- [ ] Walk review, block, report, export and delete on a device or simulator
+      (same EAS dev build blocker as Milestones 1–3)
+- [ ] Confirm a report reaches `MODERATOR_EMAIL` within a minute
+      (needs RESEND_API_KEY and MODERATOR_EMAIL, which arrive in Milestone 5)
+- [ ] Add a pgTAP test asserting a co-accommodation match is never reviewable
+      *(holds by construction today — `accept_co_request` creates a contact grant
+      and never a stay, and reviews hang off stays — but nothing asserts it, so a
+      future change to that path could silently break the guarantee)*
+
+## After Milestone 4: corrections from walking the app
+
+> Not a planned milestone. These came out of using the product end to end and
+> finding places where the interface allowed something the brief did not, or
+> asked for something it had no way to collect. Two carry migrations, both
+> applied. Corrections that change an earlier milestone's plan are recorded in
+> that milestone's file.
+
+- [x] Tab bar for home, profile and settings, replacing the ghost buttons at the
+      foot of the home screen *(supersedes Milestone 3's note that there is no
+      tab navigator)*
+- [x] Sign out moved into Settings, beside account deletion
+- [x] Profile split into a read view and an edit form — it opened straight into
+      an editable form with no way to see yourself as others do
+- [x] Save disabled until something actually changes
+- [x] Home city could never be changed — one `null` meant both "untouched" and
+      "cleared", so the picker always fell back to the stored city
+- [x] WhatsApp number collected and required, stored E.164, revealed with the
+      email on acceptance *(there was no screen to enter one, so the reveal
+      screen's WhatsApp row could never show anything)*
+- [x] Profiles readable from every match card before asking or offering, with
+      the ask / offer action carried onto the profile
+- [x] Initials placeholder where a member has no photo *(the empty circle was
+      `bgRaised`, which is white in the light theme — invisible, not blank)*
+- [x] One live offer per host per trip, enforced by a partial unique index
+      *(a host could answer the same request twice and leave two overlapping
+      offers; the traveller could accept either)*
+- [x] Revising an unanswered offer, which replaces answering twice
+- [x] Traveller notified when an offer's nights change
+
+**Outstanding:**
+
+- [ ] Walk all of the above on a device or simulator — none of it has run
+      anywhere but a bundler *(same EAS dev build blocker as Milestones 1–4)*
+- [ ] Re-run `offer_revision.sql` to confirm the two assertions corrected after
+      the first live run *(the migration behaviour was right; the test's
+      expectations were not)*
+- [ ] Decide what to do about the pgTAP suite assuming an empty database — ~22
+      assertions across 6 files use unscoped `count(*)` and `limit 1`, so they
+      fail against the cloud project's dev data. Known noise, not regressions.
+      Either scope them to their fixtures or run them on a preview branch.
 
 ## Milestone 5: Ship It
 

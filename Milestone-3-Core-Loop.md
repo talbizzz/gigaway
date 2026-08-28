@@ -548,13 +548,34 @@ Recorded so the next agent reads a plan that matches the code.
 7. **`dispatch-notifications` reuses `requireServiceRole`** rather than adding a
    second `X-Dispatch-Secret`. Same guarantee, one fewer secret to keep in sync.
 8. **The unread badge sits on a home-screen entry row, not a tab.** There is no tab
-   navigator; Milestones 1 and 2 built on a plain `Stack`.
+   navigator; Milestones 1 and 2 built on a plain `Stack`. *Superseded after
+   Milestone 4 — a tab bar was added for home, profile and settings. The badge
+   still sits on the entry row; the tabs carry no badges.*
 9. **A `requests` decline policy was added** for the recipient of a co-accommodation
    request, who otherwise had no way to say no.
 10. **Expiry was implemented** — see component 2b. Both status enums declared
     `expired` and nothing set it, and more seriously the acceptance path had no
     date check at all, so a stale offer could still be accepted into a backdated
     stay that Milestone 4 would immediately prompt for a review of.
+
+### Corrected after Milestone 4
+
+11. **A host could answer the same request twice.** Nothing closed the request
+    when an offer was made and nothing constrained the offers table, so a host
+    could leave two overlapping offers on one trip and the traveller could
+    accept either — which nights were agreed came down to which card they
+    tapped. `offers_one_live_per_host_trip`, a partial unique index over
+    `status in ('pending','accepted')`, now makes the second row impossible.
+    Declined and withdrawn rows are excluded so a host turned down once may
+    offer again.
+12. **Offers became revisable, which they were not.** `guard_offer_columns`
+    locked every column but `status`, so "change your offer" had no route.
+    It now separates answering an offer (status, either party) from revising
+    one (dates and note, the host, while unanswered), and lets `city_id` through
+    with the dates because `enforce_offer_range` recomputes it. The notify
+    trigger was insert-only and now fires on date changes too — a host silently
+    shortening five nights to two would otherwise leave the traveller planning
+    around nights they no longer had.
 
 Also worth knowing for Milestone 4:
 

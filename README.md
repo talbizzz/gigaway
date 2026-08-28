@@ -75,10 +75,12 @@ those dates, and other travellers heading there in the same window.
 A **host** posts availability in their home city: date ranges, what they are
 offering, and any constraints.
 
-From there — once the remaining milestones land — the traveller sends a request,
-the host replies with an offer that may cover only part of the dates, and
-contact details are revealed to both parties only on acceptance. Conversation
-continues on WhatsApp or email; there is no chat in the app.
+From there the traveller sends a request, the host replies with an offer that
+may cover only part of the dates, and contact details — a WhatsApp number and an
+email — are revealed to both parties only on acceptance. Either side can read
+the other's profile and reviews before committing, but never their contact
+details. Conversation continues on WhatsApp or email; there is no chat in the
+app.
 
 Afterwards both parties review each other. Reviews are attributed and
 double-blind: neither is published until both are in or a fixed window expires.
@@ -93,8 +95,10 @@ Supabase dashboard through saved SQL views. No real-time subscriptions.
 
 ## Project status
 
-Milestones 1 to 3 are code complete: 18 migrations, 194 pgTAP policy tests, 57
-unit tests, typecheck and lint clean.
+Milestones 1 to 4 are code complete: 26 migrations, 317 pgTAP assertions across
+16 test files, 66 unit tests, typecheck and lint clean. The schema is deployed
+to the hosted project — every migration applied, and the generated types match
+what the app was built against.
 
 | Area | State |
 | --- | --- |
@@ -105,14 +109,18 @@ unit tests, typecheck and lint clean.
 | Requests, partial-night offers, acceptance, contact reveal | Built |
 | Notification outbox, retry sweep, receipts, email fallback | Built |
 | Push delivery on a real device | Needs an EAS build — see `TODO.md` |
-| Reviews, blocking, reporting, account deletion | Not yet — Milestone 4 |
+| Reviews, double-blind release, blocking, reporting | Built |
+| Data export and account deletion with anonymisation | Built |
+| Tab navigation, profile read / edit split, contact collection | Built |
 | Landing page, store builds, CI | Not yet — Milestone 5 |
 
 So today you can sign up, get verified, build a profile, post trips and
-availability, see who matches, ask a colleague for a couch, answer with an offer
-covering however many nights you can manage, and — on acceptance — exchange
-contact details. What you cannot yet do is review anyone or block them. Detail
-lives in `TODO.md` and the `Milestone-N-*.md` files.
+availability, see who matches, read a colleague's profile and reviews before you
+ask them for anything, ask for a couch, answer with an offer covering however
+many nights you can manage, revise that offer while it is unanswered, and — on
+acceptance — exchange contact details. Afterwards you can review each other, and
+block or report anyone. What is left is the landing page, the store builds and
+CI. Detail lives in `TODO.md` and the `Milestone-N-*.md` files.
 
 ### The loop, in the database
 
@@ -206,7 +214,7 @@ The entire backend runs locally from the migrations in this repository.
   ```
 
   The first run pulls several GB of Docker images. With images cached it takes
-  about three and a half minutes. It applies all 18 migrations and finishes by
+  about three and a half minutes. It applies all 26 migrations and finishes by
   printing a block of URLs and keys — **keep that output**, you need `ANON_KEY`
   in the next step.
 
@@ -369,11 +377,19 @@ If all five hold, your environment is sound.
 pnpm typecheck            # every workspace package
 pnpm lint
 pnpm test                 # vitest, in packages/shared
-supabase test db --local  # pgTAP: 194 policy and function tests
+supabase test db --local  # pgTAP: 317 assertions across 16 files
 ```
 
 The root `pnpm db:test` script targets a *linked* cloud project and is for
 maintainers. Contributors want `--local`, as above.
+
+> **The suite assumes an empty database.** Around 22 assertions across
+> `acceptance`, `expiry`, `invites`, `notifications`, `reports` and
+> `trips_and_availability` use unscoped `count(*)` or `limit 1`, so they fail
+> against any database that already has rows in it — a maintainer running
+> `--linked` sees this as noise, not regressions. `--local` after a
+> `pnpm db:reset` is clean. New test files should scope every query to their
+> own fixture ids.
 
 If you change anything under `packages/shared/src`, run `pnpm sync:shared`
 before touching the Edge Functions, and commit the result.
@@ -384,7 +400,7 @@ before touching the Edge Functions, and commit the result.
 
 ```
 apps/mobile/          Expo app
-  src/app/            Expo Router routes — (auth), (onboarding), (app)
+  src/app/            Expo Router routes — (auth), (onboarding), (app)/(tabs)
   src/features/       Data hooks and forms, grouped by domain
   src/components/     Hand-built UI primitives, no component kit
   src/lib/            Supabase client, query client, env, secure storage

@@ -371,6 +371,45 @@ review text, or category**.
 - [ ] After deletion, the deleted user's name appears nowhere in another user's app
 - [ ] Deletion is irreversible and the confirmation screen says so
 
+## Corrections made after implementation
+
+Recorded so the next agent reads a plan that matches the code. These came from
+walking the app rather than from building the milestone, and all of them touch
+surfaces this milestone introduced.
+
+1. **Nothing let two members size each other up before committing.** RLS already
+   allowed any approved member to read any other, and `member/[id].tsx` was
+   built here — but the screens where a request or an offer is actually decided
+   never linked to it. The host cards, traveller cards, the travellers list and
+   the offer form now all open a profile, and the ask / offer action is carried
+   onto the profile so it is not a dead end.
+2. **The match cards were re-implementing `PersonRow`.** `HostCard` and
+   `TravellerCard` each hand-rolled an avatar and name block, which is why they
+   had no tap target. Both use the component now; a local `personFrom()` bridges
+   `search_matches`'s camelCase profile shape to the snake_case row shape the
+   component takes.
+3. **A member had no way to supply a phone number.** `contact_details` has
+   carried `whatsapp` since Milestone 1 and the reveal screen has always rendered
+   a WhatsApp channel, but only `email` was ever populated — copied from auth at
+   sign-up — so that row could never appear. A WhatsApp number is now required of
+   every member and revealed alongside the email.
+   - Required by the profile-completeness gate, **not** by `not null`: the row is
+     created by `handle_new_user()` at sign-up, which knows the email and nothing
+     else, so a NOT NULL column would make account creation impossible.
+   - Stored E.164 and constrained to it. wa.me takes digits only and has no idea
+     what country the reader is in, so a national number produces a link that
+     dials somebody else entirely.
+   - "Complete" now spans two tables, so `useAuthGate` reads `contact_details`
+     as well as `profiles`.
+4. **Profile links now show on `member/[id].tsx`.** The own-profile read view
+   lists them, so without this a member saw links on themselves that nobody else
+   could — and for a working artist a website is one of the stronger "is this
+   person real" signals when deciding whether to host them.
+5. **The empty avatar was invisible, not blank.** It filled with `bgRaised`,
+   which is white in the light theme, so a photo-less member had no visible
+   avatar on any screen sitting on `bg`. `Avatar` now draws initials on
+   `accentSubtle`, which is distinct from every surface in both themes.
+
 ## Known Risks & Watch-Outs
 
 - **The double-blind leak is the subtle bug here.** A count, an aggregate, or a
