@@ -43,11 +43,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.sm,
     paddingVertical: 4,
     borderRadius: radius.sm,
+    // The pill is the short half of a card header — the name row beside it is
+    // what gives way when the two do not fit.
+    flexShrink: 0,
   },
+  // Sized to sit on the corner of a 24px header glyph without swamping it.
   count: {
-    minWidth: 22,
-    height: 22,
-    paddingHorizontal: 6,
+    minWidth: 18,
+    height: 18,
+    paddingHorizontal: 5,
     borderRadius: radius.pill,
     alignItems: 'center',
     justifyContent: 'center',

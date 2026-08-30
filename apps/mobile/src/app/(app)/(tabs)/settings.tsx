@@ -1,7 +1,8 @@
 import { DELETE_CONFIRMATION } from '@gigaway/shared'
+import * as Clipboard from 'expo-clipboard'
 import { useRouter } from 'expo-router'
 import { useState } from 'react'
-import { StyleSheet, Text, View } from 'react-native'
+import { Pressable, Share, StyleSheet, Text, View } from 'react-native'
 
 import { Button, TextLink } from '@/components/button'
 import { Callout } from '@/components/callout'
@@ -10,15 +11,21 @@ import { Screen } from '@/components/screen'
 import { TextField } from '@/components/text-field'
 import { useDeleteAccount, useExportData } from '@/features/account/use-account'
 import { useMyBlocks, useUnblockMember } from '@/features/blocks/use-blocks'
+import { useCreateInvite, useMyInvites, useRemainingQuota } from '@/features/invites/use-invites'
 import { useMemberProfile } from '@/features/profile/use-profile'
+import { env } from '@/lib/env'
 import { unregisterPush } from '@/lib/push'
 import { supabase } from '@/lib/supabase'
 import { radius, spacing, typography } from '@/theme/tokens'
 import { useTheme } from '@/theme/use-theme'
 
 /**
- * Settings: blocked members, the guidelines, data export, signing out, and
- * account deletion.
+ * Settings: invites, blocked members, the guidelines, data export, signing out,
+ * and account deletion.
+ *
+ * Invites sit here rather than on the feed because bringing someone in is a
+ * deliberate, occasional act — it was competing with the people already in the
+ * network for the bottom of the home screen, and losing.
  *
  * The deletion section is deliberately the last thing on the screen and
  * deliberately not a single button. It asks for the word and the password
@@ -34,6 +41,8 @@ export default function SettingsScreen() {
 
   return (
     <Screen>
+      <InviteSection />
+
       {/* ── Blocked ─────────────────────────────────────────────────────── */}
       <View style={styles.section}>
         <Text style={[typography.heading, { color: theme.text }]}>Blocked members</Text>
@@ -102,6 +111,66 @@ export default function SettingsScreen() {
 
       <DeleteAccountSection />
     </Screen>
+  )
+}
+
+/**
+ * One live invite at a time, with the quota stated plainly. Your name is
+ * attached to whoever you bring in — the whole trust model rests on that, so it
+ * is said on the screen rather than buried in the guidelines.
+ */
+function InviteSection() {
+  const theme = useTheme()
+  const invites = useMyInvites()
+  const quota = useRemainingQuota()
+  const createInvite = useCreateInvite()
+
+  const liveInvite = (invites.data ?? []).find(
+    (invite) => !invite.revoked_at && invite.uses < invite.max_uses,
+  )
+
+  return (
+    <View style={styles.section}>
+      <Text style={[typography.heading, { color: theme.text }]}>Invite a colleague</Text>
+      <Text style={[typography.caption, { color: theme.textMuted }]}>
+        {quota.data ?? 0} left. Your name is attached to whoever you bring in.
+      </Text>
+
+      {liveInvite ? (
+        <View
+          style={[
+            styles.invite,
+            { backgroundColor: theme.bgSubtle, borderColor: theme.border },
+          ]}
+        >
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={`Copy invite code ${liveInvite.code}`}
+            onPress={() => Clipboard.setStringAsync(liveInvite.code)}
+          >
+            <Text style={[styles.code, { color: theme.text }]}>{liveInvite.code}</Text>
+          </Pressable>
+          <TextLink
+            label="Share this invite"
+            onPress={() =>
+              Share.share({
+                message:
+                  'Join me on GigAway — free couches between working artists.\n\n' +
+                  `${env.webBaseUrl}/i/${liveInvite.code}`,
+              })
+            }
+          />
+        </View>
+      ) : (
+        <Button
+          label="Create an invite"
+          variant="secondary"
+          onPress={() => createInvite.mutate()}
+          loading={createInvite.isPending}
+          disabled={(quota.data ?? 0) <= 0}
+        />
+      )}
+    </View>
   )
 }
 
@@ -210,4 +279,16 @@ const styles = StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth,
   },
   rowText: { flex: 1 },
+  invite: {
+    padding: spacing.lg,
+    borderRadius: radius.md,
+    borderWidth: StyleSheet.hairlineWidth,
+    gap: spacing.md,
+  },
+  code: {
+    fontSize: 26,
+    letterSpacing: 6,
+    fontWeight: '700',
+    textAlign: 'center',
+  },
 })

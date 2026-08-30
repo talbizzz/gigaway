@@ -6,13 +6,12 @@ import { ActivityIndicator, StyleSheet, Text, View } from 'react-native'
 import { Badge } from '@/components/badge'
 import { Button, TextLink } from '@/components/button'
 import { Callout } from '@/components/callout'
-import { PersonRow } from '@/components/person'
+import { PersonRow, personFrom } from '@/components/person'
 import { Screen } from '@/components/screen'
 import {
   isCompletelyEmpty,
   useMatches,
   type HostMatch,
-  type MatchProfile,
   type TravellerMatch,
 } from '@/features/matches/use-matches'
 import {
@@ -223,21 +222,6 @@ export default function TripMatchesScreen() {
 
     </Screen>
   )
-}
-
-/**
- * search_matches returns camelCase profiles of its own shape; PersonRow speaks
- * the snake_case row shape used everywhere else. One place to bridge them, so
- * the match cards render identically to every other person in the app.
- */
-function personFrom(profile: MatchProfile) {
-  return {
-    display_name: profile.displayName,
-    discipline: profile.discipline,
-    specialisation: profile.specialisation,
-    photo_path: profile.photoPath,
-    home_district: profile.homeDistrict,
-  }
 }
 
 function HostCard({

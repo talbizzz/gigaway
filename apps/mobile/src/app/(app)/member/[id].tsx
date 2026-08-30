@@ -294,6 +294,11 @@ const styles = StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth,
     gap: spacing.sm,
   },
-  cardTop: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
+  cardTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: spacing.md,
+  },
   asked: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
 })

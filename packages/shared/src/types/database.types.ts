@@ -1613,6 +1613,7 @@ export type Database = {
       export_user_data: { Args: { p_user: string }; Returns: Json }
       generate_invite_code: { Args: never; Returns: string }
       has_contact_grant: { Args: { other: string }; Returns: boolean }
+      home_feed: { Args: never; Returns: Json }
       is_approved: { Args: never; Returns: boolean }
       is_blocked: { Args: { other: string }; Returns: boolean }
       live_invite_count: { Args: never; Returns: number }

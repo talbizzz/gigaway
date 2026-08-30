@@ -6,9 +6,9 @@ import { useTheme } from '@/theme/use-theme'
  * Tab bar glyphs.
  *
  * Drawn from primitives rather than pulled from an icon set, for the same
- * reason the rest of the kit is hand-built: three icons is not worth a font
- * dependency, and these inherit the tab bar's active/inactive colour without a
- * second source of truth. Each renders on a 24×24 box so the three line up.
+ * reason the rest of the kit is hand-built: a handful of icons is not worth a
+ * font dependency, and these inherit the tab bar's active/inactive colour
+ * without a second source of truth. Each renders on a 24×24 box so they line up.
  */
 
 type IconProps = {
@@ -58,6 +58,32 @@ export function ProfileIcon({ color, focused }: IconProps) {
           focused ? { backgroundColor: color, borderColor: color } : { borderColor: color },
         ]}
       />
+    </View>
+  )
+}
+
+export function CouchIcon({ color, focused }: IconProps) {
+  const fill = focused ? { backgroundColor: color, borderColor: color } : { borderColor: color }
+
+  return (
+    <View style={styles.box}>
+      <View style={[styles.couchBack, fill]} />
+      <View style={[styles.couchSeat, fill]} />
+      <View style={[styles.couchLeg, styles.couchLegLeft, { backgroundColor: color }]} />
+      <View style={[styles.couchLeg, styles.couchLegRight, { backgroundColor: color }]} />
+    </View>
+  )
+}
+
+/**
+ * The centre button's plus. No focused state: it opens a sheet rather than
+ * selecting a tab, so it is never the current screen.
+ */
+export function PlusIcon({ color }: { color: ColorValue }) {
+  return (
+    <View style={styles.box}>
+      <View style={[styles.plusBar, styles.plusAcross, { backgroundColor: color }]} />
+      <View style={[styles.plusBar, styles.plusDown, { backgroundColor: color }]} />
     </View>
   )
 }
@@ -142,6 +168,34 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderBottomWidth: 0,
   },
+
+  couchBack: {
+    position: 'absolute',
+    top: 5,
+    left: 3,
+    width: 18,
+    height: 8,
+    borderWidth: 2,
+    borderBottomWidth: 0,
+    borderTopLeftRadius: 4,
+    borderTopRightRadius: 4,
+  },
+  couchSeat: {
+    position: 'absolute',
+    top: 11,
+    left: 1,
+    width: 22,
+    height: 7,
+    borderWidth: 2,
+    borderRadius: 3,
+  },
+  couchLeg: { position: 'absolute', top: 18, width: 2, height: 3 },
+  couchLegLeft: { left: 4 },
+  couchLegRight: { right: 4 },
+
+  plusBar: { position: 'absolute', borderRadius: 1.5 },
+  plusAcross: { top: 11, left: 3, width: 18, height: 3 },
+  plusDown: { top: 3, left: 11, width: 3, height: 18 },
 
   track: {
     position: 'absolute',

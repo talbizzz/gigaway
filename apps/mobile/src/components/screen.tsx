@@ -37,6 +37,9 @@ export function Screen({ children, scroll = true, footer, contentStyle }: Screen
     <View style={[styles.content, styles.flex, contentStyle]}>{children}</View>
   )
 
+  // The top inset belongs to the navigator, not here: a screen with a header
+  // already sits below the status bar, one without it does not, and only the
+  // layout knows which it drew.
   return (
     <KeyboardAvoidingView
       style={[styles.flex, { backgroundColor: theme.bg }]}

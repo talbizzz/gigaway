@@ -42,16 +42,10 @@ function RootNavigator() {
   return (
     <Stack
       screenOptions={{
-        headerShadowVisible: false,
-        headerStyle: { backgroundColor: theme.bg },
-        headerTintColor: theme.text,
+        headerShown: false,
         contentStyle: { backgroundColor: theme.bg },
       }}
-    >
-      <Stack.Screen name="(auth)" options={{ headerShown: false }} />
-      <Stack.Screen name="(onboarding)" options={{ headerShown: false }} />
-      <Stack.Screen name="(app)" options={{ headerShown: false }} />
-    </Stack>
+    />
   )
 }
 

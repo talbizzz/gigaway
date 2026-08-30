@@ -1,17 +1,17 @@
-import { Image } from 'expo-image'
-import { Pressable, StyleSheet, Text, View } from 'react-native'
+import { Image } from "expo-image";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 
-import { avatarUrl } from '@/features/profile/use-update-profile'
-import { radius, spacing, typography } from '@/theme/tokens'
-import { useTheme } from '@/theme/use-theme'
+import { avatarUrl } from "@/features/profile/use-update-profile";
+import { radius, spacing, typography } from "@/theme/tokens";
+import { useTheme } from "@/theme/use-theme";
 
 export type PersonSummary = {
-  display_name: string
-  discipline: string
-  specialisation?: string | null
-  photo_path?: string | null
-  home_district?: string | null
-}
+  display_name: string;
+  discipline: string;
+  specialisation?: string | null;
+  photo_path?: string | null;
+  home_district?: string | null;
+};
 
 /**
  * Initials, for a member who has not added a photo.
@@ -22,12 +22,33 @@ export type PersonSummary = {
  * where that reads as something being broken.
  */
 export function initialsOf(name: string | null | undefined): string {
-  const words = (name ?? '').trim().split(/\s+/).filter(Boolean)
-  if (words.length === 0) return '–'
+  const words = (name ?? "").trim().split(/\s+/).filter(Boolean);
+  if (words.length === 0) return "–";
 
-  const first = words[0]![0]!
-  const last = words.length > 1 ? words[words.length - 1]![0]! : ''
-  return (first + last).toUpperCase()
+  const first = words[0]![0]!;
+  const last = words.length > 1 ? words[words.length - 1]![0]! : "";
+  return (first + last).toUpperCase();
+}
+
+/**
+ * The matching RPCs return camelCase profiles of their own shape; PersonRow
+ * speaks the snake_case row shape used everywhere else. One place to bridge
+ * them, so a person off the feed renders identically to a person off a table.
+ */
+export function personFrom(profile: {
+  displayName: string
+  discipline: string
+  specialisation?: string | null
+  photoPath?: string | null
+  homeDistrict?: string | null
+}): PersonSummary {
+  return {
+    display_name: profile.displayName,
+    discipline: profile.discipline,
+    specialisation: profile.specialisation ?? null,
+    photo_path: profile.photoPath ?? null,
+    home_district: profile.homeDistrict ?? null,
+  }
 }
 
 export function Avatar({
@@ -35,13 +56,13 @@ export function Avatar({
   name,
   size = 44,
 }: {
-  photoPath?: string | null
+  photoPath?: string | null;
   /** Drives the initials placeholder when there is no photo. */
-  name?: string | null
-  size?: number
+  name?: string | null;
+  size?: number;
 }) {
-  const theme = useTheme()
-  const uri = avatarUrl(photoPath)
+  const theme = useTheme();
+  const uri = avatarUrl(photoPath);
 
   // The placeholder is brass rather than a grey: bgRaised is white in the light
   // theme, which makes an empty circle invisible on the screens that sit on
@@ -75,7 +96,7 @@ export function Avatar({
         </Text>
       )}
     </View>
-  )
+  );
 }
 
 /**
@@ -89,36 +110,52 @@ export function PersonRow({
   size = 44,
   onPress,
 }: {
-  person: PersonSummary | null | undefined
-  trailing?: string
-  size?: number
+  person: PersonSummary | null | undefined;
+  trailing?: string;
+  size?: number;
   /** Makes the row a link to that member's profile, where blocking and
    *  reporting live. Omitted where there is no profile to open. */
-  onPress?: () => void
+  onPress?: () => void;
 }) {
-  const theme = useTheme()
-  if (!person) return null
+  const theme = useTheme();
+  if (!person) return null;
 
-  const subtitle = [person.specialisation ?? person.discipline, person.home_district]
+  const subtitle = [
+    person.specialisation ?? person.discipline,
+    person.home_district,
+  ]
     .filter(Boolean)
-    .join(' · ')
+    .join(" · ");
 
   const content = (
     <>
-      <Avatar photoPath={person.photo_path} name={person.display_name} size={size} />
+      <Avatar
+        photoPath={person.photo_path}
+        name={person.display_name}
+        size={size}
+      />
       <View style={styles.rowText}>
-        <Text style={[typography.bodyStrong, { color: onPress ? theme.accent : theme.text }]}>
+        <Text
+          style={[
+            typography.bodyStrong,
+            { color: onPress ? theme.accent : theme.text },
+          ]}
+          numberOfLines={1}
+        >
           {person.display_name}
         </Text>
-        <Text style={[typography.caption, { color: theme.textMuted }]}>
+        <Text
+          style={[typography.caption, { color: theme.textMuted }]}
+          numberOfLines={1}
+        >
           {subtitle}
-          {trailing ? ` · ${trailing}` : ''}
+          {trailing ? ` · ${trailing}` : ""}
         </Text>
       </View>
     </>
-  )
+  );
 
-  if (!onPress) return <View style={styles.row}>{content}</View>
+  if (!onPress) return <View style={styles.row}>{content}</View>;
 
   return (
     <Pressable
@@ -129,19 +166,33 @@ export function PersonRow({
     >
       {content}
     </Pressable>
-  )
+  );
 }
 
 const styles = StyleSheet.create({
   avatar: {
     borderRadius: radius.pill,
-    overflow: 'hidden',
-    alignItems: 'center',
-    justifyContent: 'center',
+    overflow: "hidden",
+    alignItems: "center",
+    justifyContent: "center",
   },
-  initials: { fontWeight: '600', includeFontPadding: false },
-  avatarImage: { width: '100%', height: '100%' },
-  row: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
+  initials: { fontWeight: "600", includeFontPadding: false },
+  avatarImage: { width: "100%", height: "100%" },
+  // Two separate defaults conspire to push a sibling — the status Badge on the
+  // request, offer and review cards — off the right edge of the card. flexShrink
+  // is 0 in React Native, and Yoga 3 then refuses to shrink a flex item below
+  // its min-content width unless minWidth says otherwise. Both have to go, or
+  // the row keeps its full intrinsic width and the badge overflows.
+  row: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.md,
+    flexShrink: 1,
+    minWidth: 0,
+  },
   pressed: { opacity: 0.7 },
-  rowText: { flex: 1, gap: 2 },
-})
+  // minWidth again: the single-line name and subtitle have no wrap point, so
+  // this column's min-content width is the whole string. Without it the text
+  // pushes the row wide rather than ellipsising.
+  rowText: { flex: 1, minWidth: 0, gap: 2 },
+});
