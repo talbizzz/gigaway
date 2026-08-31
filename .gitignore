@@ -35,3 +35,4 @@ supabase/.branches/
 
 coverage/
 .cache/
+.claude/settings.json
