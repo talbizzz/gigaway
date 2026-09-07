@@ -7,6 +7,7 @@
     "node": ">=20"
   },
   "scripts": {
+    "build:legal": "node scripts/build-legal.mjs",
     "sync:shared": "node scripts/sync-shared.mjs",
     "sync:shared:check": "node scripts/sync-shared.mjs --check",
     "typecheck": "pnpm -r --if-present typecheck",
@@ -17,10 +18,11 @@
     "db:reset": "supabase db reset",
     "db:test": "supabase test db --linked",
     "db:types": "supabase gen types typescript --linked > packages/shared/src/types/database.types.ts",
-    "functions:deploy": "pnpm sync:shared && supabase functions deploy"
+    "functions:deploy": "pnpm sync:shared && supabase functions deploy --import-map supabase/functions/deno.json"
   },
   "devDependencies": {
     "@types/node": "^22.10.2",
+    "marked": "^18.0.11",
     "typescript": "^5.7.2"
   }
 }
