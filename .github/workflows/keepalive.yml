@@ -1,0 +1,56 @@
+name: Keep Supabase awake
+
+# Supabase pauses a free-tier project after ~7 days without API activity.
+#
+# The three pg_cron jobs in the schema do NOT count: pg_cron runs inside
+# Postgres and never touches the API layer, which is where activity is measured.
+# Only a real HTTP request to PostgREST, Auth, Storage or Realtime registers.
+#
+# Every 3 days leaves plenty of headroom — GitHub's scheduler is best-effort and
+# can run late under load, so a 7-day window wants more than one chance to fire.
+#
+# NOTE: GitHub disables scheduled workflows in a repository with no commits for
+# 60 days. If this repo goes quiet, the ping stops too — which is exactly when
+# it was needed. Check the Actions tab if the project pauses anyway.
+
+on:
+  schedule:
+    - cron: '0 6 */3 * *'
+  workflow_dispatch: {}
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Ping PostgREST and Auth
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+        run: |
+          set -euo pipefail
+
+          if [ -z "${SUPABASE_URL:-}" ] || [ -z "${SUPABASE_ANON_KEY:-}" ]; then
+            echo "::error::SUPABASE_URL or SUPABASE_ANON_KEY secret is not set"
+            exit 1
+          fi
+
+          # PostgREST root. Returns the OpenAPI spec; the point is the request,
+          # not the response. --fail turns a 4xx/5xx into a failed job so a
+          # broken ping is visible rather than silent.
+          code=$(curl -sS --fail --max-time 30 \
+            -o /dev/null -w '%{http_code}' \
+            -H "apikey: ${SUPABASE_ANON_KEY}" \
+            -H "Authorization: Bearer ${SUPABASE_ANON_KEY}" \
+            "${SUPABASE_URL}/rest/v1/")
+          echo "PostgREST: HTTP ${code}"
+
+          # Auth is a separate service and pausing is per-project, but hitting
+          # both costs nothing and covers a partial outage.
+          code=$(curl -sS --fail --max-time 30 \
+            -o /dev/null -w '%{http_code}' \
+            -H "apikey: ${SUPABASE_ANON_KEY}" \
+            "${SUPABASE_URL}/auth/v1/health")
+          echo "Auth: HTTP ${code}"
+
+          echo "Project pinged — activity clock reset."
