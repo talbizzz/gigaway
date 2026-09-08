@@ -1,0 +1,79 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [develop, main]
+  push:
+    branches: [develop, main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # Fast feedback. Kept separate from pgTAP so a typo does not wait on Docker.
+  checks:
+    name: Types, lint, tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm typecheck
+      - run: pnpm lint
+      - run: pnpm test
+
+      # The Edge Functions consume a copy of packages/shared. If it is stale,
+      # a deploy ships code that disagrees with the app.
+      - name: Shared code is in sync
+        run: pnpm sync:shared:check
+
+      - name: Legal site builds
+        run: pnpm build:legal
+
+  # The only pre-production check on a migration: there is no staging project
+  # and no local stack on developer machines, so this is where migrations are
+  # verified before they reach the live database.
+  #
+  # It runs against a fresh Supabase, which means the database is empty. That
+  # is what makes the ~22 unscoped count(*) assertions pass here while failing
+  # against the live project's data.
+  database:
+    name: Migrations and pgTAP
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      # Applies every migration in order against a clean database. A migration
+      # that cannot apply from scratch fails here rather than in production.
+      - name: Start Supabase
+        run: supabase start
+
+      # No migration creates pgtap — it is a per-project setup step, mirrored
+      # here so CI matches the live project.
+      - name: Install pgTAP
+        run: |
+          psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" \
+            -v ON_ERROR_STOP=1 \
+            -c 'create extension if not exists pgtap with schema extensions;'
+
+      - name: Run pgTAP
+        run: supabase test db
+
+      - name: Stop Supabase
+        if: always()
+        run: supabase stop --no-backup

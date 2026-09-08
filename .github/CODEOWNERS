@@ -1,0 +1,17 @@
+# Ownership by directory, not by branch. This is how backend changes get
+# backend eyes without splitting the repo into per-target trees.
+
+*                           @talbizzz
+
+# The security boundary. RLS is the entire privacy model — the gate is in the
+# database, not the interface — so policy changes always get a second look.
+/supabase/migrations/       @talbizzz
+/supabase/functions/        @talbizzz
+
+# The contract between an app already installed on a phone and a function
+# about to be deployed. Breaking changes here break running systems.
+/packages/shared/src/schemas/  @talbizzz
+
+# Published documents. Changes here have legal effect and must stay consistent
+# with what the schema actually does.
+/legal/                     @talbizzz
