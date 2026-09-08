@@ -1,17 +1,19 @@
 name: Keep Supabase awake
 
-# Supabase pauses a free-tier project after ~7 days without API activity.
+# Supabase pauses a free-tier project after ~7 days without API activity, and
+# both GigAway projects are on the free tier.
 #
-# The three pg_cron jobs in the schema do NOT count: pg_cron runs inside
-# Postgres and never touches the API layer, which is where activity is measured.
-# Only a real HTTP request to PostgREST, Auth, Storage or Realtime registers.
+# The pg_cron jobs in the schema do NOT prevent this: pg_cron runs inside
+# Postgres and never touches the API layer, which is where activity is
+# measured. Only a real HTTP request counts.
 #
-# Every 3 days leaves plenty of headroom — GitHub's scheduler is best-effort and
-# can run late under load, so a 7-day window wants more than one chance to fire.
+# Every 3 days rather than every 6, because GitHub's scheduler is best-effort
+# and runs late under load — a seven-day window wants more than one chance to
+# fire.
 #
 # NOTE: GitHub disables scheduled workflows in a repository with no commits for
-# 60 days. If this repo goes quiet, the ping stops too — which is exactly when
-# it was needed. Check the Actions tab if the project pauses anyway.
+# 60 days, so the ping stops exactly when it was needed. If a project pauses
+# anyway, check the Actions tab first.
 
 on:
   schedule:
@@ -20,20 +22,40 @@ on:
 
 jobs:
   ping:
+    name: Ping ${{ matrix.project }}
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    strategy:
+      # One project being down must not cancel the other's ping — that would
+      # turn a single outage into two paused projects.
+      fail-fast: false
+      matrix:
+        include:
+          - project: production
+            url_secret: SUPABASE_URL
+            key_secret: SUPABASE_ANON_KEY
+          - project: development
+            url_secret: SUPABASE_DEV_URL
+            key_secret: SUPABASE_DEV_ANON_KEY
+
     steps:
       - name: Ping PostgREST and Auth
         env:
-          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+          # GitHub allows a dynamic key into the secrets context, which is what
+          # lets one job definition cover both projects.
+          SUPABASE_URL: ${{ secrets[matrix.url_secret] }}
+          SUPABASE_ANON_KEY: ${{ secrets[matrix.key_secret] }}
+          PROJECT: ${{ matrix.project }}
         run: |
           set -euo pipefail
 
           if [ -z "${SUPABASE_URL:-}" ] || [ -z "${SUPABASE_ANON_KEY:-}" ]; then
-            echo "::error::SUPABASE_URL or SUPABASE_ANON_KEY secret is not set"
+            echo "::error::${{ matrix.url_secret }} or ${{ matrix.key_secret }} is not set"
             exit 1
           fi
+
+          ref="${SUPABASE_URL#https://}"; ref="${ref%%.supabase.co*}"
+          echo "Project: ${PROJECT} (${ref})"
 
           # A real query through PostgREST into Postgres. cities is reference
           # data and readable without a session, so the anon key suffices.
@@ -59,4 +81,4 @@ jobs:
             "${SUPABASE_URL}/auth/v1/health")
           echo "Auth: HTTP ${code}"
 
-          echo "Project pinged — activity clock reset."
+          echo "${PROJECT} pinged — activity clock reset."
