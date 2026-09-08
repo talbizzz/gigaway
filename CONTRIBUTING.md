@@ -63,21 +63,37 @@ inside `BEGIN … COMMIT` so it can be rolled back after inspection.
 
 ---
 
-## No staging environment
+## Environments
 
-There is one Supabase project, and the org is at the free-tier project limit.
-There is no local stack either. **A migration is unverified until it reaches
-production.**
+| | Project ref | Purpose |
+|---|---|---|
+| **Production** | `hrhoqmmxgfpyxwncmpjx` | Live. Real users. No backups. |
+| **Development** | `shhgzekofcetdenwpivm` | Break things here. Same region, same 27 migrations, same 9 functions. |
 
-Which makes the pgTAP job in CI the only pre-production check on a migration.
-It runs against a fresh local Supabase in the workflow, so the database is
-empty by construction — that is also why the suite can use unscoped `count(*)`
-in CI without the false failures it produces against the live project.
+Point the app at dev by creating `apps/mobile/.env.local` with dev's URL and
+anon key — Expo reads it in preference to `.env`. **Delete that file to go back
+to production.** Both are gitignored.
 
-If the team grows enough to justify $25/month, a second Supabase project as
-staging is the single biggest upgrade available to this setup.
+**The two projects use different service-key forms.** Dev issues the newer
+`sb_secret_…` key; production still uses a legacy `service_role` JWT. They are
+not interchangeable: `requireServiceRole` compares byte-for-byte against what
+the runtime injects, so the wrong one gives a silent 401 rather than an error.
 
----
+**`supabase link` is global to this checkout.** It writes
+`supabase/.temp/project-ref`, and every later `db push` follows it. Check what
+you are linked to before pushing anything:
+
+```bash
+cat supabase/.temp/project-ref
+```
+
+Prefer `--project-ref` on commands that accept it, and relink to production the
+moment you are done with dev.
+
+Migrations still reach dev and production by the same route, so **dev is a
+rehearsal, not a guarantee** — it has no production data, so a migration that
+is slow or lock-heavy against real rows can still surprise you. The pgTAP job
+in CI, running against a clean database, remains the check that gates a PR.
 
 ## Getting set up
 
