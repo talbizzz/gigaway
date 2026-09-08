@@ -70,9 +70,21 @@ inside `BEGIN … COMMIT` so it can be rolled back after inspection.
 | **Production** | `hrhoqmmxgfpyxwncmpjx` | Live. Real users. No backups. |
 | **Development** | `shhgzekofcetdenwpivm` | Break things here. Same region, same 27 migrations, same 9 functions. |
 
-Point the app at dev by creating `apps/mobile/.env.local` with dev's URL and
-anon key — Expo reads it in preference to `.env`. **Delete that file to go back
-to production.** Both are gitignored.
+Which environment a local build talks to is chosen by the command, not by
+which files happen to exist:
+
+| | |
+|---|---|
+| `pnpm ios` / `pnpm android` / `pnpm start` | **dev** — the default |
+| `pnpm ios:prod` / `pnpm android:prod` / `pnpm start:prod` | production |
+
+Every run prints the project ref it is targeting before it starts, and the
+production commands pause for three seconds first.
+
+The values live in `apps/mobile/.env` (production) and `.env.dev`
+(development). Both gitignored. `EXPO_PUBLIC_*` is inlined when Metro bundles,
+so the choice is made at build time — a running bundler cannot be switched, it
+has to be restarted.
 
 **The two projects use different service-key forms.** Dev issues the newer
 `sb_secret_…` key; production still uses a legacy `service_role` JWT. They are

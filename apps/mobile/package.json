@@ -4,9 +4,15 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "start": "expo start",
-    "android": "expo run:android",
-    "ios": "expo run:ios",
+    "start": "./scripts/with-env.sh .env.dev expo start",
+    "ios": "./scripts/with-env.sh .env.dev expo run:ios",
+    "android": "./scripts/with-env.sh .env.dev expo run:android",
+    "start:dev": "./scripts/with-env.sh .env.dev expo start",
+    "ios:dev": "./scripts/with-env.sh .env.dev expo run:ios",
+    "android:dev": "./scripts/with-env.sh .env.dev expo run:android",
+    "start:prod": "./scripts/with-env.sh .env expo start",
+    "ios:prod": "./scripts/with-env.sh .env expo run:ios",
+    "android:prod": "./scripts/with-env.sh .env expo run:android",
     "web": "expo start --web",
     "lint": "expo lint",
     "typecheck": "tsc --noEmit"
