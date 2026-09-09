@@ -63,6 +63,25 @@ magick -size 1024x1024 xc:none \
 # ── Favicon for the web build ──────────────────────────────────────────────
 magick "$img/icon.png" -resize 48x48 -strip "$img/favicon.png"
 
+# ── Development variant ────────────────────────────────────────────────────
+# Inverted: ink mark on a brass ground. The dev build sits next to the real one
+# on the same home screen, so the two have to be distinguishable at a glance
+# rather than on close inspection.
+
+magick -size 1024x1024 "gradient:#E0B767-${BRASS}" \
+  -draw "$(mark "$INK_BOT" 128 "$PTS_FULL")" \
+  -strip "$img/icon-dev.png"
+
+magick -size 1024x1024 xc:none \
+  -draw "$(mark "$INK_BOT" 124 "$PTS_SAFE")" \
+  -resize 512x512 -strip "$img/android-icon-foreground-dev.png"
+
+magick -size 512x512 "xc:${BRASS}" -strip "$img/android-icon-background-dev.png"
+
+magick -size 1024x1024 xc:none \
+  -draw "$(mark "$INK_BOT" 128 "$PTS_FULL")" \
+  -trim +repage -resize 512x512 -strip "$img/splash-icon-dev.png"
+
 # ── Play feature graphic, 1024x500 ─────────────────────────────────────────
 # Generated here rather than by hand because it embeds the icon: when the mark
 # changes, this must change with it or the store listing and the installed app
@@ -84,7 +103,7 @@ magick "$tmp/composed.png" -gravity NorthWest \
   -strip "$store/feature-graphic.png"
 
 echo "icons rebuilt:"
-for f in "$img/icon.png" "$img/android-icon-foreground.png" \
+for f in "$img/icon.png" "$img/icon-dev.png" "$img/android-icon-foreground.png" \
          "$img/android-icon-background.png" "$img/android-icon-monochrome.png" \
          "$img/splash-icon.png" "$img/favicon.png" "$store/icon-512.png" "$store/feature-graphic.png"; do
   printf '  %-48s %s\n' "${f#$root/}" "$(magick identify -format '%wx%h' "$f")"

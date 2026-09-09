@@ -37,6 +37,13 @@ set -a
 . "./$env_file"
 set +a
 
+# CocoaPods calls String#unicode_normalize on the project path and dies with
+# "Unicode Normalization not appropriate for ASCII-8BIT" unless the locale is
+# UTF-8. Non-interactive shells frequently have no LANG at all, so prebuild
+# fails here and nowhere else.
+export LANG="${LANG:-en_US.UTF-8}"
+export LC_ALL="${LC_ALL:-en_US.UTF-8}"
+
 url="${EXPO_PUBLIC_SUPABASE_URL:-unset}"
 ref="${url#https://}"; ref="${ref%%.supabase.co*}"
 
