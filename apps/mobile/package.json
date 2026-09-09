@@ -18,6 +18,8 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@expo-google-fonts/lora": "^0.4.2",
+    "@expo-google-fonts/ubuntu": "^0.4.1",
     "@expo/metro-runtime": "~57.0.9",
     "@gigaway/shared": "workspace:*",
     "@hookform/resolvers": "^5.7.1",
@@ -52,6 +54,7 @@
     "react-native": "0.86.2",
     "react-native-calendars": "^1.1314.0",
     "react-native-gesture-handler": "~2.32.0",
+    "react-native-keyboard-controller": "1.21.9",
     "react-native-reanimated": "4.5.1",
     "react-native-safe-area-context": "~5.7.0",
     "react-native-screens": "~4.26.0",

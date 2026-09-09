@@ -42,9 +42,13 @@ export default function SignInScreen() {
 
   return (
     <Screen
+      background={require('@/assets/images/auth-dancer.webp')}
+      floatingHeader
       footer={
         <>
           <Button label="Sign in" onPress={onSubmit} loading={form.formState.isSubmitting} />
+          {/* replace, not push: the two forms swap in place so back always
+              returns to welcome rather than walking a chain of them. */}
           <TextLink label="Create an account" onPress={() => router.replace('/sign-up')} />
         </>
       }

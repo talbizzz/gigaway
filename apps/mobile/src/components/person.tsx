@@ -2,7 +2,7 @@ import { Image } from "expo-image";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import { avatarUrl } from "@/features/profile/use-update-profile";
-import { radius, spacing, typography } from "@/theme/tokens";
+import { fonts, radius, spacing, typography } from "@/theme/tokens";
 import { useTheme } from "@/theme/use-theme";
 
 export type PersonSummary = {
@@ -176,7 +176,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  initials: { fontWeight: "600", includeFontPadding: false },
+  initials: { fontFamily: fonts.bodyMedium, includeFontPadding: false },
   avatarImage: { width: "100%", height: "100%" },
   // Two separate defaults conspire to push a sibling — the status Badge on the
   // request, offer and review cards — off the right edge of the card. flexShrink

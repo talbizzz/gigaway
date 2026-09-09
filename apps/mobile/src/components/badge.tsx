@@ -1,6 +1,6 @@
 import { StyleSheet, Text, View } from 'react-native'
 
-import { radius, spacing, typography } from '@/theme/tokens'
+import { fonts, radius, spacing, typography } from '@/theme/tokens'
 import { useTheme } from '@/theme/use-theme'
 
 export type BadgeTone = 'accent' | 'muted' | 'success' | 'warning' | 'danger'
@@ -31,7 +31,7 @@ export function CountBadge({ count }: { count: number }) {
 
   return (
     <View style={[styles.count, { backgroundColor: theme.accent }]}>
-      <Text style={[typography.caption, { color: theme.accentText, fontWeight: '700' }]}>
+      <Text style={[typography.caption, { color: theme.accentText, fontFamily: fonts.bodyBold }]}>
         {count > 99 ? '99+' : count}
       </Text>
     </View>

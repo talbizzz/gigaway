@@ -16,7 +16,7 @@ import { useMemberProfile } from '@/features/profile/use-profile'
 import { env } from '@/lib/env'
 import { unregisterPush } from '@/lib/push'
 import { supabase } from '@/lib/supabase'
-import { radius, spacing, typography } from '@/theme/tokens'
+import { fonts, radius, spacing, typography } from '@/theme/tokens'
 import { useTheme } from '@/theme/use-theme'
 
 /**
@@ -288,7 +288,7 @@ const styles = StyleSheet.create({
   code: {
     fontSize: 26,
     letterSpacing: 6,
-    fontWeight: '700',
+    fontFamily: fonts.bodyBold,
     textAlign: 'center',
   },
 })

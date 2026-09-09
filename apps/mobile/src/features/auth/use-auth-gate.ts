@@ -15,7 +15,7 @@ import {
  * Decides which part of the app a user may be in, based on session and
  * verification state:
  *
- *   no session                    → (auth)
+ *   no session                    → (auth)/welcome
  *   session, status ≠ approved    → (onboarding)/verify
  *   approved, profile incomplete  → (onboarding)/profile
  *   approved, profile complete    → (app)
@@ -59,7 +59,7 @@ export function useAuthGate(): { ready: boolean } {
     const inApp = group === "(app)";
 
     if (!session) {
-      if (!inAuth) router.replace("/sign-in");
+      if (!inAuth) router.replace("/welcome");
       return;
     }
 

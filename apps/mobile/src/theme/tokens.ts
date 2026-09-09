@@ -116,12 +116,37 @@ export const radius = {
   pill: 999,
 } as const
 
+/**
+ * Font faces, loaded in app/_layout.tsx.
+ *
+ * Lora (serif) for titles, Ubuntu (humanist sans) for running text.
+ *
+ * ALWAYS set fontFamily, NEVER fontWeight, once a custom family is in play.
+ * fontWeight does not select a face — iOS fakes a bold by smearing the
+ * regular one and Android ignores it — so the weight has to be chosen by
+ * naming the file.
+ *
+ * Ubuntu ships 300/400/500/700 and no 600, which is why bodyStrong and
+ * captionStrong resolve to Medium rather than the SemiBold they asked for.
+ */
+export const fonts = {
+  title: 'Lora_700Bold',
+  titleSoft: 'Lora_600SemiBold',
+  body: 'Ubuntu_400Regular',
+  bodyMedium: 'Ubuntu_500Medium',
+  bodyBold: 'Ubuntu_700Bold',
+} as const
+
+/**
+ * Line heights are a touch looser than they were under the system font: Lora
+ * is a serif with long descenders, and the old 1.2 ratio clipped them.
+ */
 export const typography = {
-  display: { fontSize: 30, lineHeight: 36, fontWeight: '700' },
-  title: { fontSize: 22, lineHeight: 28, fontWeight: '700' },
-  heading: { fontSize: 17, lineHeight: 24, fontWeight: '600' },
-  body: { fontSize: 16, lineHeight: 24, fontWeight: '400' },
-  bodyStrong: { fontSize: 16, lineHeight: 24, fontWeight: '600' },
-  caption: { fontSize: 13, lineHeight: 18, fontWeight: '400' },
-  captionStrong: { fontSize: 13, lineHeight: 18, fontWeight: '600' },
+  display: { fontSize: 30, lineHeight: 40, fontFamily: fonts.title },
+  title: { fontSize: 22, lineHeight: 30, fontFamily: fonts.title },
+  heading: { fontSize: 17, lineHeight: 24, fontFamily: fonts.titleSoft },
+  body: { fontSize: 16, lineHeight: 24, fontFamily: fonts.body },
+  bodyStrong: { fontSize: 16, lineHeight: 24, fontFamily: fonts.bodyMedium },
+  caption: { fontSize: 13, lineHeight: 18, fontFamily: fonts.body },
+  captionStrong: { fontSize: 13, lineHeight: 18, fontFamily: fonts.bodyMedium },
 } as const
