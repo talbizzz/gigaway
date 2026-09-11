@@ -5,7 +5,6 @@ import { supabase } from '@/lib/supabase'
 
 export const inviteKeys = {
   mine: ['invites', 'mine'] as const,
-  quota: ['invites', 'quota'] as const,
 }
 
 export type Invite = {
@@ -36,24 +35,6 @@ export function useMyInvites() {
   })
 }
 
-/**
- * How many more invites may be created. Computed in the database so the number
- * shown always matches what the insert policy will actually allow.
- */
-export function useRemainingQuota() {
-  const session = useSessionStore((state) => state.session)
-
-  return useQuery({
-    queryKey: inviteKeys.quota,
-    enabled: Boolean(session),
-    queryFn: async (): Promise<number> => {
-      const { data, error } = await supabase.rpc('remaining_invite_quota')
-      if (error) throw error
-      return data ?? 0
-    },
-  })
-}
-
 export function useCreateInvite() {
   const queryClient = useQueryClient()
   const session = useSessionStore((state) => state.session)
@@ -69,10 +50,7 @@ export function useCreateInvite() {
       return data
     },
     onSuccess: async () => {
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: inviteKeys.mine }),
-        queryClient.invalidateQueries({ queryKey: inviteKeys.quota }),
-      ])
+      await queryClient.invalidateQueries({ queryKey: inviteKeys.mine })
     },
   })
 }
@@ -89,10 +67,7 @@ export function useRevokeInvite() {
       if (error) throw error
     },
     onSuccess: async () => {
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: inviteKeys.mine }),
-        queryClient.invalidateQueries({ queryKey: inviteKeys.quota }),
-      ])
+      await queryClient.invalidateQueries({ queryKey: inviteKeys.mine })
     },
   })
 }

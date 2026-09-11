@@ -49,3 +49,7 @@ store/play/screenshots/
 
 # local credentials for the dev Supabase project — never commit
 .gigaway-dev-credentials*
+
+# Local copies of React Native prebuilt artifacts, kept because
+# repo.reactnative.dev intermittently 404s. Large; never commit.
+apps/mobile/.rn-artifacts/

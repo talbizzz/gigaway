@@ -36,35 +36,38 @@ select ok(
   'a new invite expires roughly 30 days out, per app_config'
 );
 
--- ── quota ──────────────────────────────────────────────────────────────────
+-- ── no quota ───────────────────────────────────────────────────────────────
+-- The five-invite limit was removed in 20260909180000. These assert the
+-- absence of a limit rather than merely omitting the old checks, so that
+-- reintroducing one by accident fails here.
 set local role authenticated;
 set local request.jwt.claims to
   '{"sub":"11111111-1111-1111-1111-111111111111","role":"authenticated"}';
 
+select lives_ok(
+  $$ insert into public.invites (created_by)
+     select '11111111-1111-1111-1111-111111111111' from generate_series(1, 20) $$,
+  'a member may create far more invites than the old five-invite quota allowed'
+);
+
 select is(
-  (select public.remaining_invite_quota()),
-  4,
-  'one live invite consumes one of the five quota slots'
+  (select count(*)::int from public.invites
+    where created_by = '11111111-1111-1111-1111-111111111111'),
+  21,
+  'all of them are stored, not silently dropped'
 );
 
 select lives_ok(
   $$ insert into public.invites (created_by)
-     select '11111111-1111-1111-1111-111111111111' from generate_series(1, 4) $$,
-  'a member may create invites up to their quota'
-);
-
-select is(
-  (select public.remaining_invite_quota()),
-  0,
-  'quota is exhausted once five live invites exist'
-);
-
-select throws_ok(
-  $$ insert into public.invites (created_by)
      values ('11111111-1111-1111-1111-111111111111') $$,
-  '42501',
-  null,
-  'the sixth invite is refused by policy, not merely hidden in the UI'
+  'the twenty-second is accepted too — there is no ceiling to hit'
+);
+
+-- Still vestigial rather than gone: builds shipped before the quota was
+-- removed call this and disable their invite button at zero.
+select ok(
+  (select public.remaining_invite_quota()) > 0,
+  'remaining_invite_quota stays positive so older builds keep working'
 );
 
 -- ── column guard ───────────────────────────────────────────────────────────
@@ -119,11 +122,14 @@ select is(
   'every member is traceable to the colleague who vouched for them'
 );
 
+-- redeem_invite still decrements the column. It is inert — no policy reads it —
+-- but it is left in place because installed builds call the RPC above, and the
+-- spent-quota record is worth keeping until they are gone.
 select is(
   (select invite_quota from public.profiles
     where id = '11111111-1111-1111-1111-111111111111'),
   4,
-  'the inviter''s quota is spent on redemption'
+  'the column still tracks spending, though nothing enforces it'
 );
 
 -- ── a single-use code cannot be spent twice ────────────────────────────────

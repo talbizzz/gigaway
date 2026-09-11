@@ -11,7 +11,7 @@ import { Screen } from '@/components/screen'
 import { TextField } from '@/components/text-field'
 import { useDeleteAccount, useExportData } from '@/features/account/use-account'
 import { useMyBlocks, useUnblockMember } from '@/features/blocks/use-blocks'
-import { useCreateInvite, useMyInvites, useRemainingQuota } from '@/features/invites/use-invites'
+import { useCreateInvite, useMyInvites } from '@/features/invites/use-invites'
 import { useMemberProfile } from '@/features/profile/use-profile'
 import { env } from '@/lib/env'
 import { unregisterPush } from '@/lib/push'
@@ -115,14 +115,15 @@ export default function SettingsScreen() {
 }
 
 /**
- * One live invite at a time, with the quota stated plainly. Your name is
- * attached to whoever you bring in — the whole trust model rests on that, so it
- * is said on the screen rather than buried in the guidelines.
+ * One live invite at a time. There is no longer a cap on how many you may issue
+ * over time — the five-invite quota was removed in 20260909180000 — but your
+ * name is still attached to whoever you bring in, and the whole trust model
+ * rests on that, so it is said on the screen rather than buried in the
+ * guidelines.
  */
 function InviteSection() {
   const theme = useTheme()
   const invites = useMyInvites()
-  const quota = useRemainingQuota()
   const createInvite = useCreateInvite()
 
   const liveInvite = (invites.data ?? []).find(
@@ -133,7 +134,7 @@ function InviteSection() {
     <View style={styles.section}>
       <Text style={[typography.heading, { color: theme.text }]}>Invite a colleague</Text>
       <Text style={[typography.caption, { color: theme.textMuted }]}>
-        {quota.data ?? 0} left. Your name is attached to whoever you bring in.
+        Your name is attached to whoever you bring in.
       </Text>
 
       {liveInvite ? (
@@ -167,7 +168,6 @@ function InviteSection() {
           variant="secondary"
           onPress={() => createInvite.mutate()}
           loading={createInvite.isPending}
-          disabled={(quota.data ?? 0) <= 0}
         />
       )}
     </View>

@@ -44,6 +44,26 @@ set +a
 export LANG="${LANG:-en_US.UTF-8}"
 export LC_ALL="${LC_ALL:-en_US.UTF-8}"
 
+# React Native's artifact CDN (repo.reactnative.dev) intermittently 404s, and
+# when it does the failure is silent and vicious: rndependencies.rb checks
+# whether the artifact exists before declaring the pod, so a 404 makes the pod
+# disappear from the graph entirely. The prebuilt React.framework is still
+# linked against it, so the app builds, installs, and then dies in dyld before
+# a single line of JS runs — with no error surfaced anywhere.
+#
+# This points CocoaPods at a local copy taken from its own cache, so builds no
+# longer depend on that host being up. Regenerate it with:
+#
+#   tar -czf apps/mobile/.rn-artifacts/ReactNativeDependencies-<version>.tar.gz \
+#     -C ~/Library/Caches/CocoaPods/Pods/External/ReactNativeDependencies/<hash> \
+#     Headers framework
+#
+# Local builds only — EAS does not use this script.
+_rndep="$here/.rn-artifacts/ReactNativeDependencies-0.86.2.tar.gz"
+if [ -f "$_rndep" ]; then
+  export RCT_USE_LOCAL_RN_DEP="$_rndep"
+fi
+
 url="${EXPO_PUBLIC_SUPABASE_URL:-unset}"
 ref="${url#https://}"; ref="${ref%%.supabase.co*}"
 
