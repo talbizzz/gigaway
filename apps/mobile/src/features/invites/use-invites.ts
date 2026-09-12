@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabase'
 
 export const inviteKeys = {
   mine: ['invites', 'mine'] as const,
+  overview: ['invites', 'overview'] as const,
 }
 
 export type Invite = {
@@ -68,6 +69,50 @@ export function useRevokeInvite() {
     },
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: inviteKeys.mine })
+    },
+  })
+}
+
+export type InvitedMember = {
+  redeemedBy: string
+  redeemedAt: string
+}
+
+/**
+ * Everyone who has ever redeemed one of this member's invite codes — the
+ * traceable chain from their side, rather than the moderator's.
+ *
+ * One round trip: invites embeds invite_redemptions through the foreign key,
+ * so Postgrest returns each invite with its redemptions nested rather than
+ * needing a second query keyed off the first result. RLS still applies inside
+ * the embed — invite_redemptions_select_involved already covers "an invite I
+ * created", which is exactly this query's shape.
+ *
+ * Whether a redeemed member is still visible by name depends on the ordinary
+ * profile policy (approved, not blocking each other) — this hook only says
+ * who redeemed and when, not who they are. The screen resolves each one
+ * through useMemberProfile, same as a blocked member's row does, and treats a
+ * null result as "not visible right now" rather than an error.
+ */
+export function useMyInvitedMembers() {
+  const session = useSessionStore((state) => state.session)
+
+  return useQuery({
+    queryKey: inviteKeys.overview,
+    enabled: Boolean(session),
+    queryFn: async (): Promise<InvitedMember[]> => {
+      const { data, error } = await supabase
+        .from('invites')
+        .select('invite_redemptions(redeemed_by, redeemed_at)')
+      if (error) throw error
+
+      return data
+        .flatMap((invite) => invite.invite_redemptions)
+        .map((redemption) => ({
+          redeemedBy: redemption.redeemed_by,
+          redeemedAt: redemption.redeemed_at,
+        }))
+        .sort((a, b) => b.redeemedAt.localeCompare(a.redeemedAt))
     },
   })
 }
