@@ -1,10 +1,14 @@
 import { useRouter } from 'expo-router'
 import { StyleSheet, View } from 'react-native'
 
+import { TextLink } from '@/components/button'
 import { Screen } from '@/components/screen'
 import { SettingsRow } from '@/components/settings-row'
 import { useMyBlocks } from '@/features/blocks/use-blocks'
 import { useMyInvitedMembers } from '@/features/invites/use-invites'
+import { unregisterPush } from '@/lib/push'
+import { supabase } from '@/lib/supabase'
+import { spacing } from '@/theme/tokens'
 
 /**
  * Settings, as a menu rather than one long scroll of every section at once.
@@ -18,6 +22,10 @@ import { useMyInvitedMembers } from '@/features/invites/use-invites'
  * destination pages use. Fetching them here is not wasted work: React Query
  * caches by key, so opening either page from this menu usually shows data
  * immediately rather than a fresh loading state.
+ *
+ * Sign out has no page of its own — one paragraph and one button was not
+ * enough to justify a whole screen — so it sits as a plain text link under
+ * the menu instead.
  */
 export default function SettingsScreen() {
   const router = useRouter()
@@ -25,40 +33,46 @@ export default function SettingsScreen() {
   const blocks = useMyBlocks()
 
   return (
-    <Screen scroll={false}>
-      <View style={styles.list}>
-        <SettingsRow
-          title="Invitations"
-          description="Bring in a colleague, and see who has joined through you."
-          value={invited.data ? `${invited.data.length} joined` : undefined}
-          onPress={() => router.push('/settings/invitations')}
-        />
-        <SettingsRow
-          title="Blocked members"
-          description="Everyone you have made invisible to yourself, and to you."
-          value={blocks.data && blocks.data.length > 0 ? `${blocks.data.length}` : undefined}
-          onPress={() => router.push('/settings/blocked')}
-        />
-        <SettingsRow
-          title="Community guidelines"
-          description="What we hold members to, and why an account gets removed."
-          onPress={() => router.push('/guidelines')}
-        />
-        <SettingsRow
-          title="Your data"
-          description="Export everything GigAway holds about you."
-          onPress={() => router.push('/settings/data-export')}
-        />
-        <SettingsRow
-          title="This device"
-          description="Sign out without touching your account."
-          onPress={() => router.push('/settings/device')}
-        />
-        <SettingsRow
-          title="Delete account"
-          description="Permanent. No undo, no backup, no way back in."
-          tone="danger"
-          onPress={() => router.push('/settings/delete-account')}
+    <Screen>
+      <SettingsRow
+        title="Invitations"
+        description="Bring in a colleague, and see who has joined through you."
+        value={invited.data ? `${invited.data.length} joined` : undefined}
+        onPress={() => router.push('/settings/invitations')}
+      />
+      <SettingsRow
+        title="Blocked members"
+        description="Everyone you have made invisible to yourself, and to you."
+        value={blocks.data && blocks.data.length > 0 ? `${blocks.data.length}` : undefined}
+        onPress={() => router.push('/settings/blocked')}
+      />
+      <SettingsRow
+        title="Community guidelines"
+        description="What we hold members to, and why an account gets removed."
+        onPress={() => router.push('/guidelines')}
+      />
+      <SettingsRow
+        title="Your data"
+        description="Export everything GigAway holds about you."
+        onPress={() => router.push('/settings/data-export')}
+      />
+      <SettingsRow
+        title="Delete account"
+        description="Permanent. No undo, no backup, no way back in."
+        tone="danger"
+        onPress={() => router.push('/settings/delete-account')}
+      />
+
+      <View style={styles.signOut}>
+        <TextLink
+          label="Sign out"
+          onPress={async () => {
+            // Release this device's push token first. Otherwise the next
+            // person to sign in on a shared or resold phone keeps receiving
+            // the previous member's notifications.
+            await unregisterPush()
+            await supabase.auth.signOut()
+          }}
         />
       </View>
     </Screen>
@@ -66,5 +80,5 @@ export default function SettingsScreen() {
 }
 
 const styles = StyleSheet.create({
-  list: { flex: 1 },
+  signOut: { alignItems: 'center', marginTop: spacing.xxl },
 })
