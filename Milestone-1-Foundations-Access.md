@@ -519,6 +519,27 @@ no-op when `EXPO_PUBLIC_ANALYTICS_ENABLED` is not `true`.
 - [ ] With `EXPO_PUBLIC_ANALYTICS_ENABLED=false`, no network request reaches PostHog
 - [ ] The `v_pending_verifications` view returns a reviewable row for a test application
 
+## Corrections made after implementation
+
+Recorded so the next agent reads a plan that matches the code.
+
+1. **The per-inviter quota was removed entirely.** Migration `20260909180000_remove_invite_quota.sql`
+   drops `invites_insert_within_quota` in favour of `invites_insert_own`, which lets any approved
+   member create as many live invite codes as they want, no questions asked. `remaining_invite_quota()`
+   is kept only so nothing that still calls it breaks — it now always returns the constant `999`.
+   This means the Done Criteria above about a visibly decreasing quota and a quota-enforced insert
+   limit no longer describe real behaviour; the invite trust model still works the same way
+   (every member is traceable to whoever invited them), it is just no longer rationed.
+2. **A second join-gate was designed and built, but deliberately kept off `develop`.** Stripe
+   Identity–style automated ID verification was priced out and parked; in its place,
+   `feature/artist-verification-gate` (migration `20260911120000_verification_gate.sql`, not
+   merged) adds a required selfie-with-ID photo alongside the existing portfolio evidence, raises
+   the evidence-document cap from 3 to 6, extends the verification storage bucket to accept video
+   and audio up to 50MB, and stops `redeem_invite()` from auto-approving a new member — every
+   redemption now lands in `pending` for a human moderator to decide, invite or not. This branch
+   is intentionally isolated: nothing in it is live in production or on `develop`, and it should
+   not be treated as describing current behaviour until it is explicitly merged.
+
 ## Known Risks & Watch-Outs
 
 - **Metro + monorepo resolution.** The most likely day-one time sink. Use

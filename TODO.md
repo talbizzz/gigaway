@@ -15,8 +15,11 @@ Progress checklist. Detail lives in the `Milestone-N-*.md` files.
 - [x] Register Google Play developer account — approved
 - [x] Android build via EAS — `.aab`, version code 2, build `7b250628`
 - [x] Play app created (`app.gigaway.mobile`) and internal testing rolled out
-- [x] App installed and running on a real Android device *(first time any of
-      this has run outside a bundler)*
+- [x] App installed and running on a real Android device
+- [x] Dev client built and installed on a real iPhone too — via
+      `xcrun devicectl device install app` once `expo run:ios`'s device-connect
+      step stalled; the real blocker turned out to be `repo.reactnative.dev`
+      having an outage, not anything project-specific (see Milestone 1)
 - [ ] Closed test track — blocked on App content, which is blocked on the
       privacy policy URL being live
 - [ ] Collect 12 tester emails and get them opted in
@@ -37,6 +40,14 @@ Progress checklist. Detail lives in the `Milestone-N-*.md` files.
 - [x] Host the legal documents — live at gigaway.app/privacy, /terms, /guidelines,
       /impressum and /delete-account, on Cloudflare Pages
 - [x] Create the verified demo account both stores require for review
+- [x] Moderator/support mail — Cloudflare Email Routing forwards `moderation@`,
+      `support@`, `privacy@` and `security@gigaway.app` to a dedicated Gmail
+      account (not a personal inbox). Receiving is solved; *sending as* those
+      addresses from Gmail is not — Google restricts "Send through Gmail" to
+      Workspace domains, so a non-Workspace custom domain only gets the
+      SMTP-relay option, which Gmail pre-fills with Cloudflare's **inbound** MX
+      host and can never send. Fixed by adding Resend SMTP credentials
+      *(deferred, tracked under Milestone 5)*.
 
 ## Milestone 1: Foundations & Access
 
@@ -44,16 +55,19 @@ Progress checklist. Detail lives in the `Milestone-N-*.md` files.
 > lint clean. Invite link → verified account → profile works end to end against
 > the real API. `pg_cron`/`pg_net` confirmed, so the scheduled-job design holds.
 >
-> ⚠️ Two Done Criteria remain unverified because they need hardware or an
-> account this machine does not have — see "Outstanding" below.
-> Plan corrections made during implementation are recorded in the milestone file.
+> The dev-build blocker below is now resolved — see "Outstanding".
+> Plan corrections made during and after implementation are recorded in the
+> milestone file, including two that postdate the original build: the invite
+> quota was removed, and a redesigned join gate exists on an isolated,
+> unmerged branch. Both are summarized under "Corrections and follow-on work"
+> below.
 
 - [x] Scaffold pnpm monorepo + Expo app
 - [x] Verify pg_cron / pg_net availability
 - [x] Seed cities table from GeoNames
 - [x] Auth: email sign-up and sign-in
 - [x] Profiles schema + verification state machine
-- [x] Invite generation with per-user quota
+- [x] Invite generation *(no longer quota-limited — see below)*
 - [x] redeem-invite Edge Function
 - [x] Document verification submission flow
 - [x] Delete docs on decision + 90-day backstop
@@ -66,9 +80,29 @@ Progress checklist. Detail lives in the `Milestone-N-*.md` files.
 
 **Outstanding before Milestone 1 can be called done:**
 
-- [ ] Run the app on a real device / simulator and walk the whole flow
-      (needs an EAS dev build — Expo Go cannot load secure-store or the pickers)
+- [x] Run the app on a real device / simulator — dev client now installs and
+      runs on both a physical Android device and a physical iPhone (see
+      Milestone 0). Sign-up → invite redemption → profile create/edit has been
+      walked this way; a full pass of every remaining screen is still worth
+      doing before calling the milestone closed.
 - [ ] Confirm Sentry receives a thrown test error (needs a DSN from Milestone 0)
+
+**Corrections and follow-on work (not in the original plan):**
+
+- [x] Removed the per-inviter invite quota entirely
+      (`20260909180000_remove_invite_quota.sql`) — any approved member can now
+      create unlimited live invite codes, no questions asked. `invites_insert_own`
+      replaces the quota-checked policy; `remaining_invite_quota()` is kept only
+      so existing callers don't break, and always returns `999`.
+- [ ] **Parked, not merged:** a stronger join gate on
+      `feature/artist-verification-gate` (migration
+      `20260911120000_verification_gate.sql`). Automated ID verification
+      (Stripe Identity-style) was priced out; in its place this branch adds a
+      required selfie-with-ID photo, raises the evidence-document cap from 3 to
+      6, extends the verification storage bucket to video/audio up to 50MB, and
+      stops `redeem_invite()` from auto-approving — every redemption lands in
+      `pending` for a human moderator. Nothing on this branch is live; do not
+      treat it as current behaviour until it is explicitly merged.
 
 ## Milestone 2: Trips & Matching
 
@@ -85,9 +119,10 @@ Progress checklist. Detail lives in the `Milestone-N-*.md` files.
 - [x] Empty states that read as encouraging
 - [x] Unit tests for date overlap logic
 
-**Outstanding (same blocker as Milestone 1):**
+**Outstanding:**
 
-- [ ] Walk the flow on a real device / simulator (needs an EAS dev build)
+- [x] Walk the flow on a real device / simulator — unblocked, same dev client
+      as Milestone 1
 
 ## Milestone 3: Core Loop
 
@@ -96,8 +131,6 @@ Progress checklist. Detail lives in the `Milestone-N-*.md` files.
 > Request → offer → accept → contact revealed works end to end, including the
 > partial-range offer, the sibling auto-decline and the idempotent double-accept.
 >
-> ⚠️ Three Done Criteria remain unverified because they need hardware or an
-> account this machine does not have — see "Outstanding" below.
 > Plan corrections made during implementation are recorded in the milestone file.
 
 - [x] Requests schema + send request
@@ -120,13 +153,11 @@ Progress checklist. Detail lives in the `Milestone-N-*.md` files.
 
 **Outstanding before Milestone 3 can be called done:**
 
-- [ ] Push arriving on a real device for request, offer and acceptance
-      (needs an EAS dev build with APNs and FCM credentials — remote push does
-      not work in Expo Go, and this is the same blocker as Milestones 1 and 2)
+- [x] Push arriving on a real device — dev client blocker resolved
 - [ ] Confirm the offer_accepted fallback email actually sends
       (the claim-and-stamp logic is under pgTAP, but the Resend call needs
       RESEND_API_KEY, which arrives in Milestone 5)
-- [ ] Walk the request → offer → accept → contact flow on a device or simulator
+- [ ] Walk the request → offer → accept → contact flow end to end on-device
 
 ## Milestone 4: Reputation & Safety
 
@@ -136,8 +167,8 @@ Progress checklist. Detail lives in the `Milestone-N-*.md` files.
 > Auditing the earlier policies before switching `is_blocked()` on found three
 > that never called it — see the milestone file.
 >
-> ⚠️ Outstanding items below need hardware, an account or a live stack this
-> machine does not have.
+> Corrections found by walking the app on-device are recorded in the milestone
+> file's "Corrections made after implementation" section.
 
 - [x] Stays table created on acceptance *(built in Milestone 3)*
 - [x] Review submission + would-again binary
@@ -154,8 +185,9 @@ Progress checklist. Detail lives in the `Milestone-N-*.md` files.
 
 **Outstanding before Milestone 4 can be called done:**
 
-- [ ] Walk review, block, report, export and delete on a device or simulator
-      (same EAS dev build blocker as Milestones 1–3)
+- [x] Walk review, block, report, export and delete on a device — dev client
+      blocker resolved; export/delete copy was corrected against the real
+      implementation while doing this (see "corrections" section below)
 - [ ] Confirm a report reaches `MODERATOR_EMAIL` within a minute
       (needs RESEND_API_KEY and MODERATOR_EMAIL, which arrive in Milestone 5)
 - [ ] Add a pgTAP test asserting a co-accommodation match is never reviewable
@@ -167,9 +199,8 @@ Progress checklist. Detail lives in the `Milestone-N-*.md` files.
 
 > Not a planned milestone. These came out of using the product end to end and
 > finding places where the interface allowed something the brief did not, or
-> asked for something it had no way to collect. Two carry migrations, both
-> applied. Corrections that change an earlier milestone's plan are recorded in
-> that milestone's file.
+> asked for something it had no way to collect. Corrections that change an
+> earlier milestone's plan are recorded in that milestone's file.
 
 - [x] Tab bar for home, profile and settings, replacing the ghost buttons at the
       foot of the home screen *(supersedes Milestone 3's note that there is no
@@ -192,11 +223,37 @@ Progress checklist. Detail lives in the `Milestone-N-*.md` files.
       offers; the traveller could accept either)*
 - [x] Revising an unanswered offer, which replaces answering twice
 - [x] Traveller notified when an offer's nights change
+- [x] Welcome screen with full-bleed illustrated backgrounds
+      (`(auth)/welcome.tsx`, `auth-dancer.webp`, `auth-singers.webp`)
+- [x] Switched typography to Lora (serif, titles) + Ubuntu (humanist sans, body)
+      via `@expo-google-fonts/*`, replacing system-font `fontWeight` styling
+      with named `fontFamily` tokens
+- [x] Fixed the keyboard covering the focused input on sign-in/sign-up —
+      replaced manual `KeyboardAvoidingView` with
+      `react-native-keyboard-controller`'s `KeyboardAwareScrollView` /
+      `KeyboardStickyView`
+- [x] Fixed Android avatar upload — `fetch(uri).blob()` was failing to resolve
+      the MIME type on Android; replaced with `expo-file-system`'s
+      `File` class (`new File(uri).arrayBuffer()`) in `use-update-profile.ts`
+- [x] Settings restructured from one long scroll into a menu, each row opening
+      its own page under `(app)/settings/` (`invitations`, `blocked`,
+      `data-export`, `delete-account`) — same pattern the guidelines and
+      member/trip/offer detail screens already used
+- [x] "Who did I invite" list — `useMyInvitedMembers()` embeds
+      `invite_redemptions` through the `invites` foreign key in one round trip,
+      resolving each redeemer through the ordinary profile policy so a since
+      blocked/suspended member correctly shows as "not visible" rather than
+      erroring
+- [x] Sign out simplified to a plain centered text link at the bottom of the
+      main settings screen, not its own section/page
+- [x] Data-export screen copy corrected — it claimed an emailed download link;
+      the real `useExportData()` opens the native share sheet immediately
 
 **Outstanding:**
 
-- [ ] Walk all of the above on a device or simulator — none of it has run
-      anywhere but a bundler *(same EAS dev build blocker as Milestones 1–4)*
+- [x] Walk all of the above on a device — dev client blocker resolved for both
+      platforms; the settings restructure, avatar fix and keyboard fix above
+      were themselves found and fixed by doing this
 - [ ] Re-run `offer_revision.sql` to confirm the two assertions corrected after
       the first live run *(the migration behaviour was right; the test's
       expectations were not)*
@@ -205,29 +262,91 @@ Progress checklist. Detail lives in the `Milestone-N-*.md` files.
       fail against the cloud project's dev data. Known noise, not regressions.
       Either scope them to their fixtures or run them on a preview branch.
 
+## Infrastructure & tooling (not tied to a single milestone)
+
+> Grew out of needing a safe way to build, test and ship without touching
+> production by accident. None of this was in the original milestone plans.
+
+- [x] `develop` / `main` git branching model, with `main` reserved for
+      production deploys — deliberately **not** split per-component, since
+      `packages/shared` is imported by both the app and the functions and a
+      component split would fragment it
+- [x] Path-filtered GitHub Actions: `ci.yml` (typecheck, lint, `pnpm test`,
+      `sync:shared:check`, legal-site build, plus a local Supabase reset +
+      pgTAP job) on every PR/push to `develop`/`main`; `deploy-backend.yml`
+      (migrations + functions, gated behind a required-reviewer `production`
+      environment) and `deploy-web.yml` (legal pages → Cloudflare Pages) on
+      push to `main`, each filtered to the paths it actually cares about
+- [x] `CODEOWNERS`, `PULL_REQUEST_TEMPLATE.md`, `CONTRIBUTING.md` — conventions
+      the workflows above enforce (backward-compatible migrations, an RLS
+      change needs a pgTAP test in the same PR, nobody runs `db push` from a
+      laptop)
+- [x] `keepalive.yml` — pings both Supabase projects' PostgREST every 3 days so
+      neither free-tier project auto-pauses after ~7 days of no API activity
+      (pg_cron does not count; only a real HTTP request does)
+- [x] Second ("dev") Supabase project provisioned — `shhgzekofcetdenwpivm` —
+      so schema/RLS/function changes can be tried without touching production
+- [x] `apps/mobile/scripts/with-env.sh` — chooses `.env` vs `.env.dev` by
+      command rather than by which files exist, exports `LANG`/`LC_ALL` for
+      CocoaPods, and can pin `RCT_USE_LOCAL_RN_DEP` at a locally-cached
+      `ReactNativeDependencies` tarball as a workaround for the
+      `repo.reactnative.dev` outage described below
+- [x] Dev and prod app variants able to coexist on one device —
+      `APP_VARIANT`-driven bundle ID / package name / scheme / icon in
+      `app.config.ts` (`app.gigaway.mobile.dev`, scheme `gigaway-dev`, its own
+      adaptive-icon and splash assets), needed after a bundle-ID collision with
+      the existing TestFlight build caused `ApplicationVerificationFailed`
+- [x] Diagnosed and worked around a live upstream outage on
+      `repo.reactnative.dev` (404s on the release Hermes tarball and the
+      `ReactNativeDependencies` artifact) that was crashing fresh dev-client
+      installs with `dyld: Library not loaded` — fixed by re-packaging a
+      previously-cached copy of the artifact and pointing
+      `RCT_USE_LOCAL_RN_DEP` at it, not by any RN version change *(an RN
+      0.86.2→0.86.3 upgrade was attempted first, broke on
+      `expo-modules-jsi`'s Swift/Xcode 26 incompatibility, and was fully
+      reverted once the real cause was found)*
+- [x] `.gigaway-dev-credentials` (gitignored) — dev project ref/URL/keys, used
+      for direct `psql` verification when Docker/local Supabase wasn't
+      available
+
 ## Milestone 5: Ship It
 
-- [ ] Next.js landing page
-- [ ] /i/[code] invite page
-- [ ] Universal links + Android app links
+- [ ] Next.js landing page (`/`, store badges) — not started
+- [ ] /i/[code] invite page — not started
+- [ ] Universal links + Android app links — not started
 - [x] Publish privacy, terms, guidelines *(plus Impressum and the account-deletion
       page Google requires; done early — the Play track was blocked on the URL)*
-- [ ] Deploy web — the legal pages are on **Cloudflare Pages**, not Vercel.
-      Revisit when the Next.js app exists; Pages may simply be the answer
+      as a plain static site (`legal/*.md` → `scripts/build-legal.mjs` → `site/`),
+      **not** the Next.js app originally scoped for this — see next item
+- [x] Deploy web — **Cloudflare Pages**, not Vercel, via `deploy-web.yml` and
+      `wrangler-action`. Chosen because the domain is already on Cloudflare;
+      when the Next.js app above gets built it should deploy to the same host
+      rather than adding Vercel as a second provider
 - [x] EAS build profiles — `apps/mobile/eas.json`, three profiles
+      (development/preview/production), plus the dev/prod app-variant work
+      under "Infrastructure & tooling" above
 - [ ] OTA channels — needs `expo-updates`, which is not installed
-- [ ] GitHub Actions CI
+- [x] GitHub Actions CI — `ci.yml`, built well ahead of schedule as part of the
+      branching/CI setup (see "Infrastructure & tooling" above), not as
+      Milestone 5 work specifically
 - [x] App icon, splash, store screenshots — icon redesigned in brass-on-ink from
       the app's own tokens, full set regenerated by `scripts/build-icons.sh`;
-      8 screenshots padded to 9:16 in `store/play/screenshots/`
+      8 screenshots padded to 9:16 in `store/play/screenshots/`; separate dev
+      variant icon/splash added alongside
 - [x] Play store listing copy and assets — `store/play/listing.md`
-- [ ] App Store listing (blocked on Apple enrolment)
+- [ ] App Store listing (blocked on Apple Free Apps agreement / trader status)
 - [ ] Upgrade Supabase to Pro
 - [ ] Create Resend account
 - [ ] Verify sending domain (SPF + DKIM, plus a DMARC record)
 - [ ] Set RESEND_API_KEY, RESEND_FROM, MODERATOR_EMAIL function secrets
 - [ ] Confirm moderation-digest returns emailed: true and the mail arrives
 - [ ] Point Supabase Auth at Resend via custom SMTP
+- [ ] **Send mail as `support@`/`moderation@`/`privacy@gigaway.app` from the
+      dedicated Gmail account** *(deferred from Milestone 0 — see there for
+      why Gmail's own SMTP-relay option can't do this)*: once the Resend
+      account above exists, add its SMTP credentials (`smtp.resend.com:587`,
+      user `resend`, password = API key) as a second "Send mail as" entry on
+      that Gmail account — same domain, same DKIM/SPF, no new service
 - [ ] Raise auth email rate limits off the shared-sender defaults
 - [ ] Set site_url and redirect URLs to production (never 127.0.0.1)
 - [ ] Confirmation email round trip from a production build
@@ -235,3 +354,12 @@ Progress checklist. Detail lives in the `Milestone-N-*.md` files.
 - [ ] TestFlight build to beta testers
 - [ ] Play closed test track live
 - [ ] End-to-end smoke test on real devices
+
+## In progress, on other branches (not detailed here)
+
+- `feature/artist-verification-gate` — the parked join-gate redesign, see
+  Milestone 1's "Corrections and follow-on work" above. Isolated, unmerged.
+- `feature/hosting-credits` — separate, currently in-progress work (a credits
+  system gating trip creation, earned by offering availability, plus an
+  open-ended "ongoing availability" type). Not detailed here since it's still
+  being built; see that branch directly for its current state.

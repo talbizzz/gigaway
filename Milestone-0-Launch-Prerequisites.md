@@ -168,8 +168,15 @@ Create all three now so the keys exist when Milestone 1 needs them.
 | **PostHog** | Sign up on **EU Cloud** (`eu.posthog.com`, not US). Create a project. | Save the project API key and host. |
 | ~~**Resend**~~ | **Moved to Milestone 5.** It is blocked on owning the domain, and the default sender is adequate until a second person needs an account. | See `Milestone-5-Ship-It.md`, component 10. |
 
-**Also decide:** the moderator email address that receives verification nudges and report
-alerts. A dedicated address (`moderation@<domain>`) is better than a personal one.
+**Decided:** moderator/support mail runs on **Cloudflare Email Routing** (free) forwarding
+`moderation@`, `support@`, `privacy@` and `security@gigaway.app` to a dedicated Gmail account
+created for the app (not a personal inbox). Receiving is solved; *sending as* that address from
+Gmail is not — Google only offers "Send through Gmail" for Workspace domains, and a non-Workspace
+custom domain like this one is limited to the SMTP-relay option, which Gmail pre-fills with
+Cloudflare's **inbound** MX host and can never send. The real fix is an SMTP relay with its own
+credentials (e.g. Resend, `smtp.resend.com`, username `resend`, password = API key) added to that
+same Gmail account. Deferred for now since receiving is enough to unblock this milestone —
+tracked as its own task in `Milestone-5-Ship-It.md`, component 10.
 
 **Time:** 45 minutes. **Cost:** free.
 
@@ -257,15 +264,15 @@ to learn this now than after the beta.
 
 ## Done Criteria
 
-- [ ] Domain purchased and DNS under your control
-- [ ] Public trader address decided and written down
+- [x] Domain purchased and DNS under your control
+- [x] Public trader address decided and written down
 - [ ] Apple Developer Program active; Free Apps agreement shows *Active*
 - [ ] Apple trader status verification submitted (approval may still be pending)
-- [ ] Google Play developer account approved
+- [x] Google Play developer account approved
 - [ ] Google Play closed test track created and beta testers' emails collected
 - [x] Supabase project created **in EU Frankfurt**, keys in a password manager *(DPA needs no separate signature — it is incorporated into the Supabase ToS accepted at sign-up)*
 - [ ] Sentry (EU) and PostHog (EU) accounts created *(Resend deferred to Milestone 5)*
-- [ ] Moderator email address chosen and receiving mail
+- [x] Moderator email address chosen and receiving mail *(Cloudflare Email Routing → dedicated Gmail; sending-as still needs Resend SMTP, see Milestone 5)*
 - [ ] Privacy policy, terms/EULA and community guidelines drafted in Markdown
 - [ ] 5–10 artists asked about self-funding; answers written down
 

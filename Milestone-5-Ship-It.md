@@ -100,8 +100,8 @@ requiring external review is submitted first and polished while it queues.
 - **Android:** serve `/.well-known/assetlinks.json` with the package name and the SHA-256
   fingerprint **of the certificate EAS actually signs with** — take it from
   `eas credentials`, not from a local debug keystore.
-- Vercel needs explicit headers configuration so both files are served with the correct
-  content type and no redirect.
+- Cloudflare Pages needs explicit headers configuration (a `_headers` file) so both files
+  are served with the correct content type and no redirect.
 - **Both files must be live before submitting builds for review**, since reviewers test
   the link.
 
@@ -214,6 +214,18 @@ verification.
 The sender address must be on the verified domain and must match `RESEND_FROM`, or the
 two channels disagree about who the product is.
 
+**Send mail as `support@` / `moderation@` / `privacy@gigaway.app`, not just receive it.**
+Cloudflare Email Routing (set up in Milestone 0) only forwards inbound mail to the
+dedicated Gmail account — replying from Gmail as those addresses does not work, because
+Google restricts "Send through Gmail" to Workspace domains, and the SMTP-relay option in
+Gmail's own UI pre-fills Cloudflare's inbound MX host, which cannot send. Once the
+domain's Resend account exists for component 10 anyway, add its SMTP credentials
+(`smtp.resend.com:587`, username `resend`, password = a Resend API key) as a **second**
+SMTP entry under that Gmail account's "Send mail as" settings — same domain, same
+verified DKIM/SPF, no new service to pay for. Deferred from Milestone 0 since inbound-only
+was enough to unblock that milestone; needed before a human replies to a member as the
+moderator address rather than from a personal inbox.
+
 **Auth configuration that was never pushed.** `supabase/config.toml` describes the local
 stack, not the hosted project — `supabase config push` has never been run against it, so
 the cloud project is still on Supabase defaults. `site_url` in that file is
@@ -315,6 +327,38 @@ None. This milestone adds no tables.
 - [ ] Password reset completes end to end from a production build
 - [ ] A test report reaches the moderator email from a production build
 - [ ] Account deletion works from a production build
+
+## Corrections made during implementation
+
+Recorded so the next agent reads a plan that matches the code. This milestone is still in
+progress — most components below (invite landing page, deep links, store submissions) are
+not built yet — but some infrastructure work landed earlier than planned, and one hosting
+choice changed.
+
+1. **Legal pages are live, but as a plain static site, not the Next.js app in component 1.**
+   `legal/*.md` (privacy policy, terms, community guidelines, impressum, account deletion)
+   renders through `scripts/build-legal.mjs` (no framework, on purpose — "four HTML files
+   that any static host serves") into `site/`, deployed by `.github/workflows/deploy-web.yml`
+   on every push to `main` that touches `legal/**`. This satisfies the store-submission
+   requirement for a live privacy policy URL well ahead of schedule, but it is **not** the
+   full landing page: there is no `/`, no `/i/[code]` invite handling, no deep-link
+   association files, and no store badges yet. Components 2–4 remain to be built, and when
+   they are, the Next.js app should deploy to the same host as the legal pages rather than
+   introducing Vercel as a second provider — see the next point.
+2. **Hosting is Cloudflare Pages, not Vercel.** Every "Vercel" reference in this document has
+   been updated to Cloudflare Pages. This followed naturally from the domain already being
+   on Cloudflare (Milestone 0) and from standardising the deploy tooling around
+   `wrangler-action` rather than adding a second hosting account for one static site.
+3. **CI landed much earlier than "Implementation Order" step 11 suggests**, as part of
+   setting up branch and PR conventions rather than as Milestone 5 work specifically:
+   `.github/workflows/ci.yml` runs typecheck, lint, `pnpm test`, a local Supabase reset with
+   pgTAP, and the `sync:shared` freshness check, matching component 7 almost exactly as
+   planned. Two workflows beyond the original scope came with it: `deploy-backend.yml`
+   (path-filtered to `supabase/migrations/**`, `supabase/functions/**` and
+   `packages/shared/src/**`, gated behind a required-reviewer `production` environment
+   before `db push --linked` runs for real) and `deploy-web.yml` (the legal-pages deploy
+   above). `CODEOWNERS`, `PULL_REQUEST_TEMPLATE.md` and `CONTRIBUTING.md` were added
+   alongside these to document the conventions the workflows enforce.
 
 ## Known Risks & Watch-Outs
 
