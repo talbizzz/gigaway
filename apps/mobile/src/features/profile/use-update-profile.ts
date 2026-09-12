@@ -1,4 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { File } from 'expo-file-system'
 import * as ImagePicker from 'expo-image-picker'
 
 import { useSessionStore } from '@/features/auth/session-store'
@@ -46,6 +47,15 @@ export function avatarUrl(photoPath: string | null | undefined): string | null {
  * Picks an image and uploads it to the caller's own folder in the public
  * avatars bucket. Storage policy restricts writes to `{userId}/…`, so a
  * malformed path is rejected by the database rather than trusted from here.
+ *
+ * Reads the picked file through expo-file-system rather than
+ * `fetch(uri).then(r => r.blob())`. The latter routes through React Native's
+ * networking bridge, which on Android cannot always resolve a real MIME type
+ * for the `content://` URI the image picker hands back — a known upstream
+ * gap (expo-image-picker does not itself report one either) — and the
+ * bridge's guess of `text/plain` then gets rejected outright. Reading the
+ * file directly sidesteps that guess entirely: nothing here depends on the
+ * URI's reported type, since the upload always declares image/jpeg itself.
  */
 export function useUploadAvatar() {
   const queryClient = useQueryClient()
@@ -72,7 +82,7 @@ export function useUploadAvatar() {
       // A stable path per user, upserted, so old avatars are replaced rather
       // than accumulating in the bucket.
       const path = `${userId}/avatar.jpg`
-      const body = await fetch(asset.uri).then((response) => response.blob())
+      const body = await new File(asset.uri).arrayBuffer()
 
       const { error: uploadError } = await supabase.storage
         .from('avatars')
