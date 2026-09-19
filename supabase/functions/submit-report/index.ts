@@ -89,7 +89,7 @@ Deno.serve(async (request) => {
 async function alertModerator(reportId: string, category: string): Promise<void> {
   const apiKey = Deno.env.get('RESEND_API_KEY')
   const to = Deno.env.get('MODERATOR_EMAIL')
-  const from = Deno.env.get('RESEND_FROM') ?? 'GigAway <notifications@gigaway.app>'
+  const from = Deno.env.get('MODERATOR_FROM') ?? 'GigAway <moderation@gigaway.app>'
 
   // Local development has no mail credentials. Log instead of failing: the
   // report is already committed and must not be rolled back over an email.

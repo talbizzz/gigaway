@@ -77,8 +77,8 @@ export default function SignUpScreen() {
       <View style={styles.header}>
         <Text style={[typography.display, { color: theme.text }]}>Join GigAway</Text>
         <Text style={[typography.body, { color: theme.textMuted }]}>
-          A closed network of working performers. You'll need an invite from a colleague, or
-          we'll verify you by hand.
+          A closed network of working performers. Every account is verified by hand before it
+          can see anyone else's.
         </Text>
       </View>
 

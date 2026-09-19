@@ -16,7 +16,7 @@ GigAway
 ## Short description (max 80)
 
 ```
-Invite-only couch sharing for performing artists who travel for work.
+Verified couch sharing for performing artists who travel for work.
 ```
 
 ---
@@ -24,7 +24,7 @@ Invite-only couch sharing for performing artists who travel for work.
 ## Full description (max 4000)
 
 ```
-GigAway is a closed, invite-only network for professional performing artists —
+GigAway is a closed, verified network for professional performing artists —
 singers, instrumentalists and dancers — who travel constantly for auditions,
 competitions and guest contracts.
 
@@ -57,13 +57,9 @@ WHY IT IS CLOSED
 Membership is restricted to working artists, and that wall is the product. It is
 the reason anyone trusts a stranger enough to host them.
 
-There are two ways in: an invite from an existing member, or document review,
-where a human reads evidence of professional standing. Invites are rationed, so
-the network cannot dilute quietly, and every member is traceable to whoever
-vouched for them.
-
-We do not ask for identity documents. Verification confirms that you work in this
-field — nothing more.
+Every applicant is checked by hand: a selfie holding photo ID, and evidence
+that you work in this field — a CV, or links to your portfolio, projects or
+social profiles. A person reviews it — never an algorithm.
 
 
 BUILT AROUND PRIVACY
@@ -78,7 +74,7 @@ deterrent to taking part. GigAway is built so you never have to.
   account sees no member content at all
 - Blocking is instant and mutual
 - Reports are private, and the reported person is never told who raised them
-- Verification documents are deleted the moment a decision is made
+- Verification evidence is reviewed by a human, never an algorithm
 
 
 REPUTATION THAT TRAVELS
@@ -98,8 +94,8 @@ Both sides of the network are the same people. You are a traveller on some trips
 and a host in your own city on others.
 
 
-GigAway is currently in closed testing. You will need an invite from an existing
-member, or an approved application, to take part.
+GigAway is currently in closed testing. Every account is verified by hand
+before you can take part.
 
 Privacy policy: https://gigaway.app/privacy
 Terms of service: https://gigaway.app/terms

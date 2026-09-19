@@ -142,7 +142,7 @@ ${bodyHtml}
 
 const INDEX_BODY = `
 <h1>A couch, a colleague, a city you don't know yet.</h1>
-<p>GigAway is an invite-only app for professional performing artists who travel
+<p>GigAway is a verified network for professional performing artists who travel
 for auditions, competitions and guest contracts. Log a trip, and find verified
 colleagues in that city offering a free couch, local knowledge, or company.</p>
 <p><strong>No money changes hands.</strong> GigAway is not an accommodation

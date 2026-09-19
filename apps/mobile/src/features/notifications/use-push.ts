@@ -26,7 +26,7 @@ export function usePushLifecycle(): void {
   // getting notifications and never finds out why.
   useEffect(() => {
     if (!profileId) return
-    void registerForPush(profileId, { prompt: false })
+    void registerForPush({ prompt: false })
   }, [profileId])
 
   useEffect(() => {
@@ -84,6 +84,6 @@ export function usePushPrompt(): () => Promise<void> {
 
   return useCallback(async () => {
     if (!profileId) return
-    await registerForPush(profileId, { prompt: true })
+    await registerForPush({ prompt: true })
   }, [profileId])
 }

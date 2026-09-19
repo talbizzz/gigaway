@@ -381,7 +381,7 @@ async function sendEmailFallbacks(
   if (rows.length === 0) return 0
 
   const apiKey = Deno.env.get('RESEND_API_KEY')
-  const from = Deno.env.get('RESEND_FROM') ?? 'GigAway <notifications@gigaway.app>'
+  const from = Deno.env.get('NOTIFICATION_FROM') ?? 'GigAway <notifications@gigaway.app>'
   const webBaseUrl = Deno.env.get('WEB_BASE_URL') ?? 'https://gigaway.app'
 
   // Local development has no mail credentials. Log instead of failing, so the

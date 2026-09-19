@@ -63,6 +63,11 @@
 
 ## Goal
 
+> **As of 2026-09-17 this goal is partially superseded — see "Corrections and
+> follow-on work" (item 3) near the end of this file.** There is no invite
+> link any more. Every signup, with or without a colleague behind it, goes
+> through the same verification path described in item 3.
+
 A person with an invite link can create an account, is verified instantly, and completes a
 profile — and a person without one can apply with documents and wait in a pending state
 that grants access to nothing. The full row-level-security policy set exists and is tested.
@@ -135,7 +140,11 @@ silently redesign — flag it.
 - **Responsibility:** workspace layout, TypeScript config, lint, shared-package wiring.
 - **Key notes:**
   - `pnpm-workspace.yaml` listing `apps/*` and `packages/*`.
-  - Root `package.json` scripts: `sync:shared`, `db:reset`, `db:test`, `typecheck`, `lint`, `test`.
+  - Root `package.json` scripts: `sync:shared`, `db:test`, `typecheck`, `lint`, `test`.
+    *(`db:start`/`db:stop`/`db:reset` were originally planned too, for a local Supabase
+    stack — removed 2026-09-19 along with the README's local-dev walkthrough, since
+    local dev was never actually used and turned out to actively mislead sessions into
+    trying it. `db:test` always runs against the linked cloud project.)*
   - `sync:shared` copies `packages/shared/{schemas,domain}` into
     `supabase/functions/_shared/gen/`. Add `supabase/functions/_shared/gen/` to
     `.gitignore`. Run it before every `supabase functions deploy`.
@@ -182,6 +191,11 @@ silently redesign — flag it.
 
 #### 5. Invites
 
+> **Removed entirely, 2026-09-17 — see "Corrections and follow-on work" below.**
+> There is no invite system any more; every signup goes through verification
+> instead. The rest of this section describes what was originally built, not
+> current behaviour.
+
 - **Responsibility:** the primary path into the community; every member traceable to a voucher.
 - **Interface:** client `insert` into `invites` (policy-limited); redemption via the
   `redeem-invite` Edge Function.
@@ -194,6 +208,12 @@ silently redesign — flag it.
     remaining quota. The quota is decremented on **redemption**, not creation.
 
 #### 6. Verification applications
+
+> **Redesigned, 2026-09-17 — see "Corrections and follow-on work" below.** This
+> is now the only path in, and it no longer stores documents anywhere:
+> `submit-verification` emails the evidence and writes only metadata. The rest
+> of this section describes the original storage-bucket design, not current
+> behaviour.
 
 - **Responsibility:** the fallback path for applicants without an invite.
 - **Interface:** direct insert into `verification_applications` plus storage upload;
@@ -211,15 +231,24 @@ silently redesign — flag it.
 
 #### 7. Scheduled jobs (this milestone's share)
 
+> **The purge job is gone, 2026-09-17** — there is nothing left in Supabase to
+> purge. The nudge job survives, unchanged in spirit: see "Corrections and
+> follow-on work" below.
+
 | Job | Cadence | Behaviour |
 |---|---|---|
 | `notify_pending_verifications` | daily 09:00 UTC | If any application has been `pending` > 3 days, send one summary email to `MODERATOR_EMAIL` via Resend. Repeats every 3 days while the backlog persists. |
-| `purge_verification_docs` | daily 03:00 UTC | For applications still `pending` after **90 days**: delete storage objects, clear `doc_paths`, set `status = 'docs_expired'`, enqueue a notification to the applicant. **Never rejects the application** — the row and queue position survive. |
+| ~~`purge_verification_docs`~~ | ~~daily 03:00 UTC~~ | ~~For applications still `pending` after **90 days**: delete storage objects, clear `doc_paths`, set `status = 'docs_expired'`, enqueue a notification to the applicant. **Never rejects the application** — the row and queue position survive.~~ |
 
 The applicant-facing consequence of `docs_expired` is a banner with a one-tap re-upload
 that returns the application to `pending`.
 
 #### 8. Edge Function: `redeem-invite`
+
+> **Removed, 2026-09-17.** Deleted along with the rest of the invite system —
+> see "Corrections and follow-on work" below. `submit-verification` is its
+> replacement, but does a different job (emails evidence, does not approve
+> anyone by itself).
 
 - **Responsibility:** atomically consume an invite and approve the new member.
 - **Auth:** requires a valid user JWT.
@@ -530,15 +559,79 @@ Recorded so the next agent reads a plan that matches the code.
    This means the Done Criteria above about a visibly decreasing quota and a quota-enforced insert
    limit no longer describe real behaviour; the invite trust model still works the same way
    (every member is traceable to whoever invited them), it is just no longer rationed.
-2. **A second join-gate was designed and built, but deliberately kept off `develop`.** Stripe
-   Identity–style automated ID verification was priced out and parked; in its place,
-   `feature/artist-verification-gate` (migration `20260911120000_verification_gate.sql`, not
-   merged) adds a required selfie-with-ID photo alongside the existing portfolio evidence, raises
-   the evidence-document cap from 3 to 6, extends the verification storage bucket to accept video
-   and audio up to 50MB, and stops `redeem_invite()` from auto-approving a new member — every
-   redemption now lands in `pending` for a human moderator to decide, invite or not. This branch
-   is intentionally isolated: nothing in it is live in production or on `develop`, and it should
-   not be treated as describing current behaviour until it is explicitly merged.
+2. **A second join-gate was designed and built on `feature/artist-verification-gate`, and is now
+   superseded by item 3 below rather than merged.** Stripe Identity–style automated ID
+   verification was priced out and parked; in its place, that branch (migration
+   `20260911120000_verification_gate.sql`) added a required selfie-with-ID photo alongside
+   the existing portfolio evidence, raised the evidence-document cap from 3 to 6, extended the
+   verification storage bucket to accept video and audio up to 50MB, and stopped
+   `redeem_invite()` from auto-approving a new member. Its central idea (a selfie holding ID,
+   reviewed by hand) survived into item 3; its mechanism (keep the invite chain, store
+   documents in a bucket) did not. The branch itself was never merged and should not be
+   treated as describing current behaviour.
+3. **The invite chain was removed entirely, and verification rebuilt around email instead of
+   storage.** *(The "instead of storage" half of this is itself superseded by item 4 below,
+   two days later — the invite removal stands, the "nothing is ever written to disk" design
+   does not.)* Migration `20260917090000_verification_only_signup.sql` drops the `invites` and
+   `invite_redemptions` tables outright, along with `invite_quota`/`invited_by` on `profiles`
+   and every function and policy that served them (`redeem_invite()`, `remaining_invite_quota()`,
+   `generate_invite_code()`, the `redeem-invite` Edge Function). There is no fast path into the
+   network any more — every signup lands `pending` and stays there until a human decides.
+   - `verification_applications` no longer holds `doc_paths` or anything storage-related. It
+     gained `full_legal_name`, `selfie_prompt` (the pose instruction shown for that attempt —
+     changes every submission so an old photo can't be reused) and `cv_attached`, and is now
+     written only by the new `submit-verification` Edge Function as `service_role` — a client
+     can read its own row but never write one. The `verification-docs` storage bucket, the
+     per-minute purge cron, the 90-day expiry cron, and `docs_expired` are all gone with it:
+     there is nothing left to purge, because nothing is ever written to disk. The Edge Function
+     reads the selfie and optional CV straight off the incoming request, emails them to
+     `verify@gigaway.app` via Resend, and only writes the metadata row after that email
+     actually sends — so a failed send never leaves a row with no matching evidence.
+   - `verify@gigaway.app` is a new Cloudflare Email Routing address (alongside `moderation@`,
+     `support@`, `privacy@`, `security@`, all forwarding to the same dedicated Gmail — see
+     Milestone 0), and needs its own `VERIFICATION_EMAIL` Edge Function secret set on both
+     Supabase projects before this can work in practice — see Milestone 5.
+   - Every legal document, the README, `MODERATION.md` and the Play Store listing were updated
+     to match: there is no more "two ways in", and the privacy policy now discloses Resend,
+     Cloudflare Email Routing and Gmail as processors of the verification photo specifically,
+     since that is genuinely where it travels before a human deletes it.
+   - `database.types.ts` was hand-edited to match this migration's final schema rather than
+     regenerated, because there is no local Supabase stack and no live database to generate it
+     from until the migration is pushed to one of the two cloud projects. Regenerate it for
+     real with `pnpm db:types` once pushed, and treat the hand-edited version as provisional
+     until then.
+4. **Two days later, the evidence went back to being stored — this time until account
+   deletion, not on decision and not ever.** Migration
+   `20260918180000_persist_verification_evidence.sql` reverses item 3's "nothing is ever
+   written to disk" design. The reason: the admin dashboard planned for Milestone 6 needs a
+   queryable place to read applications from, and an inbox is not one.
+   - The selfie and optional CV now upload straight from the app to the `verification-docs`
+     Storage bucket, in the caller's own folder — the exact same RLS-scoped pattern avatars
+     already use, re-enabling the write policy `20260917090000` had made inert rather than
+     inventing a new one. `verification_applications` gained `selfie_path`/`cv_path` back
+     (replacing `cv_attached`, which only ever recorded a fact with no file behind it) and
+     lost `resend_email_id`, since the notification below is fire-and-forget and nothing
+     tracks its delivery any more.
+   - `submit-verification` no longer receives file bytes at all — it takes a small JSON body
+     naming the paths the client already uploaded to, validates they actually start with the
+     caller's own folder, and writes metadata. It still emails `verify@gigaway.app`, but the
+     email is now a short notice with no attachment, and — because the evidence is already
+     safely in Storage by the time it sends — a failed send is logged rather than fatal; the
+     `moderation-digest` nudge is the backstop that finds an application even if this
+     particular email never arrives, matching how `submit-report`'s alert already works.
+   - `delete_account()` now reads `selfie_path`/`cv_path` before its row is deleted and returns
+     them, the same way it has always done for the avatar's `photo_path`; the `delete-account`
+     Edge Function removes both storage objects afterward, since SQL cannot reach Storage.
+     Retention is therefore genuinely tied to account deletion — there is no other path that
+     removes this evidence.
+   - There is still deliberately no client select policy on `verification-docs` — not even for
+     the owner. A moderator reads it through the Supabase dashboard's Storage browser today;
+     Milestone 6's admin app is the intended reader once it exists.
+   - Every legal document, the README, `MODERATION.md` and the Play Store listing were updated
+     again to match — this is the second full reversal on this exact question this milestone,
+     and the retention commitment this lands on (kept until account deletion) is a materially
+     bigger one than either previous design. It has not been reviewed by a lawyer; say so
+     plainly if anyone asks before this ships publicly.
 
 ## Known Risks & Watch-Outs
 

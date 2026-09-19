@@ -35,8 +35,9 @@ export function initialiseMonitoring(): void {
 
 /**
  * Records a handled error with context. Prefer this over swallowing failures
- * in a catch block — a silent failure in the invite or contact-reveal path is
- * exactly what will be impossible to debug from a beta tester's description.
+ * in a catch block — a silent failure in the verification or contact-reveal
+ * path is exactly what will be impossible to debug from a beta tester's
+ * description.
  */
 export function reportError(error: unknown, context?: Record<string, string>): void {
   if (!env.sentryDsn) {

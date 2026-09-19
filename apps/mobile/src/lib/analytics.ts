@@ -6,8 +6,8 @@ import { env } from '@/lib/env'
  * Product analytics, off by default.
  *
  * The success criteria in Project-Raw.md are funnel questions — how many
- * invites become verified members, how many trips become accepted offers — so
- * events are instrumented from the start. But nothing is sent until
+ * applications become verified members, how many trips become accepted
+ * offers — so events are instrumented from the start. But nothing is sent until
  * EXPO_PUBLIC_ANALYTICS_ENABLED is exactly "true", which happens only once the
  * published privacy policy names PostHog (Milestone 5).
  *
@@ -21,8 +21,6 @@ import { env } from '@/lib/env'
 export type AnalyticsEvent =
   | 'signup_started'
   | 'signup_completed'
-  | 'invite_redeemed'
-  | 'invite_created'
   | 'verification_submitted'
   | 'profile_completed'
   | 'trip_created'

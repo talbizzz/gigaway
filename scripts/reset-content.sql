@@ -91,18 +91,6 @@ commit;
 
 
 -- ═══════════════════════════════════════════════════════════════════════════
--- PART 3 — OPTIONAL. Invites. Off by default.
--- ═══════════════════════════════════════════════════════════════════════════
---
--- Only run this if you also want to clear invite codes and the redemption
--- chain. Deleting the multi-use beta code would stop testers signing up, and
--- the redemption chain is what makes every member traceable to a voucher.
---
--- delete from public.invite_redemptions;
--- delete from public.invites;
-
-
--- ═══════════════════════════════════════════════════════════════════════════
 -- AFTER RUNNING
 -- ═══════════════════════════════════════════════════════════════════════════
 --

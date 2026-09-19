@@ -18,12 +18,20 @@ the pgTAP suite asserts that.
 
 ## Daily: the verification queue
 
+**The evidence lives in Supabase Storage, not your inbox.** A short email to
+`verify@gigaway.app` tells you an application arrived — no attachment — and
+`v_pending_verifications` has everything else, including where to find the
+photo and CV:
+
 ```sql
 select * from v_pending_verifications;
 ```
 
-Applicants waiting on a decision, oldest first, with their note, links and
-document paths. `days_waiting` is the column that matters — anything over three
+`selfie_path` and `cv_path` are object paths in the `verification-docs`
+bucket — open them from the dashboard's **Storage** browser, not from this
+view. Check the stored photo against `selfie_prompt` (the pose instruction
+given at submission — it changes per attempt, so an old photo won't match).
+`days_waiting` is the column that matters day to day — anything over three
 days has already triggered the nudge email.
 
 **To approve or reject:**
@@ -31,20 +39,25 @@ days has already triggered the nudge email.
 ```sql
 update verification_applications
    set status = 'approved',            -- or 'rejected'
-       decision_reason = 'Conservatory enrolment confirmed.'
- where id = '…';
+       decision_reason = 'Portfolio confirmed professional standing.'
+ where profile_id = '…';
 ```
 
 Downstream, automatically:
 
 - Approving promotes the profile to `approved` and stamps `verified_at`. The
   applicant can see member content on their next query.
-- Either decision queues the uploaded documents for deletion. They are gone
-  within a minute — check `v_docs_awaiting_purge` if anything lingers.
 - `decision_reason` is shown to the applicant. Write it for them to read.
+  Rejecting does not close the door — they can submit a fresh application, and
+  it reopens this same row rather than creating a new one.
+
+The selfie and CV stay in Storage after a decision — retained until the
+applicant deletes their own account, not purged on a schedule. That is a
+deliberate choice (Milestone 1's corrections explain the reasoning); there is
+nothing to clean up here.
 
 **Never** edit `profiles.status` directly to approve somebody. The application
-row is the record of why they were let in, and the invite chain depends on it.
+row is the record of what evidence the decision was based on.
 
 ---
 
@@ -138,14 +151,13 @@ What survives, and why:
 | Published reviews they **wrote** | Otherwise deleting and rejoining launders a bad reputation |
 | Reports, both directions | A departing bad actor must not erase the safety record |
 | Blocks placed **on** them | Somebody blocked them for a reason |
-| The invite chain | Traceability is a trust property of the network |
 
 The profile row survives as a tombstone named "Deleted member" with every
 free-text field cleared. Their name appears nowhere in anybody else's app.
 
-> **Not shippable until the privacy policy covers this.** Retaining reports and
-> the invite chain after deletion is a legitimate-interest decision and has to
-> be stated. See Milestone 0.
+> **Not shippable until the privacy policy covers this.** Retaining reports
+> after deletion is a legitimate-interest decision and has to be stated. See
+> Milestone 0.
 
 ---
 
@@ -165,19 +177,12 @@ select name from vault.decrypted_secrets
 ```
 
 ```sql
-select * from v_docs_awaiting_purge;
-```
-
-Verification documents queued for deletion. Rows should clear within a minute;
-anything older means `purge-verification-docs` is failing.
-
-```sql
 select * from v_recent_signups;
 ```
 
-Who joined recently and by which route. Worth a glance weekly — a burst of
-sign-ups through one inviter is worth understanding before it becomes a
-problem.
+Who joined recently, and their current status. Worth a glance weekly — a burst
+of signups is worth understanding before it becomes a review backlog, since
+every one of them needs a human decision before they see anything.
 
 ---
 
@@ -190,8 +195,6 @@ select jobname, schedule, active from cron.job order by jobname;
 | Job | When | What |
 |---|---|---|
 | `dispatch-notifications` | every minute | Drains the notification outbox; the real delivery guarantee |
-| `purge-verification-docs` | every minute | Deletes documents whose purge was requested |
-| `expire-verification-docs` | 03:00 | Marks 90-day-old pending applications `docs_expired` |
 | `expire-stale-requests-and-offers` | 04:00 | Closes requests and offers whose dates have passed |
 | `notify-pending-verifications` | 09:00 | Emails you about applications waiting over three days |
 | `release-reviews` | 02:00 | Publishes reviews whose two-week window has closed |

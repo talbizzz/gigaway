@@ -61,14 +61,14 @@ for advertising and sells nothing. Processors that merely host data are not
 
 | Data type | Collected | Required | Purposes | Notes |
 |---|---|---|---|---|
-| **Photos** | Yes | Optional | App functionality | Profile photo; initials shown if none |
-| Videos | No | — | — | Not collected |
+| **Photos** | Yes | Required | App functionality, Account management | Profile photo (optional, initials shown if none) and a verification selfie holding photo ID (required of every applicant). The selfie is stored and retained until account deletion — see the Files and docs row below |
+| Videos | No | — | — | Not collected as a file upload. Applicants may submit a link to hosted video as evidence, which is text, not a video upload |
 
 ### Files and docs
 
 | Data type | Collected | Required | Purposes | Notes |
 |---|---|---|---|---|
-| **Files and docs** | Yes | Optional | App functionality, Account management | Verification documents. Only for applicants without an invite. Deleted on decision, 90-day backstop |
+| **Files and docs** | Yes | Optional | App functionality, Account management | An optional CV as part of verification. Stored, and retained — same as the verification selfie — until the account is deleted, not on a decision or a fixed schedule |
 
 ### Device or other IDs
 
@@ -156,6 +156,13 @@ category covers device-derived location, so No is correct.
 advertising and device identifiers, but a push token identifies a device, so
 declaring it is the safer reading.
 
+**The verification selfie under "Photos", not a separate category.** Play's Data
+Safety taxonomy has no distinct bucket for a photo that happens to show a
+government ID — Photos is the closest fit, and it is declared Required (not
+Optional) because every applicant must submit one. It is not declared as
+biometric or health data: nothing analyses the photo automatically, a human
+just looks at it.
+
 ---
 
 ## Other App content sections
@@ -174,16 +181,16 @@ declaring it is the safer reading.
 
 ### App access — the demo account
 
-Reviewers cannot get past the invite gate, so this is mandatory and a common
-rejection cause.
+Reviewers cannot get past the verification wall — there is no invite code that
+would let them skip it — so this is mandatory and a common rejection cause.
 
 1. Create a real account in the Supabase project with a stable email and password
 2. Set `profiles.status` to approved and stamp `verified_at`
 3. Give it a filled-in profile, plus a trip and some availability so there is
    something to look at
-4. Enter the credentials in App access with a note: *"GigAway is invite-only.
-   Use these credentials to bypass verification. All app functionality is
-   available on this account."*
+4. Enter the credentials in App access with a note: *"GigAway verifies every
+   account by hand before it can see other members. Use these credentials to
+   bypass that step. All app functionality is available on this account."*
 5. **Never delete it**, and never let it be suspended
 
 Apple will ask for exactly the same thing.

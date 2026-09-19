@@ -5,7 +5,6 @@ import { TextLink } from '@/components/button'
 import { Screen } from '@/components/screen'
 import { SettingsRow } from '@/components/settings-row'
 import { useMyBlocks } from '@/features/blocks/use-blocks'
-import { useMyInvitedMembers } from '@/features/invites/use-invites'
 import { unregisterPush } from '@/lib/push'
 import { supabase } from '@/lib/supabase'
 import { spacing } from '@/theme/tokens'
@@ -18,9 +17,9 @@ import { spacing } from '@/theme/tokens'
  * these get a back button and a place to breathe for free from the (app)
  * layout's shared screenOptions.
  *
- * The two counts shown here (invited, blocked) come from the same hooks the
- * destination pages use. Fetching them here is not wasted work: React Query
- * caches by key, so opening either page from this menu usually shows data
+ * The blocked-member count shown here comes from the same hook the
+ * destination page uses. Fetching it here is not wasted work: React Query
+ * caches by key, so opening the page from this menu usually shows data
  * immediately rather than a fresh loading state.
  *
  * Sign out has no page of its own — one paragraph and one button was not
@@ -29,17 +28,10 @@ import { spacing } from '@/theme/tokens'
  */
 export default function SettingsScreen() {
   const router = useRouter()
-  const invited = useMyInvitedMembers()
   const blocks = useMyBlocks()
 
   return (
     <Screen>
-      <SettingsRow
-        title="Invitations"
-        description="Bring in a colleague, and see who has joined through you."
-        value={invited.data ? `${invited.data.length} joined` : undefined}
-        onPress={() => router.push('/settings/invitations')}
-      />
       <SettingsRow
         title="Blocked members"
         description="Everyone you have made invisible to yourself, and to you."

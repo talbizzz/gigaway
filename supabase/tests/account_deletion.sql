@@ -3,8 +3,7 @@
 -- An account with no relationships proves nothing here: every failure mode in
 -- deletion lives in the foreign keys. Anna therefore arrives at her deletion
 -- having hosted somebody, been hosted, written reviews in both states,
--- received one, blocked and been blocked, reported and been reported, and
--- invited somebody who joined.
+-- received one, blocked and been blocked, and reported and been reported.
 --
 -- The tension being tested is that deletion must be real for HER while leaving
 -- OTHER people's history standing. If deleting an account erased the reviews

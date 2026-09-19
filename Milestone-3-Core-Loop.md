@@ -441,7 +441,7 @@ Returns `{ "claimed": n, "sent": n, "failed": n, "receiptsChecked": n, "emailsSe
 | `DISPATCH_SECRET` | Edge Function secret + `pg_cron`/`pg_net` call header | Authenticates the system dispatcher |
 | `EXPO_ACCESS_TOKEN` | Edge Function secret | Only if Expo "enhanced push security" is enabled |
 | `RESEND_API_KEY` | Edge Function secret | Already set in Milestone 1 |
-| `RESEND_FROM` | Edge Function secret | e.g. `GigAway <notifications@gigaway.app>` |
+| `NOTIFICATION_FROM` | Edge Function secret | e.g. `GigAway <notifications@gigaway.app>` — renamed from the originally-planned shared `RESEND_FROM` once it turned out this function's member-facing mail needed a different sender identity than the moderator-ops functions' `MODERATOR_FROM`; see Milestone 5 |
 | `EXPO_PUBLIC_WEB_BASE_URL` | Mobile | Deep-link targets in fallback emails |
 
 New PostHog events: `request_sent`, `offer_sent`, `offer_accepted`, `contact_revealed`,

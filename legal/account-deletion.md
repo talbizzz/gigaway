@@ -38,7 +38,10 @@ signing up again later creates a new account with no connection to the old one.
 - Your email address, phone number and WhatsApp number
 - Your profile photo, biography, specialisation, home city and district, and
   professional links
-- Your verification application, and any documents you submitted with it
+- Your verification application record, **including the selfie, ID photo and
+  CV you submitted with it** — these are kept for as long as your account
+  exists specifically so this is the point they go; see the Privacy Policy,
+  section 3.3
 - Push notification tokens and your notification history
 - Contact-sharing grants, so nobody keeps access to your details
 - Blocks you created
@@ -59,7 +62,6 @@ following survive and point at that record rather than at you:
   "Deleted member"
 - **Reports**, in both directions
 - **Blocks other people made against you**
-- **Your position in the invite chain** — who invited you, and who you invited
 - Trips that produced a stay, reduced to dates and a city with your notes removed
 
 ### Why these are kept

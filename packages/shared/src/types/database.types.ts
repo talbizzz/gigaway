@@ -39,6 +39,68 @@ export type Database = {
   }
   public: {
     Tables: {
+      // ─────────────────────────────────────────────────────────────────
+      // HAND-EDITED, Milestone 6 phases 1–2 (admin_users, audit_log) —
+      // there is no live database to regenerate from until these
+      // migrations are pushed. Re-run `pnpm db:types` for real once they
+      // are, same as Milestone 1's precedent for this file.
+      // ─────────────────────────────────────────────────────────────────
+      admin_users: {
+        Row: {
+          created_at: string
+          display_name: string
+          id: string
+        }
+        Insert: {
+          created_at?: string
+          display_name: string
+          id: string
+        }
+        Update: {
+          created_at?: string
+          display_name?: string
+          id?: string
+        }
+        Relationships: []
+      }
+      audit_log: {
+        Row: {
+          action: string
+          admin_id: string
+          created_at: string
+          detail: Json
+          id: string
+          target_id: string | null
+          target_table: string
+        }
+        Insert: {
+          action: string
+          admin_id: string
+          created_at?: string
+          detail?: Json
+          id?: string
+          target_id?: string | null
+          target_table: string
+        }
+        Update: {
+          action?: string
+          admin_id?: string
+          created_at?: string
+          detail?: Json
+          id?: string
+          target_id?: string | null
+          target_table?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "audit_log_admin_id_fkey"
+            columns: ["admin_id"]
+            isOneToOne: false
+            referencedRelation: "admin_users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       app_config: {
         Row: {
           key: string
@@ -390,111 +452,6 @@ export type Database = {
           },
         ]
       }
-      invite_redemptions: {
-        Row: {
-          id: string
-          invite_id: string
-          redeemed_at: string
-          redeemed_by: string
-        }
-        Insert: {
-          id?: string
-          invite_id: string
-          redeemed_at?: string
-          redeemed_by: string
-        }
-        Update: {
-          id?: string
-          invite_id?: string
-          redeemed_at?: string
-          redeemed_by?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "invite_redemptions_invite_id_fkey"
-            columns: ["invite_id"]
-            isOneToOne: false
-            referencedRelation: "invites"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "invite_redemptions_redeemed_by_fkey"
-            columns: ["redeemed_by"]
-            isOneToOne: true
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "invite_redemptions_redeemed_by_fkey"
-            columns: ["redeemed_by"]
-            isOneToOne: true
-            referencedRelation: "v_recent_signups"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "invite_redemptions_redeemed_by_fkey"
-            columns: ["redeemed_by"]
-            isOneToOne: true
-            referencedRelation: "v_user_summary"
-            referencedColumns: ["profile_id"]
-          },
-        ]
-      }
-      invites: {
-        Row: {
-          code: string
-          created_at: string
-          created_by: string
-          expires_at: string
-          id: string
-          max_uses: number
-          revoked_at: string | null
-          uses: number
-        }
-        Insert: {
-          code?: string
-          created_at?: string
-          created_by: string
-          expires_at?: string
-          id?: string
-          max_uses?: number
-          revoked_at?: string | null
-          uses?: number
-        }
-        Update: {
-          code?: string
-          created_at?: string
-          created_by?: string
-          expires_at?: string
-          id?: string
-          max_uses?: number
-          revoked_at?: string | null
-          uses?: number
-        }
-        Relationships: [
-          {
-            foreignKeyName: "invites_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "invites_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "v_recent_signups"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "invites_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "v_user_summary"
-            referencedColumns: ["profile_id"]
-          },
-        ]
-      }
       notifications: {
         Row: {
           attempts: number
@@ -689,8 +646,6 @@ export type Database = {
           home_city_id: string | null
           home_district: string | null
           id: string
-          invite_quota: number
-          invited_by: string | null
           links: Json
           photo_path: string | null
           specialisation: string | null
@@ -707,8 +662,6 @@ export type Database = {
           home_city_id?: string | null
           home_district?: string | null
           id: string
-          invite_quota?: number
-          invited_by?: string | null
           links?: Json
           photo_path?: string | null
           specialisation?: string | null
@@ -725,8 +678,6 @@ export type Database = {
           home_city_id?: string | null
           home_district?: string | null
           id?: string
-          invite_quota?: number
-          invited_by?: string | null
           links?: Json
           photo_path?: string | null
           specialisation?: string | null
@@ -742,27 +693,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "cities"
             referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "profiles_invited_by_fkey"
-            columns: ["invited_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "profiles_invited_by_fkey"
-            columns: ["invited_by"]
-            isOneToOne: false
-            referencedRelation: "v_recent_signups"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "profiles_invited_by_fkey"
-            columns: ["invited_by"]
-            isOneToOne: false
-            referencedRelation: "v_user_summary"
-            referencedColumns: ["profile_id"]
           },
         ]
       }
@@ -1241,44 +1171,47 @@ export type Database = {
       }
       verification_applications: {
         Row: {
+          cv_path: string | null
           decision_reason: string | null
-          doc_paths: string[]
-          docs_deleted_at: string | null
-          docs_deletion_requested_at: string | null
+          full_legal_name: string
           id: string
           links: Json
           note: string | null
           profile_id: string
           reviewed_at: string | null
           reviewed_by: string | null
+          selfie_path: string | null
+          selfie_prompt: string
           status: Database["public"]["Enums"]["verification_status"]
           submitted_at: string
         }
         Insert: {
+          cv_path?: string | null
           decision_reason?: string | null
-          doc_paths?: string[]
-          docs_deleted_at?: string | null
-          docs_deletion_requested_at?: string | null
+          full_legal_name: string
           id?: string
           links?: Json
           note?: string | null
           profile_id: string
           reviewed_at?: string | null
           reviewed_by?: string | null
+          selfie_path?: string | null
+          selfie_prompt: string
           status?: Database["public"]["Enums"]["verification_status"]
           submitted_at?: string
         }
         Update: {
+          cv_path?: string | null
           decision_reason?: string | null
-          doc_paths?: string[]
-          docs_deleted_at?: string | null
-          docs_deletion_requested_at?: string | null
+          full_legal_name?: string
           id?: string
           links?: Json
           note?: string | null
           profile_id?: string
           reviewed_at?: string | null
           reviewed_by?: string | null
+          selfie_path?: string | null
+          selfie_prompt?: string
           status?: Database["public"]["Enums"]["verification_status"]
           submitted_at?: string
         }
@@ -1329,30 +1262,6 @@ export type Database = {
       }
     }
     Views: {
-      v_docs_awaiting_purge: {
-        Row: {
-          application_id: string | null
-          doc_paths: string[] | null
-          docs_deletion_requested_at: string | null
-          seconds_waiting: number | null
-          status: Database["public"]["Enums"]["verification_status"] | null
-        }
-        Insert: {
-          application_id?: string | null
-          doc_paths?: string[] | null
-          docs_deletion_requested_at?: string | null
-          seconds_waiting?: never
-          status?: Database["public"]["Enums"]["verification_status"] | null
-        }
-        Update: {
-          application_id?: string | null
-          doc_paths?: string[] | null
-          docs_deletion_requested_at?: string | null
-          seconds_waiting?: never
-          status?: Database["public"]["Enums"]["verification_status"] | null
-        }
-        Relationships: []
-      }
       v_notification_health: {
         Row: {
           confirmed: number | null
@@ -1432,13 +1341,17 @@ export type Database = {
       v_pending_verifications: {
         Row: {
           application_id: string | null
+          cv_path: string | null
           days_waiting: number | null
           discipline: string | null
           display_name: string | null
-          doc_paths: string[] | null
           email: string | null
+          full_legal_name: string | null
           links: Json | null
           note: string | null
+          profile_id: string | null
+          selfie_path: string | null
+          selfie_prompt: string | null
           specialisation: string | null
           submitted_at: string | null
         }
@@ -1451,8 +1364,6 @@ export type Database = {
           display_name: string | null
           home_city: string | null
           id: string | null
-          invited_by: string | null
-          joined_via: string | null
           status: Database["public"]["Enums"]["profile_status"] | null
         }
         Relationships: []
@@ -1503,8 +1414,6 @@ export type Database = {
           display_name: string | null
           distinct_reporters: number | null
           home_city: string | null
-          invited_by: string | null
-          invites_created: number | null
           joined_at: string | null
           profile_id: string | null
           reports_filed: number | null
@@ -1521,6 +1430,199 @@ export type Database = {
       }
     }
     Functions: {
+      // ─────────────────────────────────────────────────────────────────
+      // HAND-EDITED, Milestone 6 phases 1–2 — see the note by admin_users
+      // above. Returns for the admin_* wrappers around v_pending_verifications
+      // /v_open_reports/v_stuck_notifications/v_recent_signups are inlined
+      // copies of those views' own Row types rather than a SetofOptions
+      // reference, since this is a stopgap pending real codegen.
+      // ─────────────────────────────────────────────────────────────────
+      admin_audit_log: {
+        Args: { p_before?: string; p_limit?: number }
+        Returns: {
+          action: string
+          admin_id: string
+          created_at: string
+          detail: Json
+          id: string
+          target_id: string | null
+          target_table: string
+        }[]
+      }
+      admin_cron_status: {
+        Args: never
+        Returns: {
+          active: boolean | null
+          jobname: string | null
+          last_run: string | null
+          last_status: string | null
+          schedule: string | null
+        }[]
+      }
+      admin_decide_report: {
+        Args: { p_decision: string; p_note?: string; p_report_id: string }
+        Returns: undefined
+      }
+      admin_decide_verification: {
+        Args: { p_application_id: string; p_decision: string; p_reason?: string }
+        Returns: undefined
+      }
+      admin_delete_trip: {
+        Args: { p_trip_id: string }
+        Returns: undefined
+      }
+      admin_get_trip_detail: {
+        Args: { p_trip_id: string }
+        Returns: {
+          city: string | null
+          created_at: string | null
+          end_date: string | null
+          needs: string[] | null
+          note: string | null
+          offers_count: number | null
+          owner_name: string | null
+          profile_id: string | null
+          requests_count: number | null
+          start_date: string | null
+          stays_count: number | null
+          status: Database["public"]["Enums"]["trip_status"] | null
+          trip_id: string | null
+        }[]
+      }
+      admin_get_user_detail: {
+        Args: { p_profile_id: string }
+        Returns: {
+          availability: number | null
+          blocks_made: number | null
+          blocks_received: number | null
+          discipline: string | null
+          display_name: string | null
+          distinct_reporters: number | null
+          email: string | null
+          home_city: string | null
+          joined_at: string | null
+          phone: string | null
+          profile_id: string | null
+          reports_filed: number | null
+          reports_received: number | null
+          reviews_received: number | null
+          reviews_written: number | null
+          status: Database["public"]["Enums"]["profile_status"] | null
+          stays_as_guest: number | null
+          stays_hosted: number | null
+          trips: number | null
+          verification_decision_reason: string | null
+          verification_status: Database["public"]["Enums"]["verification_status"] | null
+          whatsapp: string | null
+          would_again_pct: number | null
+        }[]
+      }
+      admin_open_reports: {
+        Args: never
+        Returns: {
+          body: string | null
+          category: string | null
+          created_at: string | null
+          days_open: number | null
+          related_id: string | null
+          related_type: string | null
+          report_id: string | null
+          reporter_id: string | null
+          reporter_name: string | null
+          status: Database["public"]["Enums"]["report_status"] | null
+          subject_id: string | null
+          subject_name: string | null
+          subject_prior_reporters: number | null
+          subject_prior_reports: number | null
+          subject_status: Database["public"]["Enums"]["profile_status"] | null
+        }[]
+      }
+      admin_pending_verifications: {
+        Args: never
+        Returns: {
+          application_id: string | null
+          cv_path: string | null
+          days_waiting: number | null
+          discipline: string | null
+          display_name: string | null
+          email: string | null
+          full_legal_name: string | null
+          links: Json | null
+          note: string | null
+          profile_id: string | null
+          selfie_path: string | null
+          selfie_prompt: string | null
+          specialisation: string | null
+          submitted_at: string | null
+        }[]
+      }
+      admin_recent_signups: {
+        Args: never
+        Returns: {
+          created_at: string | null
+          discipline: string | null
+          display_name: string | null
+          home_city: string | null
+          id: string | null
+          status: Database["public"]["Enums"]["profile_status"] | null
+        }[]
+      }
+      admin_search_profiles: {
+        Args: { p_query?: string }
+        Returns: {
+          display_name: string | null
+          email: string | null
+          home_city: string | null
+          joined_at: string | null
+          phone: string | null
+          profile_id: string | null
+          status: Database["public"]["Enums"]["profile_status"] | null
+          discipline: string | null
+        }[]
+      }
+      admin_search_trips: {
+        Args: { p_query?: string }
+        Returns: {
+          city: string | null
+          created_at: string | null
+          end_date: string | null
+          needs: string[] | null
+          owner_name: string | null
+          profile_id: string | null
+          start_date: string | null
+          status: Database["public"]["Enums"]["trip_status"] | null
+          trip_id: string | null
+        }[]
+      }
+      admin_set_user_status: {
+        Args: { p_profile_id: string; p_status: string }
+        Returns: undefined
+      }
+      admin_stuck_notifications: {
+        Args: never
+        Returns: {
+          attempts: number | null
+          created_at: string | null
+          display_name: string | null
+          email_fallback_sent_at: string | null
+          id: string | null
+          last_error: string | null
+          next_attempt_at: string | null
+          profile_id: string | null
+          seconds_waiting: number | null
+          type: string | null
+        }[]
+      }
+      is_admin: { Args: never; Returns: boolean }
+      log_admin_action: {
+        Args: {
+          p_action: string
+          p_detail?: Json
+          p_target_id: string
+          p_target_table: string
+        }
+        Returns: undefined
+      }
       accept_co_request: {
         Args: { p_request_id: string; p_user: string }
         Returns: Json
@@ -1609,14 +1711,11 @@ export type Database = {
         Returns: string
       }
       expire_stale_requests_and_offers: { Args: never; Returns: number }
-      expire_verification_docs: { Args: never; Returns: number }
       export_user_data: { Args: { p_user: string }; Returns: Json }
-      generate_invite_code: { Args: never; Returns: string }
       has_contact_grant: { Args: { other: string }; Returns: boolean }
       home_feed: { Args: never; Returns: Json }
       is_approved: { Args: never; Returns: boolean }
       is_blocked: { Args: { other: string }; Returns: boolean }
-      live_invite_count: { Args: never; Returns: number }
       notification_stay_payload: { Args: { p_stay_id: string }; Returns: Json }
       notification_trip_payload: { Args: { p_trip_id: string }; Returns: Json }
       offerable_windows: {
@@ -1643,9 +1742,11 @@ export type Database = {
         Args: { p_results: Json }
         Returns: number
       }
-      redeem_invite: { Args: { p_code: string; p_user: string }; Returns: Json }
+      register_push_token: {
+        Args: { p_platform: string; p_token: string }
+        Returns: undefined
+      }
       release_reviews: { Args: never; Returns: number }
-      remaining_invite_quota: { Args: never; Returns: number }
       remind_reviews: { Args: never; Returns: number }
       review_summary: {
         Args: { p_profile_id: string }

@@ -38,8 +38,9 @@ because it defines the limits of what we do.
 - **We do not inspect homes.** We have never seen any member's home and make no
   representation about whether it is safe, clean, legal or as described.
 - **We do not vouch for members.** Verification confirms professional standing
-  as an artist. It is not a background check, a criminal record check, or an
-  identity check, and it is not a statement that someone is safe to stay with.
+  as an artist, and that the name on the account matches a selfie taken
+  holding photo ID. It is not a formal identity check, a background check, a
+  criminal record check, or a statement that someone is safe to stay with.
 
 ---
 
@@ -49,8 +50,7 @@ To use GigAway you must:
 
 - Be **18 or older**
 - Be a professional or pre-professional performing artist
-- Enter either through an invite from an existing member, or by having your
-  application approved after document review
+- Have your application approved after review by a human
 - Provide accurate information about yourself
 
 One person, one account. Do not create an account for someone else, and do not
@@ -60,15 +60,19 @@ share yours.
 
 ## 4. Verification
 
-Applications without an invite are reviewed by a human. We may approve or reject
-any application at our discretion, and we are not obliged to explain a rejection
-in detail.
+Every application is reviewed by a human: a selfie of you holding photo ID,
+taken against a pose we specify at the time so it cannot be an old or reused
+photo; the full legal name on that ID; and evidence of your professional
+standing, such as a CV or links to your portfolio, projects, video work or
+social profiles. We may approve or reject any application at our discretion,
+and we are not obliged to explain a rejection in detail — a rejected
+application may be submitted again.
 
-Verification documents are used only to confirm professional standing and are
-deleted once a decision is made. We do not accept government ID documents.
-
-Members who join by invite are traceable to whoever invited them. That record is
-permanent.
+The selfie, the ID and the CV are retained for as long as your account exists
+— not deleted once a decision is made, and not on a fixed schedule — so a
+decision can be revisited and the fact that a real human was checked stays
+part of your record. See Section 7 of the [Privacy Policy](./privacy-policy.md)
+for the full detail.
 
 ---
 
@@ -179,9 +183,9 @@ would expose a reporter or compromise someone's safety, we may not.
 You can delete your account at any time, from Settings. Deletion is irreversible.
 
 Some records survive in anonymised form — stays you took part in, published
-reviews you wrote, reports in both directions, blocks made against you, and your
-place in the invite chain. Section 7 of the [Privacy Policy](./privacy-policy.md)
-explains exactly what is erased, what is kept, and why.
+reviews you wrote, reports in both directions, and blocks made against you.
+Section 7 of the [Privacy Policy](./privacy-policy.md) explains exactly what is
+erased, what is kept, and why.
 
 ---
 

@@ -27,7 +27,7 @@ including to exercise the rights described in section 9.
 
 ## 2. What GigAway is
 
-GigAway is an invite-only app for professional performing artists who travel for
+GigAway is a verified network for professional performing artists who travel for
 auditions, competitions and guest contracts. Members post trips and
 availability, find verified colleagues in a city, and arrange informal
 hospitality — a couch, local knowledge, or company.
@@ -66,28 +66,41 @@ agreed — see section 5.
 
 **Lawful basis:** contract.
 
-### 3.3 Getting in: invites and verification
+### 3.3 Getting in: verification
 
-There are two routes into GigAway, and each collects something.
+Every account is reviewed by a human before it can see anyone else's content.
+To apply, you submit:
 
-**By invite.** We record which member invited you, and when the invite was
-redeemed. This chain is permanent — see section 7.
+- A **selfie of you holding photo ID**, taken against a pose we specify at the
+  time (which hand holds the ID, a gesture with the other), so the photo
+  cannot be an old one reused for a later application
+- The **full legal name** as it appears on that ID
+- Evidence of professional standing — a CV, and/or links to your portfolio,
+  projects, video work or social profiles
 
-**By document review.** If you apply without an invite, you submit a note,
-professional links, and supporting documents such as a CV, proof of conservatory
-enrolment, or performance recordings.
+The selfie and CV are uploaded directly to our database provider's file
+storage, in a location only accessible to us as the operator — not to other
+members, and not automatically to anyone else. A short, attachment-free
+notice is emailed to a review mailbox (`verify@gigaway.app`) so a human knows
+to look; the photo itself never travels by email. The app also records
+metadata about the application: your legal name as given, the pose you were
+asked for, which links you provided, and the eventual decision.
 
-Documents are handled deliberately:
-
-- They are used **only** to confirm professional standing.
-- A human reads every application. There is no automated decision-making.
-- Documents are **deleted immediately when a decision is made**, whether you are
-  approved or rejected.
-- Applications never decided are purged automatically after **90 days**.
-- **We do not ask for, and do not accept, government ID documents.** If you send
-  one anyway, we delete it.
+- A human reads every application. There is no automated decision-making, and
+  no automated face- or ID-matching — the check is a person looking at the
+  photo.
+- The selfie and CV are **retained for as long as your account exists**, and
+  deleted when you delete your account (section 8) — not on a decision, and
+  not on a fixed schedule. We keep them because a decision may need
+  revisiting, and because the record that a real human was checked is part of
+  what the whole network's trust rests on.
+- A rejected application may be submitted again.
 
 **Lawful basis:** contract, and our legitimate interest in a verified community.
+Collecting a photo of government ID is not, on its own, special category data
+under Article 9 GDPR — it becomes so only if we derived biometric data from it
+for automated identification, which we do not do. A person looks at the photo;
+nothing analyses it.
 
 ### 3.4 What you post
 
@@ -175,17 +188,18 @@ If you later delete your account, that access is removed.
 
 | Processor | Purpose | Location |
 |---|---|---|
-| **Supabase** | Database, authentication, file storage | EU (Frankfurt) |
+| **Supabase** | Database, authentication, file storage — including your verification selfie and CV | EU (Frankfurt) |
 | **Expo** | Push notification delivery | USA |
 | **Sentry** | Crash reporting | EU |
 | **PostHog** | Product analytics (only with consent) | EU |
-| **Resend** | Transactional email | USA |
-| **Vercel** | Website hosting | USA / global |
+| **Resend** | Transactional email, and a short notice (no attachment) when you submit a verification application | USA |
+| **Cloudflare** | Website hosting, and routing mail sent to `@gigaway.app` addresses (including `verify@`) to a review mailbox | EU / global |
+| **Google (Gmail)** | The review mailbox itself — where the notice above, and other `@gigaway.app` mail, is read. Never receives the selfie, ID or CV, which stay in Supabase | USA |
 | **Apple** | App distribution, push delivery on iOS | USA |
 | **Google** | App distribution, push delivery on Android | USA |
 
-**International transfers.** Expo, Resend, Vercel, Apple and Google process data
-in the United States. These transfers rely on the European Commission's Standard
+**International transfers.** Expo, Resend, Google and Apple process data in the
+United States. These transfers rely on the European Commission's Standard
 Contractual Clauses, and where applicable the EU–US Data Privacy Framework.
 
 We do not sell your data. We do not share it for advertising. There is no
@@ -199,9 +213,8 @@ advertising in GigAway.
 |---|---|
 | Profile and posts | Until you delete your account |
 | Contact details | Until you delete your account |
-| Verification documents | Deleted on decision; 90-day backstop if undecided |
-| Unused invites | Expire after 30 days |
-| Invite chain | **Permanent**, including after account deletion |
+| Verification application metadata (legal name given, links, decision) | Until you delete your account |
+| Verification selfie, ID photo and CV | Until you delete your account — not deleted on a decision, and not on a fixed schedule |
 | Trips, availability, requests, offers | Until deleted, or until the account is deleted |
 | Stays | **Retained** after deletion — they are the other person's record |
 | Reviews you wrote, published | **Retained**, shown as written by "Deleted member" |
@@ -239,16 +252,17 @@ Deleting your account is **irreversible**. When you do:
 
 **Permanently erased:** your login and password, email address, phone and
 WhatsApp numbers, profile photo, biography, specialisation, home city and
-district, professional links, verification application and any documents, push
-tokens, notification history, contact-sharing grants, blocks you created, reviews
-written about you, unpublished reviews you wrote, pending requests and offers,
-your availability, and trips that never led to a stay.
+district, professional links, your verification application record — including
+your verification selfie, ID photo and CV, which exist only until this point —
+push tokens, notification history, contact-sharing grants, blocks you created,
+reviews written about you, unpublished reviews you wrote, pending requests and
+offers, your availability, and trips that never led to a stay.
 
 **Retained, no longer linked to you:** your profile becomes an anonymised record
 showing "Deleted member". Stays you took part in, published reviews you wrote,
-reports in both directions, blocks made against you, and your position in the
-invite chain all survive and point at that anonymised record. Trips that produced
-a stay survive as dates and a city, with your notes removed.
+reports in both directions, and blocks made against you all survive and point at
+that anonymised record. Trips that produced a stay survive as dates and a city,
+with your notes removed.
 
 You can never sign in again, and the account cannot be restored.
 

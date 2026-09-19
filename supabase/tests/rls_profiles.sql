@@ -152,11 +152,11 @@ select throws_ok(
 );
 
 select throws_ok(
-  $$ update public.profiles set invite_quota = 999
+  $$ update public.profiles set verified_at = now()
        where id = '33333333-3333-3333-3333-333333333333' $$,
   '42501',
-  'profiles.invite_quota is not client-updatable',
-  'a member cannot grant themselves extra invites'
+  'profiles.verified_at is not client-updatable',
+  'a member cannot backdate their own verification'
 );
 
 -- ── a SUSPENDED member loses access immediately ────────────────────────────

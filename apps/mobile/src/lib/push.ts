@@ -53,11 +53,14 @@ async function ensureAndroidChannel(): Promise<void> {
  * Returns false when permission is unavailable or refused — callers should
  * treat that as ordinary, not as an error. The Activity list and the email
  * fallback exist precisely so that a member who says no still gets told.
+ *
+ * Takes no profile id: register_push_token() always claims the token for
+ * whoever the caller is currently authenticated as, so there is nothing here
+ * for a caller to get wrong by passing the wrong one.
  */
-export async function registerForPush(
-  profileId: string,
-  { prompt = true }: { prompt?: boolean } = {},
-): Promise<boolean> {
+export async function registerForPush({
+  prompt = true,
+}: { prompt?: boolean } = {}): Promise<boolean> {
   // A simulator cannot receive remote push and throws rather than returning a
   // token, so bail before prompting for a permission that buys nothing.
   if (!Device.isDevice) return false
@@ -96,20 +99,18 @@ export async function registerForPush(
     cachedToken = token
     track('push_permission_granted')
 
-    // Upsert on the token, not the profile: reinstalling gives a new token,
-    // and one profile legitimately has several live devices. A token that was
-    // invalidated earlier — by sign-out or a dead-device receipt — comes back
-    // to life here, which is exactly right for a reinstall.
-    const { error } = await supabase.from('push_tokens').upsert(
-      {
-        profile_id: profileId,
-        token,
-        platform: Platform.OS === 'ios' ? 'ios' : 'android',
-        last_seen_at: new Date().toISOString(),
-        invalidated_at: null,
-      },
-      { onConflict: 'token' },
-    )
+    // Claims the token via an RPC rather than upserting the table directly.
+    // Keyed by token, not by profile: reinstalling gives a new token, one
+    // profile legitimately has several live devices, and — the case a plain
+    // client upsert cannot handle — a device already registered to a
+    // DIFFERENT account (someone else signed out, this one signed in) needs
+    // the row reassigned, not rejected. See
+    // 20260918140000_register_push_token_rpc.sql for why that reassignment
+    // has to happen server-side rather than through RLS.
+    const { error } = await supabase.rpc('register_push_token', {
+      p_token: token,
+      p_platform: Platform.OS === 'ios' ? 'ios' : 'android',
+    })
     if (error) throw error
 
     return true

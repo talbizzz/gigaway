@@ -5,8 +5,8 @@ import { useTheme } from '@/theme/use-theme'
 
 /**
  * One row on the settings index: a title, a one-line description, an optional
- * value pulled from the right (an invite count, a blocked-member count), and
- * a disclosure chevron.
+ * value pulled from the right (a blocked-member count), and a disclosure
+ * chevron.
  *
  * The chevron is a Text character rather than a drawn icon. This app has no
  * icon font — tab-icon.tsx builds its glyphs from view borders because a

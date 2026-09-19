@@ -28,7 +28,7 @@ requiring external review is submitted first and polished while it queues.
 
 ### In Scope
 
-- Next.js landing page with static export, deployed to Vercel
+- Next.js landing page with static export, deployed to Cloudflare Pages
 - `/i/[code]` invite page with platform detection and store links
 - `/privacy`, `/terms`, `/guidelines` rendered from the Markdown written in Milestone 0
 - Universal Links (iOS) and App Links (Android) so invites open the app directly
@@ -62,7 +62,7 @@ requiring external review is submitted first and polished while it queues.
 #### 1. Landing page — `apps/web`
 
 - **Responsibility:** marketing surface, invite target, legal home.
-- **Stack:** Next.js App Router with `output: 'export'`, deployed to Vercel free tier.
+- **Stack:** Next.js App Router with `output: 'export'`, deployed to Cloudflare Pages free tier.
 - **Routes:**
 
 | Route | Purpose |
@@ -206,13 +206,18 @@ arrive, not after.
 **Resend and the domain.** Create the account, add the domain, publish the DNS records.
 DKIM and SPF must both verify before anything sent from that domain will land. Add a
 DMARC record even though Resend does not require one — without it, Gmail and Outlook are
-markedly more willing to treat a new sending domain as spam. The default sender in code
-is `GigAway <notifications@gigaway.app>`, which presumes both the domain and its
-verification.
+markedly more willing to treat a new sending domain as spam. Resend's own Cloudflare
+auto-configure does all three records in one step, since the domain already lives there.
+
+**There is no single sender identity — see "Corrections" below.** The code originally
+planned one shared `RESEND_FROM`, but the Edge Functions send two genuinely different
+kinds of mail (moderator-ops alerts vs. a member-facing notification fallback), so it
+split into `MODERATOR_FROM` and `NOTIFICATION_FROM`.
 
 **Custom SMTP.** Authentication → SMTP Settings, pointed at Resend's SMTP credentials.
-The sender address must be on the verified domain and must match `RESEND_FROM`, or the
-two channels disagree about who the product is.
+The sender address must be on the verified domain and should match `NOTIFICATION_FROM`
+— Supabase Auth's own mail (confirmations, password resets) is member-facing, the same
+category as `dispatch-notifications`, not the moderator-ops one.
 
 **Send mail as `support@` / `moderation@` / `privacy@gigaway.app`, not just receive it.**
 Cloudflare Email Routing (set up in Milestone 0) only forwards inbound mail to the
@@ -261,8 +266,9 @@ None. This milestone adds no tables.
 | `EXPO_PUBLIC_SUPABASE_URL` / `_ANON_KEY` | Mobile, production | Hosted project |
 | `NEXT_PUBLIC_APP_STORE_URL` / `_PLAY_STORE_URL` | Web | Store links on `/i/[code]` |
 | `EXPO_TOKEN` | GitHub Actions secret | For EAS builds from CI |
-| All Edge Function secrets | Production Supabase | `DISPATCH_SECRET`, `RESEND_API_KEY`, `RESEND_FROM`, `MODERATOR_EMAIL`, `SUPABASE_SERVICE_ROLE_KEY` |
-| `RESEND_FROM` | Edge Function secret | Must be on the Resend-verified domain, and identical to the SMTP sender |
+| All Edge Function secrets | Production Supabase | `DISPATCH_SECRET`, `RESEND_API_KEY`, `MODERATOR_FROM`, `NOTIFICATION_FROM`, `MODERATOR_EMAIL`, `VERIFICATION_EMAIL`, `SUPABASE_SERVICE_ROLE_KEY` |
+| `MODERATOR_FROM` | Edge Function secret | `moderation-digest`, `submit-report`, `submit-verification` — moderator-ops mail. Must be on the Resend-verified domain |
+| `NOTIFICATION_FROM` | Edge Function secret | `dispatch-notifications`'s offer-accepted fallback — the one member-facing case. Must be on the Resend-verified domain, and should match the SMTP sender below |
 | SMTP host / port / user / pass | Supabase Auth settings | From Resend; these are not function secrets |
 | `site_url` | Supabase Auth settings | Real domain — **not** the `127.0.0.1:3000` in `config.toml` |
 | `additional_redirect_urls` | Supabase Auth settings | App scheme, for deep-linked auth returns |
@@ -308,7 +314,7 @@ None. This milestone adds no tables.
 - [ ] Supabase is on Pro and will not pause
 - [ ] All Edge Functions are deployed to production with secrets set
 - [ ] `pg_cron` jobs are scheduled and running in the production project
-- [ ] Analytics is enabled and `/privacy` names PostHog, Sentry, Expo, Resend and Vercel
+- [ ] Analytics is enabled and `/privacy` names PostHog, Sentry, Expo, Resend and Cloudflare Pages
 - [ ] TestFlight build installs on a device that is not the developer's
 - [ ] Play closed test track is live with 12+ testers opted in
 - [ ] Demo account plus a live invite code are in App Review notes
@@ -318,7 +324,8 @@ None. This milestone adds no tables.
 - [ ] Sending domain shows DKIM and SPF verified in Resend; a DMARC record exists
 - [ ] A test send from the domain lands in a Gmail inbox, not its spam folder
 - [ ] Supabase Auth uses custom SMTP; the 2-emails-per-hour cap no longer applies
-- [ ] `RESEND_API_KEY`, `RESEND_FROM` and `MODERATOR_EMAIL` are set on the project
+- [ ] `RESEND_API_KEY`, `MODERATOR_FROM`, `NOTIFICATION_FROM`, `MODERATOR_EMAIL` and
+      `VERIFICATION_EMAIL` are set on the project
 - [ ] `moderation-digest` returns `emailed: true` and the mail actually arrives
 - [ ] Email confirmation is switched back on (Authentication → Sign In / Providers, and
       `enable_confirmations` in `supabase/config.toml`)
@@ -359,21 +366,33 @@ choice changed.
    before `db push --linked` runs for real) and `deploy-web.yml` (the legal-pages deploy
    above). `CODEOWNERS`, `PULL_REQUEST_TEMPLATE.md` and `CONTRIBUTING.md` were added
    alongside these to document the conventions the workflows enforce.
+4. **`RESEND_FROM` split into `MODERATOR_FROM` and `NOTIFICATION_FROM`.** The single shared
+   sender planned throughout this document turned out not to fit once all four
+   Resend-sending functions were considered together: `moderation-digest`, `submit-report`
+   and `submit-verification` are all moderator-ops alerts, but `dispatch-notifications`'
+   offer-accepted fallback is member-facing — a "your offer was accepted" email from
+   `moderation@gigaway.app` reads wrong. `MODERATOR_FROM` (default
+   `GigAway <moderation@gigaway.app>`) covers the first three; `NOTIFICATION_FROM`
+   (default `GigAway <notifications@gigaway.app>`) covers the fourth, and is what
+   Supabase Auth's SMTP sender should match too, since auth mail is member-facing as
+   well. Both are set on dev as of 2026-09-18; prod is tracked in `PRODUCTION-TODO.md`.
 
 ## Known Risks & Watch-Outs
 
 - **`assetlinks.json` fingerprint mismatch** is the most common Android deep-link failure.
   Take the SHA-256 from `eas credentials` for the exact profile you are shipping — a local
   debug keystore fingerprint will not match.
-- **Vercel may serve `apple-app-site-association` with the wrong content type or a
-  redirect.** Apple follows no redirects and requires `application/json`. Configure headers
-  explicitly and test with `curl -I`.
+- **Cloudflare Pages may serve `apple-app-site-association` with the wrong content type or
+  a redirect.** Apple follows no redirects and requires `application/json`. Configure
+  headers explicitly and test with `curl -I`.
 - **iOS caches the association file.** Changes may take a device reinstall or several hours
   to take effect. Test on a freshly installed build.
-- **App Review will reject an invite-only app they cannot enter** (Guideline 2.1). The
-  demo account and invite code are not optional, and the code must still be valid when
-  they get to it — a 30-day expiry can lapse mid-cycle. Consider a dedicated
-  high-`max_uses`, long-expiry review code.
+- **App Review will reject an app they cannot get into** (Guideline 2.1). There is no
+  invite code any more — the demo account has to be pre-approved (`status = 'approved'`
+  set by hand, same as the dev bootstrap in `scripts/dev-approve-account.sql`) so
+  reviewers land straight in the app, not on the verify screen. Confirm it is still
+  approved and not suspended before every submission — nothing expires it automatically,
+  but it is also the one account that must never be allowed to fall out of that state.
 - **The Play data safety form must match the privacy policy.** Discrepancies are a common
   rejection cause and cost a full review cycle.
 - **Google's 14-day closed test cannot be compressed.** If it has not been started, it is

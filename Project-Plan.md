@@ -2,6 +2,13 @@
 
 > Derived from `Project-Raw.md`. Plan agreed 13 August 2026.
 > Implementation milestones are in `Milestone-N-*.md`. Progress checklist is in `TODO.md`.
+>
+> **Superseded, 2026-09-17: there is no invite chain.** Every mention of
+> invites, `redeem-invite`, or invite deep links below describes the original
+> plan, not current behaviour — the invite system was removed entirely in
+> favour of mandatory, email-based verification for every signup. See
+> `Milestone-1-Foundations-Access.md`'s "Corrections and follow-on work"
+> (item 3) for the actual current design.
 
 ---
 

@@ -2,7 +2,7 @@
 
 **A couch, a colleague, a city you don't know yet.**
 
-GigAway is an invite-only mobile app for professional performing artists —
+GigAway is a verified-network mobile app for professional performing artists —
 classical singers, instrumentalists and dancers — who travel constantly for
 auditions, competitions and guest contracts. Log a trip, and the app shows you
 verified colleagues in that city offering a free couch, local knowledge, or
@@ -54,13 +54,13 @@ trips and a host in your home city on others.
 ### Getting in
 
 Membership is restricted to verified artists, and that wall is the product. It
-is the reason anyone trusts a stranger enough to host them. Two ways through:
-
-- **An invite from a colleague.** Every member is traceable to whoever vouched
-  for them, and invites are rationed so the network cannot dilute quietly.
-- **Document review.** Applicants without an invite submit evidence of
-  professional standing — CV, conservatory enrolment, performance links — and a
-  human reads every one. The app deliberately does not ask for ID documents.
+is the reason anyone trusts a stranger enough to host them. There is no invite
+system — every signup is reviewed by a human: a selfie holding photo ID
+(against a pose specified at submission time, so an old photo can't be
+reused), the legal name on that ID, and evidence of professional standing —
+CV, conservatory enrolment, performance links. Uploaded straight to Storage,
+retained until the applicant deletes their account, and reviewed by a
+human — a short, attachment-free notice is all that goes by email.
 
 Until a profile is approved, row-level security in Postgres returns no member
 content whatsoever. The gate is in the database, not in the interface.
@@ -102,7 +102,7 @@ what the app was built against.
 
 | Area | State |
 | --- | --- |
-| Auth, invite chain, document verification, profiles | Built |
+| Auth, email-based verification, profiles | Built |
 | Full RLS policy set, tested per policy | Built |
 | Trips and availability, create / edit / cancel | Built |
 | City search and date-overlap matching, with a nearby-city fallback | Built |
@@ -172,8 +172,9 @@ most of it waiting on the first iOS build.
       needs Android Studio instead, but iOS is the better trodden path today.
 - [ ] **Node 20 or newer** — `node -v`
 - [ ] **pnpm 11** — `corepack enable && corepack prepare pnpm@11.21.0 --activate`
-- [ ] **Docker Desktop, running** — the local Supabase stack needs it
-- [ ] **Supabase CLI** — `brew install supabase/tap/supabase`
+- [ ] **Supabase CLI** — `brew install supabase/tap/supabase`. Used against the
+      hosted dev project only — there is no local Supabase stack, and none is
+      ever started. Docker is not needed for anything in this workflow.
 - [ ] **CocoaPods** — `brew install cocoapods`
 
 Verified working on Node 24.9.0, pnpm 11.21.0, Xcode 26.3, CocoaPods 1.16.2 and
@@ -203,20 +204,18 @@ build. Two things live at the root that the app depends on:
 
 Only a root install applies both.
 
-## 3. Start your own Supabase
+## 3. Point at the development project
 
-The entire backend runs locally from the migrations in this repository.
+There is no local Supabase stack, and there is deliberately no path that
+starts one — the backend is always the hosted `gigaway-dev` project (EU
+Frankfurt), shared by everyone working on this repo, humans and agents alike.
+There is nothing to start, stop or reset; migrations are pushed there with
+`supabase db push` (`supabase link --project-ref <dev ref>` first, always —
+there is a second, production project, and the CLI's link is global to the
+checkout, not per-branch).
 
-- [ ] Start the stack
-
-  ```bash
-  pnpm db:start
-  ```
-
-  The first run pulls several GB of Docker images. With images cached it takes
-  about three and a half minutes. It applies all 26 migrations and finishes by
-  printing a block of URLs and keys — **keep that output**, you need `ANON_KEY`
-  in the next step.
+- [ ] Get the dev project's ref, URL and anon key. Ask the project owner if
+      you do not already have them — they are not published in this repo.
 
 - [ ] Generate the shared code the Edge Functions import
 
@@ -227,50 +226,39 @@ The entire backend runs locally from the migrations in this repository.
   `supabase/functions/_shared/gen/` is generated and gitignored, so a fresh
   clone does not have it and the Edge Functions will not boot without it.
 
-What you now have:
+Reference data ships with the schema: expect **10,934+ cities** in the
+`cities` table. If a query against the dev project comes back empty, something
+is genuinely wrong — there is no "did the stack start" step to blame it on.
 
-| Service | URL |
-| --- | --- |
-| API | `http://127.0.0.1:54321` |
-| Studio — SQL editor and table browser | `http://127.0.0.1:54323` |
-| Mailpit — catches every outgoing email | `http://127.0.0.1:54324` |
-| Postgres | `postgresql://postgres:postgres@127.0.0.1:54322/postgres` |
+> The anon key is designed to be public and is safe only because RLS is
+> enforced on every table — see the comment in `apps/mobile/.env.example`.
+> The `service_role` / `sb_secret_` key is not: it must never leave the
+> Supabase dashboard or a gitignored credentials file.
 
-Reference data ships with the schema: expect **10,934 cities** in the `cities`
-table once the stack is up. If it is empty, the migrations did not run — try
-`pnpm db:reset` and watch for errors.
+## 4. Point the app at the dev project
 
-> The local keys are Supabase's shared demo keys. They are identical on every
-> machine and are not secret. Never reuse them anywhere real.
-
-## 4. Point the app at your stack
-
-- [ ] Create the environment file
+- [ ] Create the environment file — `apps/mobile/.env.dev`, not `.env`. The
+      `:dev` npm scripts (below) load it via `scripts/with-env.sh`; `.env`
+      is reserved for the separate production app variant.
 
   ```bash
-  cp apps/mobile/.env.example apps/mobile/.env
+  cp apps/mobile/.env.example apps/mobile/.env.dev
   ```
 
-- [ ] Fill in the two values the app refuses to start without:
+- [ ] Fill in the two values the app refuses to start without, using the dev
+      project's real URL and anon key from step 3:
 
   ```ini
-  EXPO_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321
-  EXPO_PUBLIC_SUPABASE_ANON_KEY=<the ANON_KEY printed by pnpm db:start>
+  EXPO_PUBLIC_SUPABASE_URL=https://<dev-project-ref>.supabase.co
+  EXPO_PUBLIC_SUPABASE_ANON_KEY=<the dev project's anon key>
   ```
 
   Leave the rest blank. Sentry and PostHog are deliberate no-ops without
   configuration, and analytics stay off unless `EXPO_PUBLIC_ANALYTICS_ENABLED`
   is exactly `true`.
 
-Two notes on that URL:
-
-- The **iOS simulator shares your Mac's network stack**, so `127.0.0.1` is
-  correct as written.
-- The **Android emulator does not**. Use `http://10.0.2.2:54321` — the
-  emulator's alias for your host machine.
-
 `src/lib/env.ts` throws on a missing URL or key rather than failing later at the
-first query, so a misconfigured `.env` tells you straight away.
+first query, so a misconfigured `.env.dev` tells you straight away.
 
 ## 5. Build and run
 
@@ -312,28 +300,30 @@ reloads land in under two. You only need `pnpm ios` again after changing
 
 ## 6. Get an account that can see something
 
-GigAway is invite-only and the wall is enforced in Postgres, so a brand new
-sign-up stops at the verify screen with nothing visible behind it. That is
-correct behaviour — nobody self-approves. Here is how to bootstrap past it.
+Every signup is verified by hand, and the wall is enforced in Postgres, so a
+brand new sign-up stops at the verify screen with nothing visible behind it.
+That is correct behaviour — nobody self-approves, and there is no invite code
+that skips it. Here is how to bootstrap past it.
 
-Email confirmation is currently off for local development — see
-`enable_confirmations` in `supabase/config.toml` — so sign-up returns a session
-immediately and no mail needs to arrive. If that setting is back on by the time
-you read this, the confirmation email lands in Mailpit at
-`http://127.0.0.1:54324`; open it, follow the link, and carry on. Either way,
-nothing leaves your machine.
+Email confirmation is currently off on the dev project — sign-up returns a
+session immediately and no mail needs to arrive. If that has been turned back
+on by the time you read this, the confirmation email goes to the address you
+signed up with for real, since this is the same shared dev project everyone
+uses — there is no local mail catcher standing in for it.
 
 - [ ] **Create your first account in the app.** *Create an account* → name,
       discipline, email, password of at least 10 characters. Use plus-addressing
       like `you+host@example.com` so you can make several. You will land on the
       verify screen.
 
-- [ ] **Approve it by hand**, once, in Studio's SQL editor at
-      `http://127.0.0.1:54323`:
+- [ ] **Approve it by hand**, once, in the dev project's SQL editor
+      (`supabase.com/dashboard/project/<dev ref>/sql`) — see
+      `scripts/dev-approve-account.sql` for the full version, kept up to
+      date as the schema changes:
 
   ```sql
   update public.profiles p
-     set status = 'approved',
+     set status      = 'approved',
          verified_at = now()
     from auth.users u
    where u.id = p.id
@@ -347,11 +337,10 @@ nothing leaves your machine.
       discipline and home city are all set. City search matches on prefix and
       needs at least two characters — type `Ber`, not `erlin`.
 
-- [ ] **Make a second account through the real invite path.** On the home screen
-      tap *Create an invite* and copy the eight-character code. Sign out, sign up
-      as `you+traveller@example.com`, and enter that code on the verify screen.
-      This exercises the `redeem-invite` Edge Function, which your local stack
-      serves for you.
+- [ ] **Make a second account the same way.** Sign out, sign up as
+      `you+traveller@example.com`, and approve it with the same SQL, swapping
+      the email. There is no shortcut for a second account — every one goes
+      through the same wall as the first.
 
 Two accounts is the practical minimum. Matching only has something to show when
 one member is travelling to a city where another is offering a couch.
@@ -374,22 +363,23 @@ If all five hold, your environment is sound.
 ## 8. Before you open a pull request
 
 ```bash
-pnpm typecheck            # every workspace package
+pnpm typecheck   # every workspace package
 pnpm lint
-pnpm test                 # vitest, in packages/shared
-supabase test db --local  # pgTAP: 317 assertions across 16 files
+pnpm test        # vitest, in packages/shared
+pnpm db:test     # pgTAP: 341 assertions across 16 files, against the dev project
 ```
 
-The root `pnpm db:test` script targets a *linked* cloud project and is for
-maintainers. Contributors want `--local`, as above.
+`pnpm db:test` is `supabase test db --linked` — there is no local stack to run
+it against instead, so this always runs against the real, shared dev project's
+current data, not a clean slate.
 
-> **The suite assumes an empty database.** Around 22 assertions across
-> `acceptance`, `expiry`, `invites`, `notifications`, `reports` and
-> `trips_and_availability` use unscoped `count(*)` or `limit 1`, so they fail
-> against any database that already has rows in it — a maintainer running
-> `--linked` sees this as noise, not regressions. `--local` after a
-> `pnpm db:reset` is clean. New test files should scope every query to their
-> own fixture ids.
+> **The suite assumes an empty database**, because that's what CI's own run
+> gets (CI has Docker and resets a throwaway database from scratch before
+> testing; this workflow never does). Around 22 assertions across a handful
+> of files use unscoped `count(*)` or `limit 1`, so they fail here even
+> though CI is green — known noise against dev's accumulated data, not a
+> regression. New test files should scope every query to their own fixture
+> ids so they don't join that list.
 
 If you change anything under `packages/shared/src`, run `pnpm sync:shared`
 before touching the Edge Functions, and commit the result.
@@ -435,10 +425,7 @@ Two conventions worth knowing before writing code:
 | City search returns nothing | Under two characters, not a prefix, or not approved yet | Type more of the name from the start; check `status` on your profile |
 | Everything empty after sign-in | RLS working as designed — profile not approved | Run the approval SQL in step 6 |
 | Simulator wedged or stale | Corrupted install | `xcrun simctl uninstall booted app.gigaway.mobile`, then `pnpm ios` |
-| Local database in a strange state | Accumulated test data | `pnpm db:reset` — reapplies migrations and reseeds |
-
-Stop the backend with `pnpm db:stop` when you are done; your data is kept for
-next time.
+| Dev project data looks wrong | It's shared — someone else's test data, or your own from a previous session | Don't reset it; query what's actually there first, and see `scripts/reset-content.sql` for a scoped cleanup if you truly need one |
 
 ## Filing issues
 

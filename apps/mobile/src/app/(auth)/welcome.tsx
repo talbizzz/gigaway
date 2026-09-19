@@ -13,9 +13,9 @@ import { useTheme } from "@/theme/use-theme";
  * they have been told what the app is, and quietly hides the sign-up path
  * behind a link under the button. This separates the choice from the form.
  *
- * The invite-only line is here on purpose. Someone without an invite will be
- * stopped at verification either way; saying so before they fill in a form is
- * kinder than saying it after.
+ * The verified-by-hand line is here on purpose. Everyone is stopped at
+ * verification either way; saying so before they fill in a form is kinder
+ * than saying it after.
  */
 export default function WelcomeScreen() {
   const theme = useTheme();
@@ -73,8 +73,8 @@ export default function WelcomeScreen() {
           { color: theme.textFaint, marginTop: spacing.md },
         ]}
       >
-        GigAway is invite-only. You will need an invite from a member, or an
-        approved application, to take part.
+        Every member is verified by hand before they can see anyone else — no invites, no
+        shortcuts.
       </Text>
 
       <View style={styles.spacer} />

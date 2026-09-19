@@ -51,27 +51,19 @@ Progress checklist. Detail lives in the `Milestone-N-*.md` files.
 
 ## Milestone 1: Foundations & Access
 
-> ✅ Code complete. 10 migrations, 58 pgTAP tests, 11 unit tests, typecheck and
-> lint clean. Invite link → verified account → profile works end to end against
-> the real API. `pg_cron`/`pg_net` confirmed, so the scheduled-job design holds.
->
-> The dev-build blocker below is now resolved — see "Outstanding".
-> Plan corrections made during and after implementation are recorded in the
-> milestone file, including two that postdate the original build: the invite
-> quota was removed, and a redesigned join gate exists on an isolated,
-> unmerged branch. Both are summarized under "Corrections and follow-on work"
-> below.
+> ✅ Code complete, though the invite chain this was originally built around is
+> gone — see "Corrections and follow-on work" below, item 3. `pg_cron`/`pg_net`
+> confirmed, so the scheduled-job design holds. The dev-build blocker below is
+> resolved. Plan corrections are recorded in the milestone file.
 
 - [x] Scaffold pnpm monorepo + Expo app
 - [x] Verify pg_cron / pg_net availability
 - [x] Seed cities table from GeoNames
 - [x] Auth: email sign-up and sign-in
 - [x] Profiles schema + verification state machine
-- [x] Invite generation *(no longer quota-limited — see below)*
-- [x] redeem-invite Edge Function
-- [x] Document verification submission flow
-- [x] Delete docs on decision + 90-day backstop
-- [x] Moderator nudge job at 3 days
+- [x] ~~Invite generation~~ *(built, then removed entirely — see below)*
+- [x] ~~redeem-invite Edge Function~~ *(built, then removed entirely — see below)*
+- [x] Verification submission flow *(rebuilt around email — see below)*
 - [x] Full RLS policy set
 - [x] pgTAP tests for every policy
 - [x] Profile create / edit screens + avatar upload
@@ -82,27 +74,46 @@ Progress checklist. Detail lives in the `Milestone-N-*.md` files.
 
 - [x] Run the app on a real device / simulator — dev client now installs and
       runs on both a physical Android device and a physical iPhone (see
-      Milestone 0). Sign-up → invite redemption → profile create/edit has been
-      walked this way; a full pass of every remaining screen is still worth
-      doing before calling the milestone closed.
+      Milestone 0). Sign-up → profile create/edit has been walked this way,
+      and as of 2026-09-18 so has the full email-based verification
+      submission flow — selfie captured on-device, CV attached, submitted,
+      and the resulting email confirmed arriving at `verify@gigaway.app` in
+      the dedicated Gmail. Confirmed on **dev** only; prod still needs the
+      same secrets and Cloudflare routing — tracked in `PRODUCTION-TODO.md`.
 - [ ] Confirm Sentry receives a thrown test error (needs a DSN from Milestone 0)
 
 **Corrections and follow-on work (not in the original plan):**
 
-- [x] Removed the per-inviter invite quota entirely
-      (`20260909180000_remove_invite_quota.sql`) — any approved member can now
-      create unlimited live invite codes, no questions asked. `invites_insert_own`
-      replaces the quota-checked policy; `remaining_invite_quota()` is kept only
-      so existing callers don't break, and always returns `999`.
-- [ ] **Parked, not merged:** a stronger join gate on
-      `feature/artist-verification-gate` (migration
-      `20260911120000_verification_gate.sql`). Automated ID verification
-      (Stripe Identity-style) was priced out; in its place this branch adds a
-      required selfie-with-ID photo, raises the evidence-document cap from 3 to
-      6, extends the verification storage bucket to video/audio up to 50MB, and
-      stops `redeem_invite()` from auto-approving — every redemption lands in
-      `pending` for a human moderator. Nothing on this branch is live; do not
-      treat it as current behaviour until it is explicitly merged.
+- [x] Removed the per-inviter invite quota
+      (`20260909180000_remove_invite_quota.sql`) — superseded days later by
+      removing invites altogether, below.
+- [x] **Superseded, not merged:** the join-gate redesign on
+      `feature/artist-verification-gate` (selfie-with-ID kept the invite chain
+      alongside it, documents stored in a bucket). Its central idea carried
+      into the item below; its mechanism did not. That branch was never merged
+      and does not describe current behaviour.
+- [x] **The invite chain is gone entirely, and verification runs on email, not
+      storage** (`20260917090000_verification_only_signup.sql`). There is no
+      fast path into the network any more — every signup lands `pending` and
+      stays there until a human decides. To apply: a selfie holding photo ID
+      against a pose that changes every attempt (so an old photo can't be
+      reused), the full legal name on that ID, and evidence of professional
+      standing (a CV upload, and/or links — portfolio, projects, social
+      profiles, video). Submitting calls the new `submit-verification` Edge
+      Function, which emails all of it to `verify@gigaway.app` via Resend and
+      writes only metadata to `verification_applications` (never the photo,
+      the ID, or the CV) — and only after the email actually sends. The
+      `verification-docs` storage bucket, the per-minute purge cron, the
+      90-day expiry cron and `docs_expired` are all gone with it, since there
+      is nothing left to purge. `verify@gigaway.app` needs adding to Cloudflare
+      Email Routing (alongside the addresses already set up in Milestone 0) and
+      `VERIFICATION_EMAIL` needs setting as a secret on both Supabase projects
+      before this works for real — tracked in Milestone 5. All four legal
+      documents, the README, `MODERATION.md` and the Play listing were updated
+      to match. `database.types.ts` was hand-edited against this migration
+      rather than regenerated, since there's no live database to generate it
+      from until the migration is pushed — re-run `pnpm db:types` for real once
+      it is.
 
 ## Milestone 2: Trips & Matching
 
@@ -336,9 +347,18 @@ Progress checklist. Detail lives in the `Milestone-N-*.md` files.
 - [x] Play store listing copy and assets — `store/play/listing.md`
 - [ ] App Store listing (blocked on Apple Free Apps agreement / trader status)
 - [ ] Upgrade Supabase to Pro
-- [ ] Create Resend account
-- [ ] Verify sending domain (SPF + DKIM, plus a DMARC record)
-- [ ] Set RESEND_API_KEY, RESEND_FROM, MODERATOR_EMAIL function secrets
+- [x] Create Resend account, verify `gigaway.app` (SPF + DKIM + DMARC, via
+      Resend's Cloudflare auto-configure)
+- [x] Set `RESEND_API_KEY`, `MODERATOR_EMAIL`, `VERIFICATION_EMAIL` function
+      secrets on **dev** *(prod tracked in `PRODUCTION-TODO.md`)*. The single
+      `RESEND_FROM` originally planned turned out wrong once
+      `dispatch-notifications` was checked alongside the other three
+      senders — one address can't honestly be both "moderator alert" and
+      "member notification". Split into two: `MODERATOR_FROM`
+      (`moderation-digest`, `submit-report`, `submit-verification`, all
+      genuinely moderator-ops mail) and `NOTIFICATION_FROM`
+      (`dispatch-notifications`'s offer-accepted fallback, the one
+      member-facing case)
 - [ ] Confirm moderation-digest returns emailed: true and the mail arrives
 - [ ] Point Supabase Auth at Resend via custom SMTP
 - [ ] **Send mail as `support@`/`moderation@`/`privacy@gigaway.app` from the
@@ -357,8 +377,10 @@ Progress checklist. Detail lives in the `Milestone-N-*.md` files.
 
 ## In progress, on other branches (not detailed here)
 
-- `feature/artist-verification-gate` — the parked join-gate redesign, see
-  Milestone 1's "Corrections and follow-on work" above. Isolated, unmerged.
+- `feature/artist-verification-gate` — superseded, not just parked: its ideas
+  carried into the email-based verification rebuild on `develop` (Milestone 1's
+  "Corrections and follow-on work" above), its mechanism did not. Isolated,
+  unmerged, and safe to delete whenever it's convenient.
 - `feature/hosting-credits` — separate, currently in-progress work (a credits
   system gating trip creation, earned by offering availability, plus an
   open-ended "ongoing availability" type). Not detailed here since it's still

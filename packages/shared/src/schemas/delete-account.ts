@@ -4,8 +4,8 @@ import { z } from 'zod'
  * POST /functions/v1/delete-account
  *
  * Irreversible. The auth user is erased outright; the profile row survives as
- * an anonymised tombstone named "Deleted member", because the stays, published
- * reviews and invite chain belonging to OTHER people hang off it.
+ * an anonymised tombstone named "Deleted member", because the stays and
+ * published reviews belonging to OTHER people hang off it.
  *
  * Two independent confirmations are required — typing the word and
  * re-entering the password — because there is no undo and no support channel

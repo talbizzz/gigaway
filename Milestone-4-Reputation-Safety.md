@@ -315,7 +315,9 @@ twice within 24 hours.
 
 ### Environment & Configuration
 
-No new secrets. `MODERATOR_EMAIL`, `RESEND_API_KEY` and `RESEND_FROM` already exist.
+No new secrets. `MODERATOR_EMAIL` and `RESEND_API_KEY` already exist; `submit-report`'s
+sender is `MODERATOR_FROM` — see Milestone 5 for why the originally shared `RESEND_FROM`
+was split in two.
 
 New PostHog events: `review_submitted`, `review_published`, `user_blocked`,
 `report_submitted`, `account_deleted`, `data_exported`. IDs only — **never report content,

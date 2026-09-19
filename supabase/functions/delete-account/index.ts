@@ -26,8 +26,8 @@ import {
  *   4. Delete the auth user LAST. Doing it first would end the session and
  *      leave the data half-processed with no way back in to retry.
  *
- * The profile row deliberately survives as "Deleted member" so that the stays,
- * published reviews and invite chain belonging to other people stay intact.
+ * The profile row deliberately survives as "Deleted member" so that the stays
+ * and published reviews belonging to other people stay intact.
  *
  * NOTE: imports from `_shared/gen/` are copies produced by `pnpm sync:shared`.
  * Edit the originals under packages/shared/src/.
@@ -90,9 +90,14 @@ Deno.serve(async (request) => {
     return errorResponse('internal_error', 'Something went wrong. Please try again.', 500)
   }
 
-  const result = data as { ok: true; photoPath: string | null }
+  const result = data as {
+    ok: true
+    photoPath: string | null
+    selfiePath: string | null
+    cvPath: string | null
+  }
 
-  // ── 3. the avatar, which SQL cannot delete ───────────────────────────────
+  // ── 3. storage objects, which SQL cannot delete ──────────────────────────
   if (result.photoPath) {
     const { error: removeError } = await supabase.storage
       .from('avatars')
@@ -101,6 +106,18 @@ Deno.serve(async (request) => {
     // orphaned rather than exposed, and a failure here must not leave the
     // account half-deleted.
     if (removeError) console.error('avatar removal failed', removeError)
+  }
+
+  const verificationPaths = [result.selfiePath, result.cvPath].filter(
+    (path): path is string => Boolean(path),
+  )
+  if (verificationPaths.length > 0) {
+    const { error: removeError } = await supabase.storage
+      .from('verification-docs')
+      .remove(verificationPaths)
+    // Same as above: the row referencing these paths is already gone, so a
+    // failure here orphans the object rather than exposing it.
+    if (removeError) console.error('verification evidence removal failed', removeError)
   }
 
   // ── 4. the auth user, last ───────────────────────────────────────────────

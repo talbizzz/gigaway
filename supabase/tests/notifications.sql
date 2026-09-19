@@ -11,7 +11,7 @@ begin;
 -- the CLI recreates on every run, so the privileges these fixtures need (writing
 -- to auth.users) must be claimed explicitly. Locally this is a no-op.
 set local role postgres;
-select plan(28);
+select plan(33);
 
 insert into auth.users (id, email, raw_user_meta_data) values
   ('11111111-1111-1111-1111-111111111111', 'anna@example.test',
@@ -95,26 +95,30 @@ select throws_ok(
 );
 
 -- ── push tokens ────────────────────────────────────────────────────────────
-select lives_ok(
+-- Creation goes through register_push_token(), not a direct insert — see
+-- 20260918140000_register_push_token_rpc.sql. A raw insert is refused
+-- outright, regardless of whose profile_id it names.
+select throws_ok(
   $$ insert into public.push_tokens (profile_id, token, platform)
      values ('11111111-1111-1111-1111-111111111111',
              'ExponentPushToken[anna-phone]', 'ios') $$,
-  'a member can register their own device'
-);
-
-select throws_ok(
-  $$ insert into public.push_tokens (profile_id, token, platform)
-     values ('22222222-2222-2222-2222-222222222222',
-             'ExponentPushToken[not-mine]', 'ios') $$,
   '42501',
   null,
-  'a member cannot register a device against somebody else''s profile'
+  'a direct client insert is refused — register_push_token() is the only door'
 );
 
+select lives_ok(
+  $$ select public.register_push_token('ExponentPushToken[anna-phone]', 'ios') $$,
+  'a member can register their own device through the function'
+);
+
+-- There is no profile_id parameter to register a device against somebody
+-- else's profile with in the first place — the function always claims for
+-- auth.uid(), so that failure mode is impossible by construction, not just
+-- something the RLS happens to catch.
+
 select throws_ok(
-  $$ insert into public.push_tokens (profile_id, token, platform)
-     values ('11111111-1111-1111-1111-111111111111',
-             'ExponentPushToken[anna-tablet]', 'blackberry') $$,
+  $$ select public.register_push_token('ExponentPushToken[anna-tablet]', 'blackberry') $$,
   '23514',
   null,
   'an unknown platform is rejected'
@@ -131,6 +135,63 @@ select is(
   2,
   'one profile may hold several live tokens — phone and tablet both get the push'
 );
+
+-- ── reassigning a token to a different account on the same device ──────────
+-- registerForPush() calls register_push_token(), not a client-side upsert,
+-- because a token belongs to a device, not a person: when a second account
+-- signs in on a device already registered to a first one, plain RLS cannot
+-- allow the reassignment without also making every member's token broadly
+-- readable — see 20260918140000_register_push_token_rpc.sql for why. A raw
+-- client update attempting the same reassignment must still fail; only the
+-- function may do it.
+set local role postgres;
+set local role authenticated;
+set local request.jwt.claims to
+  '{"sub":"22222222-2222-2222-2222-222222222222","role":"authenticated"}';
+
+select throws_ok(
+  $$ update public.push_tokens
+       set profile_id = '22222222-2222-2222-2222-222222222222',
+           last_seen_at = now()
+     where token = 'ExponentPushToken[anna-phone]' $$,
+  '42501',
+  null,
+  'a raw client update still cannot reassign a token it does not already own'
+);
+
+select lives_ok(
+  $$ select public.register_push_token('ExponentPushToken[anna-phone]', 'ios') $$,
+  'but register_push_token() can — that is the one sanctioned path'
+);
+
+select is(
+  (select profile_id from public.push_tokens
+    where token = 'ExponentPushToken[anna-phone]'),
+  '22222222-2222-2222-2222-222222222222'::uuid,
+  'the token now belongs to whoever most recently signed in on that device'
+);
+
+select ok(
+  (select invalidated_at is null from public.push_tokens
+    where token = 'ExponentPushToken[anna-phone]'),
+  'claiming a token also revives it, exactly like the old upsert did'
+);
+
+set local role postgres;
+set local role authenticated;
+set local request.jwt.claims to
+  '{"sub":"33333333-3333-3333-3333-333333333333","role":"authenticated"}';
+
+select throws_ok(
+  $$ update public.push_tokens
+       set last_seen_at = now()
+     where token = 'ExponentPushToken[anna-phone]' $$,
+  '42501',
+  null,
+  'touching a token without owning it still fails through the plain client path'
+);
+
+set local role postgres;
 
 -- ── claiming, and what happens when the dispatcher dies ────────────────────
 select is(

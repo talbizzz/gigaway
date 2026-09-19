@@ -24,7 +24,7 @@ export class ApiCallError extends Error {
  */
 export async function callFunction<T>(
   name: string,
-  body: Record<string, unknown>,
+  body: Record<string, unknown> | FormData,
 ): Promise<T> {
   const { data, error } = await supabase.functions.invoke(name, { body })
 
