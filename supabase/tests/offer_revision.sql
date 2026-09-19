@@ -111,11 +111,13 @@ select throws_ok(
   'but not past the availability they posted — the range trigger still runs'
 );
 
--- created_at, not to_profile: offers_enforce_range fires first (before-update
--- triggers run in name order, and e sorts before g) and rejects a re-addressed
--- offer itself, with 23514. This column reaches the guard.
+-- now(), not clock_timestamp(): it is frozen to this transaction's start, so
+-- `created_at = now()` would just reassign the same value the row already
+-- has (also stamped from now() at insert) — is distinct from would see no
+-- change at all, and the guard below would have nothing to catch. Advancing
+-- by an interval guarantees an actual difference.
 select throws_ok(
-  $$ update public.offers set created_at = now()
+  $$ update public.offers set created_at = created_at + interval '1 hour'
      where id = 'dddd0000-0000-0000-0000-000000000001' $$,
   '42501',
   null,
