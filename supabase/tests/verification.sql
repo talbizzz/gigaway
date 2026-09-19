@@ -43,12 +43,14 @@ select throws_ok(
   'but not into somebody else''s folder'
 );
 
-select throws_ok(
-  $$ select * from storage.objects
+-- No select policy exists on this bucket, so RLS filters the row out of
+-- the result set rather than raising an error — proven here by an empty
+-- result, not a thrown exception.
+select is(
+  (select count(*)::int from storage.objects
      where bucket_id = 'verification-docs'
-       and name = '11111111-1111-1111-1111-111111111111/selfie-1.jpg' $$,
-  '42501',
-  null,
+       and name = '11111111-1111-1111-1111-111111111111/selfie-1.jpg'),
+  0,
   'and cannot read it back either — not even the owner; a moderator reads '
   'these through the dashboard as a privileged role'
 );

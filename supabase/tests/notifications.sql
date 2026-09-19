@@ -149,13 +149,19 @@ set local role authenticated;
 set local request.jwt.claims to
   '{"sub":"22222222-2222-2222-2222-222222222222","role":"authenticated"}';
 
-select throws_ok(
-  $$ update public.push_tokens
-       set profile_id = '22222222-2222-2222-2222-222222222222',
-           last_seen_at = now()
-     where token = 'ExponentPushToken[anna-phone]' $$,
-  '42501',
-  null,
+-- RLS on UPDATE filters the row before it is even visible, rather than
+-- raising an error — the same behavior that made the naive USING(true) fix
+-- look like it worked in 20260918120000 when it didn't. So this proves the
+-- block by showing 0 rows are touched, not by expecting an exception.
+select results_eq(
+  $$ with attempt as (
+       update public.push_tokens
+          set profile_id = '22222222-2222-2222-2222-222222222222',
+              last_seen_at = now()
+        where token = 'ExponentPushToken[anna-phone]'
+        returning 1
+     ) select count(*)::int from attempt $$,
+  $$ select 0 $$,
   'a raw client update still cannot reassign a token it does not already own'
 );
 
@@ -182,12 +188,14 @@ set local role authenticated;
 set local request.jwt.claims to
   '{"sub":"33333333-3333-3333-3333-333333333333","role":"authenticated"}';
 
-select throws_ok(
-  $$ update public.push_tokens
-       set last_seen_at = now()
-     where token = 'ExponentPushToken[anna-phone]' $$,
-  '42501',
-  null,
+select results_eq(
+  $$ with attempt as (
+       update public.push_tokens
+          set last_seen_at = now()
+        where token = 'ExponentPushToken[anna-phone]'
+        returning 1
+     ) select count(*)::int from attempt $$,
+  $$ select 0 $$,
   'touching a token without owning it still fails through the plain client path'
 );
 
