@@ -1,8 +1,33 @@
 name: Deploy backend
 
+# Ships supabase/migrations and supabase/functions to PRODUCTION, in two jobs so
+# that a person can read what is about to happen BEFORE deciding:
+#
+#   preview  Runs by itself, no approval. Links to prod, does a dry run, and
+#            writes a plain-English review to this run's summary page — flagging
+#            anything that drops tables, columns or rows.
+#   deploy   Waits for a reviewer (environment: production). That prompt now
+#            appears AFTER the preview has finished, so you approve with the
+#            review in front of you. It then re-checks that nothing has changed
+#            since the preview, applies the migrations, and deploys the
+#            Edge Functions.
+#
+# Order is migrations, then functions. That is not atomic: if the functions
+# step fails the migrations stay applied. Fix the cause and re-run the workflow
+# — migrations that are already applied are skipped, and the preview will say so.
+# There are no database backups, which is why there is a gate at all.
+#
+# Secrets — the preview job runs BEFORE the approval gate, so it cannot see
+# secrets stored only under the `production` environment. Keep these three as
+# repository secrets:
+#   SUPABASE_ACCESS_TOKEN, SUPABASE_DB_PASSWORD, SUPABASE_PROJECT_REF (prod's).
+#
+# The CLI version is pinned on purpose. scripts/summarize-pending-migrations.mjs
+# reads the dry-run's text output, and an unpinned `latest` is what broke
+# `functions deploy --import-map` in the first place. Bump it deliberately: run
+# `pnpm functions:deploy` and a dry run against the dev project first.
+#
 # Path-filtered so a mobile-only change does not touch the database.
-# This is the deploy isolation that per-target branches would have given,
-# without splitting a tree whose packages/shared is imported by both sides.
 on:
   push:
     branches: [main]
@@ -10,20 +35,32 @@ on:
       - 'supabase/migrations/**'
       - 'supabase/functions/**'
       - 'packages/shared/src/**'
+      - 'scripts/summarize-pending-migrations.mjs'
+      - 'scripts/sync-function-configs.mjs'
   workflow_dispatch: {}
 
 concurrency:
   group: deploy-backend
   cancel-in-progress: false
 
+permissions:
+  contents: read
+
+env:
+  SUPABASE_CLI_VERSION: '2.109.1'
+  PROD_PROJECT_REF: hrhoqmmxgfpyxwncmpjx
+
 jobs:
-  deploy:
+  preview:
+    name: Preview what will change
     runs-on: ubuntu-latest
-    timeout-minutes: 20
-    # Create this environment in repo settings and add a required reviewer.
-    # `db push` is instant, hits production, and the free tier has no backups,
-    # so a human should approve it.
-    environment: production
+    timeout-minutes: 10
+    outputs:
+      pending: ${{ steps.plan.outputs.pending }}
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+      SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
     steps:
       - uses: actions/checkout@v4
 
@@ -36,29 +73,116 @@ jobs:
 
       - uses: supabase/setup-cli@v1
         with:
-          version: latest
+          version: ${{ env.SUPABASE_CLI_VERSION }}
+
+      - name: Check the secrets are visible and point at production
+        run: |
+          missing=""
+          for name in SUPABASE_ACCESS_TOKEN SUPABASE_DB_PASSWORD SUPABASE_PROJECT_REF; do
+            [ -n "${!name}" ] || missing="$missing $name"
+          done
+          if [ -n "$missing" ]; then
+            echo "::error::Not visible to this job:$missing. If they are stored under the 'production' environment, also add them as repository secrets: this job runs before the approval gate, so it cannot see environment-only secrets."
+            exit 1
+          fi
+          if [ "$SUPABASE_PROJECT_REF" != "$PROD_PROJECT_REF" ]; then
+            echo "::error::SUPABASE_PROJECT_REF is not the production project ($PROD_PROJECT_REF). Refusing to continue."
+            exit 1
+          fi
 
       - name: Link project
-        env:
-          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
-        run: supabase link --project-ref ${{ secrets.SUPABASE_PROJECT_REF }}
+        run: supabase link --project-ref "$SUPABASE_PROJECT_REF"
 
-      - name: Show what would be applied
+      - name: Dry run and review
+        id: plan
+        run: |
+          set -euo pipefail
+          supabase db push --linked --dry-run 2>&1 | tee dry-run.txt
+          # Assigned first, so a failure here stops the step (a failing $(...)
+          # inside `echo` would be swallowed).
+          names=$(node scripts/summarize-pending-migrations.mjs --names < dry-run.txt)
+          echo "pending=$names" >> "$GITHUB_OUTPUT"
+          node scripts/summarize-pending-migrations.mjs < dry-run.txt >> "$GITHUB_STEP_SUMMARY"
+
+  deploy:
+    name: Apply to production
+    needs: preview
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    # Create this environment in repo settings and add a required reviewer.
+    # `db push` is instant, hits production, and the free tier has no backups,
+    # so a human should approve it — after reading the preview above.
+    environment: production
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+      SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: ${{ env.SUPABASE_CLI_VERSION }}
+
+      - name: Link project
+        run: |
+          [ "$SUPABASE_PROJECT_REF" = "$PROD_PROJECT_REF" ] || { echo "::error::SUPABASE_PROJECT_REF is not the production project. Refusing to continue."; exit 1; }
+          supabase link --project-ref "$SUPABASE_PROJECT_REF"
+
+      # The list you approved must be the list that gets applied. The database
+      # can move between the preview and the approval (someone pushing by hand,
+      # a second deploy landing), so look again and stop if it differs.
+      - name: Stop if anything changed since the preview
         env:
-          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
-          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
-        run: supabase db push --linked --dry-run
+          PREVIEWED: ${{ needs.preview.outputs.pending }}
+        run: |
+          set -euo pipefail
+          supabase db push --linked --dry-run 2>&1 | tee dry-run.txt
+          now=$(node scripts/summarize-pending-migrations.mjs --names < dry-run.txt)
+          if [ "$now" != "$PREVIEWED" ]; then
+            echo "::error::The pending migrations changed since the preview you approved. Nothing was applied. Re-run the workflow and read the new preview."
+            echo "previewed: [$PREVIEWED]"
+            echo "now:       [$now]"
+            exit 1
+          fi
+          echo "unchanged since the preview: [${now:-nothing pending}]"
 
       - name: Apply migrations
-        env:
-          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
-          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+        id: migrate
         run: supabase db push --linked --yes
 
-      # sync:shared runs first (it is inside the script). --import-map is
-      # required: with Docker unavailable the CLI bundles server-side and does
-      # not upload deno.json, so a bare `zod` specifier cannot resolve.
+      # `pnpm functions:deploy` = sync shared code, write each function's
+      # deno.json from the one shared copy, then `supabase functions deploy
+      # --use-api` (server-side bundling; no container needed). The old
+      # `--import-map` flag is rejected by current CLIs.
       - name: Deploy Edge Functions
-        env:
-          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        id: functions
         run: pnpm functions:deploy
+
+      - name: Explain a failed migration
+        if: failure() && steps.migrate.conclusion == 'failure'
+        run: |
+          {
+            echo "## Migration failed"
+            echo
+            echo "A migration file runs statement by statement, not as one transaction, so **part of it may already be applied**."
+            echo "Do not just re-run. Check which migrations Supabase now considers applied (\`supabase migration list --linked\`), inspect the half-applied one, and fix forward with a new migration."
+            echo "Edge Functions were **not** deployed."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Explain a failed functions deploy
+        if: failure() && steps.migrate.conclusion == 'success' && steps.functions.conclusion == 'failure'
+        run: |
+          {
+            echo "## Edge Functions failed — but the migrations were applied"
+            echo
+            echo "Production is now on the new schema with the previous versions of the functions."
+            echo "Fix the cause, then **re-run this workflow**: the applied migrations are skipped (the preview will say nothing is pending) and only the functions are redeployed."
+          } >> "$GITHUB_STEP_SUMMARY"
