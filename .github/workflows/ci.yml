@@ -32,10 +32,21 @@ jobs:
       - run: pnpm lint
       - run: pnpm test
 
-      # The Edge Functions consume a copy of packages/shared. If it is stale,
-      # a deploy ships code that disagrees with the app.
-      - name: Shared code is in sync
-        run: pnpm sync:shared:check
+      # The Edge Functions consume two generated, gitignored inputs: a copy of
+      # packages/shared (supabase/functions/_shared/gen) and a deno.json in each
+      # function's folder. `pnpm functions:deploy` regenerates both on every
+      # deploy, so they cannot be stale when they ship. The `sync:shared:check`
+      # that used to run here compared against copies that do not exist on a
+      # fresh runner, so it failed on every push. This step instead generates
+      # both, then checks that every relative import in the functions resolves —
+      # the realistic break is a shared file renamed or deleted while a function
+      # still imports it, which would otherwise first surface in the production
+      # deploy job, after the migrations were applied.
+      - name: Edge Function inputs can be generated
+        run: |
+          pnpm sync:shared
+          node scripts/sync-function-configs.mjs
+          node scripts/check-function-imports.mjs
 
       - name: Legal site builds
         run: pnpm build:legal

@@ -5,7 +5,9 @@
  * folder that `supabase functions deploy` uploads.
  *
  *   pnpm sync:shared          copy
- *   pnpm sync:shared:check    exit 1 if the copy is stale (used by CI)
+ *   pnpm sync:shared:check    exit 1 if your LOCAL copy is stale. Not used by CI: the
+ *                             copy is gitignored, so on a fresh checkout it is always
+ *                             "stale" because it does not exist yet.
  *
  * The destination is gitignored. Never edit files under _shared/gen.
  */
