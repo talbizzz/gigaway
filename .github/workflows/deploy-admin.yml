@@ -29,6 +29,7 @@ on:
       - 'apps/admin/**'
       - 'packages/shared/src/**'
       - 'pnpm-lock.yaml'
+      - 'scripts/publish-pages.mjs'
       - '.github/workflows/deploy-admin.yml'
   workflow_dispatch: {}
 
@@ -64,27 +65,17 @@ jobs:
       - run: pnpm --filter @gigaway/admin typecheck
       - run: pnpm --filter @gigaway/admin build
 
-      # Idempotent bootstrap: the first run creates the Pages project, later runs
-      # find it already there. Allowed to fail so "already exists" is not an
-      # error — a real problem (bad token) resurfaces on the publish step.
-      - name: Create the Pages project if it does not exist
-        uses: cloudflare/wrangler-action@v3
-        continue-on-error: true
-        with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: pages project create gigaway-admin-dev --production-branch main
-
-      # --branch main is load-bearing, exactly as in deploy-web.yml: without it
-      # wrangler infers the branch from git, files this as a preview deploy, and
+      # Creates the Pages project on first run, then publishes. The script runs
+      # wrangler through npx: the old wrangler-action tried `pnpm add wrangler`
+      # at the workspace root and pnpm refuses that. It also always passes
+      # `--branch main` — without it wrangler files the deploy as a preview and
       # the site keeps serving the previous version while the run reports success.
       - name: Publish to Cloudflare Pages
         id: publish
-        uses: cloudflare/wrangler-action@v3
-        with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: pages deploy apps/admin/dist --project-name gigaway-admin-dev --branch main
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: node scripts/publish-pages.mjs apps/admin/dist gigaway-admin-dev --create
 
       - name: Verify the deployment
         env:
@@ -139,21 +130,17 @@ jobs:
       - run: pnpm --filter @gigaway/admin typecheck
       - run: pnpm --filter @gigaway/admin build
 
-      - name: Create the Pages project if it does not exist
-        uses: cloudflare/wrangler-action@v3
-        continue-on-error: true
-        with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: pages project create gigaway-admin --production-branch main
-
+      # Creates the Pages project on first run, then publishes. The script runs
+      # wrangler through npx: the old wrangler-action tried `pnpm add wrangler`
+      # at the workspace root and pnpm refuses that. It also always passes
+      # `--branch main` — without it wrangler files the deploy as a preview and
+      # the site keeps serving the previous version while the run reports success.
       - name: Publish to Cloudflare Pages
         id: publish
-        uses: cloudflare/wrangler-action@v3
-        with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: pages deploy apps/admin/dist --project-name gigaway-admin --branch main
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: node scripts/publish-pages.mjs apps/admin/dist gigaway-admin --create
 
       - name: Verify the deployment
         env:

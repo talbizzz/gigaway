@@ -297,6 +297,7 @@ create policy verification_docs_read_admin
   to authenticated
   using (bucket_id = 'verification-docs' and public.is_admin());
 
-comment on policy verification_docs_read_admin on storage.objects is
-  'Lets the admin app create signed URLs for a selfie or CV during '
-  'verification review. The only select policy this bucket has ever had.';
+-- No `comment on policy` for this one, deliberately: storage.objects belongs to
+-- supabase_storage_admin, and on a fresh database (CI) the migration role may
+-- create a policy there but not comment on it ("must be owner of relation
+-- objects"), which stopped the whole run. The header above says what it is for.

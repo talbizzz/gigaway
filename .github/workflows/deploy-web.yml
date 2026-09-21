@@ -8,6 +8,7 @@ on:
     paths:
       - 'legal/**'
       - 'scripts/build-legal.mjs'
+      - 'scripts/publish-pages.mjs'
   workflow_dispatch: {}
 
 concurrency:
@@ -31,15 +32,16 @@ jobs:
       - name: Render legal/*.md into site/
         run: pnpm build:legal
 
-      # --branch main is load-bearing. Without it wrangler infers the branch
-      # from git, files the deploy as a preview, and gigaway.app keeps serving
-      # the previous version while the run reports success.
+      # scripts/publish-pages.mjs runs wrangler through npx and always passes
+      # `--branch main`. Without that flag wrangler files the deploy as a preview
+      # and gigaway.app keeps serving the previous version while the run reports
+      # success. (It replaced cloudflare/wrangler-action, whose `pnpm add wrangler`
+      # at the workspace root pnpm refuses.)
       - name: Publish to Cloudflare Pages
-        uses: cloudflare/wrangler-action@v3
-        with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: pages deploy site --project-name gigaway --branch main
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: node scripts/publish-pages.mjs site gigaway
 
       - name: Verify the pages are live
         run: |
