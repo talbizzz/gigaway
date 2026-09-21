@@ -30,6 +30,7 @@ on:
       - 'packages/shared/src/**'
       - 'pnpm-lock.yaml'
       - 'scripts/publish-pages.mjs'
+      - 'scripts/verify-admin-deploy.mjs'
       - '.github/workflows/deploy-admin.yml'
   workflow_dispatch: {}
 
@@ -77,26 +78,13 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: node scripts/publish-pages.mjs apps/admin/dist gigaway-admin-dev --create
 
+      # Retries for up to 3 minutes: the first deploy of a new Pages project has
+      # no TLS certificate for its subdomain yet, so an immediate check fails
+      # with "handshake failure" even though the upload worked.
       - name: Verify the deployment
         env:
           DEPLOY_URL: ${{ steps.publish.outputs.deployment-url }}
-        run: |
-          set -euo pipefail
-          sleep 8
-          echo "checking $DEPLOY_URL"
-          # Captured before grepping: `curl | grep -q` under pipefail fails
-          # spuriously when grep exits early and curl gets a write error.
-          page=$(curl -fsS --max-time 20 "$DEPLOY_URL/")
-          grep -q '<title>GigAway Admin</title>' <<<"$page" \
-            || { echo "::error::the app's index page is not being served"; exit 1; }
-          # A deep link must still get the app (SPA fallback), not a 404.
-          code=$(curl -sS -o /dev/null -w '%{http_code}' --max-time 20 "$DEPLOY_URL/users")
-          [ "$code" = "200" ] || { echo "::error::/users returned $code"; exit 1; }
-          # The headers file was actually applied.
-          headers=$(curl -sSI --max-time 20 "$DEPLOY_URL/")
-          grep -qi '^x-frame-options: deny' <<<"$headers" \
-            || { echo "::error::_headers not applied"; exit 1; }
-          echo "live and correctly configured"
+        run: node scripts/verify-admin-deploy.mjs "$DEPLOY_URL"
 
   deploy-prod:
     name: Deploy admin (prod)
@@ -142,19 +130,10 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: node scripts/publish-pages.mjs apps/admin/dist gigaway-admin --create
 
+      # Retries for up to 3 minutes: the first deploy of a new Pages project has
+      # no TLS certificate for its subdomain yet, so an immediate check fails
+      # with "handshake failure" even though the upload worked.
       - name: Verify the deployment
         env:
           DEPLOY_URL: ${{ steps.publish.outputs.deployment-url }}
-        run: |
-          set -euo pipefail
-          sleep 8
-          echo "checking $DEPLOY_URL"
-          page=$(curl -fsS --max-time 20 "$DEPLOY_URL/")
-          grep -q '<title>GigAway Admin</title>' <<<"$page" \
-            || { echo "::error::the app's index page is not being served"; exit 1; }
-          code=$(curl -sS -o /dev/null -w '%{http_code}' --max-time 20 "$DEPLOY_URL/users")
-          [ "$code" = "200" ] || { echo "::error::/users returned $code"; exit 1; }
-          headers=$(curl -sSI --max-time 20 "$DEPLOY_URL/")
-          grep -qi '^x-frame-options: deny' <<<"$headers" \
-            || { echo "::error::_headers not applied"; exit 1; }
-          echo "live and correctly configured"
+        run: node scripts/verify-admin-deploy.mjs "$DEPLOY_URL"
