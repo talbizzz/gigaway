@@ -1,0 +1,16 @@
+{
+  "name": "@gigaway/admin-scripts",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "description": "Operator scripts for the GigAway Supabase projects — run by hand, never deployed.",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "create-admin": "node scripts/create-admin.mjs"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.112.3"
+  }
+}

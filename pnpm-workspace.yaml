@@ -1,6 +1,7 @@
 packages:
   - 'apps/*'
   - 'packages/*'
+  - 'admin-scripts'
 
 # Metro resolves modules by walking directories on disk, and pnpm's default
 # symlink-into-a-store layout leaves transitive dependencies unreachable from
@@ -31,3 +32,4 @@ patchedDependencies:
 minimumReleaseAgeExclude:
   - expo-constants@57.0.13
   - expo-notifications@57.0.13
+  - eslint@10.11.0

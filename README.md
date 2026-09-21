@@ -88,8 +88,12 @@ A separate private channel reports safety concerns to a moderator.
 
 ### Deliberately not in v1
 
-No payments. No in-app chat. No custom admin interface — moderation runs on the
-Supabase dashboard through saved SQL views. No real-time subscriptions.
+No payments. No in-app chat. No real-time subscriptions.
+
+Moderation started out on the Supabase dashboard's SQL editor and now has its
+own web app, `apps/admin` (see [`MODERATION.md`](MODERATION.md)) — a separate
+deployment per Supabase project, with admin accounts created by
+[`admin-scripts`](admin-scripts/README.md).
 
 ---
 

@@ -1,0 +1,171 @@
+name: Deploy admin
+
+# The admin app is a static SPA on Cloudflare Pages — one Pages project per
+# Supabase project, so an action taken in the dev site can never reach real
+# members:
+#
+#   push to develop -> gigaway-admin-dev  (talks to the dev Supabase project)
+#   push to main    -> gigaway-admin      (talks to prod; needs approval)
+#
+# Nothing here touches the database. Migrations and Edge Functions ship through
+# deploy-backend.yml, so on a prod release APPROVE THE BACKEND DEPLOY FIRST:
+# until it has run, the prod admin site loads but cannot sign anyone in, since
+# is_admin() does not exist there yet.
+#
+# Secrets (repo settings -> Secrets and variables -> Actions):
+#   CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID   already set for deploy-web.yml
+#   ADMIN_DEV_SUPABASE_ANON_KEY                   dev project's anon key
+#   ADMIN_PROD_SUPABASE_ANON_KEY                  prod project's anon key
+# The anon key is public by design (RLS and is_admin() are what protect data),
+# but it stays out of git like the mobile app's does. The project URLs are not
+# secret and live in this file so a build cannot be pointed at the wrong one.
+
+on:
+  push:
+    branches: [develop, main]
+    paths:
+      - 'apps/admin/**'
+      - 'packages/shared/src/**'
+      - 'pnpm-lock.yaml'
+      - '.github/workflows/deploy-admin.yml'
+  workflow_dispatch: {}
+
+jobs:
+  deploy-dev:
+    name: Deploy admin (dev)
+    if: github.ref == 'refs/heads/develop'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    concurrency:
+      group: deploy-admin-dev
+      cancel-in-progress: true
+    env:
+      VITE_SUPABASE_URL: https://shhgzekofcetdenwpivm.supabase.co
+      VITE_SUPABASE_ANON_KEY: ${{ secrets.ADMIN_DEV_SUPABASE_ANON_KEY }}
+      # Drives the permanent banner in the app so nobody mistakes this for prod.
+      VITE_ENV_LABEL: dev
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+
+      # Everything in VITE_* is compiled into a public bundle. Refuse a secret
+      # key, or a key/URL for the wrong project, before anything is published.
+      - name: Check the build points at the dev project
+        run: node apps/admin/scripts/verify-build-env.mjs shhgzekofcetdenwpivm
+
+      - run: pnpm --filter @gigaway/admin typecheck
+      - run: pnpm --filter @gigaway/admin build
+
+      # Idempotent bootstrap: the first run creates the Pages project, later runs
+      # find it already there. Allowed to fail so "already exists" is not an
+      # error — a real problem (bad token) resurfaces on the publish step.
+      - name: Create the Pages project if it does not exist
+        uses: cloudflare/wrangler-action@v3
+        continue-on-error: true
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages project create gigaway-admin-dev --production-branch main
+
+      # --branch main is load-bearing, exactly as in deploy-web.yml: without it
+      # wrangler infers the branch from git, files this as a preview deploy, and
+      # the site keeps serving the previous version while the run reports success.
+      - name: Publish to Cloudflare Pages
+        id: publish
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy apps/admin/dist --project-name gigaway-admin-dev --branch main
+
+      - name: Verify the deployment
+        env:
+          DEPLOY_URL: ${{ steps.publish.outputs.deployment-url }}
+        run: |
+          set -euo pipefail
+          sleep 8
+          echo "checking $DEPLOY_URL"
+          # Captured before grepping: `curl | grep -q` under pipefail fails
+          # spuriously when grep exits early and curl gets a write error.
+          page=$(curl -fsS --max-time 20 "$DEPLOY_URL/")
+          grep -q '<title>GigAway Admin</title>' <<<"$page" \
+            || { echo "::error::the app's index page is not being served"; exit 1; }
+          # A deep link must still get the app (SPA fallback), not a 404.
+          code=$(curl -sS -o /dev/null -w '%{http_code}' --max-time 20 "$DEPLOY_URL/users")
+          [ "$code" = "200" ] || { echo "::error::/users returned $code"; exit 1; }
+          # The headers file was actually applied.
+          headers=$(curl -sSI --max-time 20 "$DEPLOY_URL/")
+          grep -qi '^x-frame-options: deny' <<<"$headers" \
+            || { echo "::error::_headers not applied"; exit 1; }
+          echo "live and correctly configured"
+
+  deploy-prod:
+    name: Deploy admin (prod)
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    # Real members' data behind this: needs a human. Same required-reviewer
+    # environment deploy-backend.yml already uses.
+    environment: production
+    concurrency:
+      group: deploy-admin-prod
+      cancel-in-progress: false
+    env:
+      VITE_SUPABASE_URL: https://hrhoqmmxgfpyxwncmpjx.supabase.co
+      VITE_SUPABASE_ANON_KEY: ${{ secrets.ADMIN_PROD_SUPABASE_ANON_KEY }}
+      # Deliberately unset: no banner means production.
+      VITE_ENV_LABEL: ''
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+
+      - name: Check the build points at the prod project
+        run: node apps/admin/scripts/verify-build-env.mjs hrhoqmmxgfpyxwncmpjx
+
+      - run: pnpm --filter @gigaway/admin typecheck
+      - run: pnpm --filter @gigaway/admin build
+
+      - name: Create the Pages project if it does not exist
+        uses: cloudflare/wrangler-action@v3
+        continue-on-error: true
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages project create gigaway-admin --production-branch main
+
+      - name: Publish to Cloudflare Pages
+        id: publish
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy apps/admin/dist --project-name gigaway-admin --branch main
+
+      - name: Verify the deployment
+        env:
+          DEPLOY_URL: ${{ steps.publish.outputs.deployment-url }}
+        run: |
+          set -euo pipefail
+          sleep 8
+          echo "checking $DEPLOY_URL"
+          page=$(curl -fsS --max-time 20 "$DEPLOY_URL/")
+          grep -q '<title>GigAway Admin</title>' <<<"$page" \
+            || { echo "::error::the app's index page is not being served"; exit 1; }
+          code=$(curl -sS -o /dev/null -w '%{http_code}' --max-time 20 "$DEPLOY_URL/users")
+          [ "$code" = "200" ] || { echo "::error::/users returned $code"; exit 1; }
+          headers=$(curl -sSI --max-time 20 "$DEPLOY_URL/")
+          grep -qi '^x-frame-options: deny' <<<"$headers" \
+            || { echo "::error::_headers not applied"; exit 1; }
+          echo "live and correctly configured"

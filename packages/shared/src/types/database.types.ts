@@ -1441,6 +1441,7 @@ export type Database = {
         Args: { p_before?: string; p_limit?: number }
         Returns: {
           action: string
+          admin_display_name: string
           admin_id: string
           created_at: string
           detail: Json

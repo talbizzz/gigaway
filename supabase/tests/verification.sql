@@ -14,7 +14,7 @@ begin;
 -- the CLI recreates on every run, so the privileges these fixtures need (writing
 -- to auth.users) must be claimed explicitly. Locally this is a no-op.
 set local role postgres;
-select plan(19);
+select plan(21);
 
 insert into auth.users (id, email, raw_user_meta_data) values
   ('11111111-1111-1111-1111-111111111111', 'anna@example.test',
@@ -207,12 +207,35 @@ select is(
   'reapplying points at the fresh upload, not the rejected one'
 );
 
+-- Reopening puts the profile back to pending: a decision is awaited again, and
+-- it is what lets the decision trigger promote it afterwards. The thing this
+-- assertion used to guard — that reopening must not silently RE-APPROVE — is
+-- unchanged: 'pending' is not 'approved'. It formerly expected 'rejected',
+-- which left the profile stranded there when the reapplication was approved
+-- (the decision trigger only promotes a pending profile).
 select is(
   (select status::text from public.profiles
     where id = '22222222-2222-2222-2222-222222222222'),
-  'rejected',
-  'the profile stays rejected until the reapplication is itself decided — reopening the '
-  'application does not silently re-approve the profile'
+  'pending',
+  'reapplying puts the profile back to pending — it is awaiting a decision again, '
+  'and is not silently re-approved'
+);
+
+update public.verification_applications
+  set status = 'approved', decision_reason = 'Portfolio confirmed.'
+  where profile_id = '22222222-2222-2222-2222-222222222222';
+
+select is(
+  (select status::text from public.profiles
+    where id = '22222222-2222-2222-2222-222222222222'),
+  'approved',
+  'approving the reapplication approves the profile — being rejected once is not for good'
+);
+
+select ok(
+  (select verified_at is not null from public.profiles
+    where id = '22222222-2222-2222-2222-222222222222'),
+  'and stamps verified_at'
 );
 
 select ok(

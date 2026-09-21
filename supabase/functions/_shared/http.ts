@@ -73,6 +73,42 @@ export async function requireUser(request: Request): Promise<
 }
 
 /**
+ * Verifies the caller's JWT and that they're in admin_users (Milestone 6).
+ * Returns the request-scoped client itself, not just the id — the caller
+ * needs it to run any further is_admin()-gated RPCs (log_admin_action, in
+ * particular) as this same admin, since auth.uid() only resolves correctly
+ * on a client carrying their JWT. Privileged work (the Auth Admin API,
+ * Storage, anything revoked from authenticated like delete_account) still
+ * needs serviceClient() — this only proves who's asking.
+ */
+export async function requireAdmin(request: Request): Promise<
+  { userId: string; client: SupabaseClient } | { response: Response }
+> {
+  const authorization = request.headers.get('Authorization')
+  if (!authorization?.startsWith('Bearer ')) {
+    return { response: errorResponse('unauthenticated', 'Sign in and try again.', 401) }
+  }
+
+  const client = createClient(
+    Deno.env.get('SUPABASE_URL')!,
+    Deno.env.get('SUPABASE_ANON_KEY')!,
+    { global: { headers: { Authorization: authorization } }, auth: { persistSession: false } },
+  )
+
+  const { data: userData, error: userError } = await client.auth.getUser()
+  if (userError || !userData.user) {
+    return { response: errorResponse('unauthenticated', 'Your session has expired.', 401) }
+  }
+
+  const { data: isAdmin, error: adminError } = await client.rpc('is_admin')
+  if (adminError || !isAdmin) {
+    return { response: errorResponse('forbidden', 'Admin access required.', 403) }
+  }
+
+  return { userId: userData.user.id, client }
+}
+
+/**
  * Guards system-only functions — those invoked by pg_cron rather than by a
  * user. Compares the bearer token against the service role key directly rather
  * than inspecting JWT claims, so a user token can never satisfy it however it

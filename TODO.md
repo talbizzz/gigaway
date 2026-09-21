@@ -27,7 +27,8 @@ Progress checklist. Detail lives in the `Milestone-N-*.md` files.
 - [x] Deploy the schema to it — all 27 migrations applied 2026-08-31, generated types match
 - [x] Deploy the Edge Functions — all 9 live 2026-08-31 *(`submit-report`, `export-data` and
       `delete-account` had never been deployed; `functions:deploy` now passes
-      `--import-map`, without which server-side bundling cannot resolve `zod`)*
+      `--import-map`, without which server-side bundling cannot resolve `zod`;
+      superseded 2026-09-21 — current CLIs reject that flag, see Milestone 6)*
 - [x] Overwrite the two Vault secrets — done 2026-09-06, verified by calling
       `dispatch-notifications` through `call_edge_function` and reading a 200 out
       of `net._http_response`. All five cron jobs are live.
@@ -374,6 +375,234 @@ Progress checklist. Detail lives in the `Milestone-N-*.md` files.
 - [ ] TestFlight build to beta testers
 - [ ] Play closed test track live
 - [ ] End-to-end smoke test on real devices
+
+## Milestone 6: Admin Platform
+
+Detail in `Milestone-6-Admin-Platform.md`. Reverses the "no custom admin UI"
+decision from Milestone 4 — full spec, including why, is in that file.
+
+**Status (2026-09-20): phases 1–7 built, all admin migrations applied to the
+dev project, and all four admin pgTAP files (72 assertions) pass against it
+via `supabase test db --linked`.** Not yet on prod, and phases 8–9 (CI/CD,
+docs) are still open. Running against a real database — for the first time,
+after every phase had only been dry-run — found two real bugs that nothing
+earlier could have caught, both fixed in
+`20260919190000_admin_grants_and_casts.sql`:
+
+- **`revoke all on function … from public` locked nothing out.** This
+  project's default privileges grant `EXECUTE` on new functions to `anon`
+  and `authenticated` *directly*, not via `PUBLIC`, so a revoke from `PUBLIC`
+  alone is a silent no-op. Confirmed against `information_schema
+  .routine_privileges`: `log_admin_action` — meant to be unreachable by any
+  client — was callable by `anon`. Existing functions (`delete_account`,
+  `export_user_data`) already named every role
+  (`from public, anon, authenticated`); every `admin_*` revoke had shortened
+  it. All 15 are now corrected and re-verified.
+- **Enum casts.** `admin_set_user_status`, `admin_decide_verification` and
+  `admin_decide_report` assigned a `text` parameter straight into an enum
+  column; Postgres only implicitly coerces bare literals, not typed
+  values. Would have failed on first real use.
+
+Also found: several of my own test assertions read state back as the acting
+admin's `authenticated` role, where RLS legitimately hides the row (a
+suspended member, another member's application, and `reports`, which has no
+client grant at all) — they now read as `postgres` — and a few counted
+matches for a search term against a real, populated database. Neither is an
+application bug, but both would have looked like one.
+
+- [x] `admin_users`, `audit_log`, `is_admin()` + pgTAP proving the gate holds
+      — `20260918150000_admin_platform_foundations.sql` +
+      `supabase/tests/admin_platform.sql` (15 assertions, after the phase 7
+      audit-log-names addition). **Correction:** creating the admin's Auth
+      user also triggers a `profiles`/`contact_details` row like any
+      signup — an admin account is not an artist account, so provisioning
+      now deletes both first; the full recipe is the `admin_users` table
+      comment (`20260919170000_admin_users_provisioning_note.sql`). Pushed to
+      dev and pgTAP-verified — see the status note above.
+- [x] Gated read functions wrapping the existing moderator views (search
+      users/profiles/trips, verification queue, report queue, operational
+      checks, cron status) — `20260918190000_admin_gated_reads.sql` +
+      `supabase/tests/admin_gated_reads.sql` (23 assertions). Existing view
+      grants stay untouched. Also adds the one storage policy this milestone
+      needs (admin-only `select` on the `verification-docs` bucket, which
+      never had one) and two trigram indexes for search. Pushed to dev and
+      pgTAP-verified. Dropped `admin_docs_awaiting_purge` from the plan — the view it
+      would have wrapped no longer exists (evidence now persists in Storage
+      until account deletion rather than being purged on decision).
+- [x] `apps/admin` app skeleton — Vite + React 19 + react-router-dom, theme
+      ported from `apps/mobile/src/theme/tokens.ts` (CSS custom properties,
+      self-hosted Lora/Ubuntu via `@fontsource`, latin/latin-ext subsets
+      only), email+password login gated on `is_admin()` (a session that
+      fails the check is signed out before any admin route can render), env
+      banner scaffolding, placeholder routes for every later phase's page.
+      Deploys as a static SPA to Cloudflare Pages, same model as `site/`.
+      typecheck/lint/build all pass repo-wide; dev server smoke-tested
+      (boots, serves, transforms) — **not visually verified in a real
+      browser**, no browser-automation tool was available this session.
+      `database.types.ts` hand-edited for every function/table Phases 1–2
+      actually shipped (Milestone 1's precedent for an unpushed migration — worth re-running
+      `pnpm db:types` now that the migrations are live, see
+      `CLAUDE.md` before doing so). Sign-in has not yet been exercised
+      against a real `admin_users` row.
+- [x] Users and trips: search, detail pages — `/users` and `/trips` debounce
+      a search box into `admin_search_profiles`/`admin_search_trips`
+      (@tanstack/react-query), row click opens `/users/:profileId` /
+      `/trips/:tripId` (`admin_get_user_detail`/`admin_get_trip_detail`);
+      trip detail links back to the owner's user page. Read-only — no
+      suspend/delete yet, that's phase 5. typecheck/lint/build pass
+      repo-wide; dev server smoke-tested (all new routes transform and
+      serve). Not yet exercised against real data through the UI.
+- [x] Privileged writes — `20260918200000_admin_privileged_writes.sql`
+      (`admin_set_user_status`, `admin_delete_trip`) + `supabase/tests/
+      admin_privileged_writes.sql` (16 assertions); `admin-delete-user` Edge
+      Function consolidates the three manual steps in `MODERATION.md`'s
+      "Deleting someone" and cross-checks the confirmation text
+      server-side, not just client-enabled. Suspend/reinstate is a two-step
+      confirm button (reversible); both deletes require typing the exact
+      name/email into `DeletePanel` first (irreversible, no backup).
+      **Bug caught before it shipped:** `admin_delete_trip` originally
+      cascaded straight through to a trip's stay and reviews — exactly what
+      `delete_account` already goes out of its way to protect against, since
+      a stay belongs to the counterparty too. It now refuses with a clear
+      error if the trip produced a stay; there is no admin action for that
+      case. Repo-wide typecheck/lint/test/build all pass; dev server
+      smoke-tested. Pushed to dev and pgTAP-verified (16 assertions now).
+      **`admin-delete-user` was not deployed until 2026-09-20** — the first
+      real delete from the admin app failed with a CORS error, which was
+      really a `404` on an undeployed function (the platform answers the
+      preflight for a missing function without CORS headers). Deployed to
+      dev with `supabase functions deploy admin-delete-user --use-api`
+      after adding `supabase/functions/admin-delete-user/deno.json`, then
+      every path exercised against dev: logged out → 401, non-admin → 403,
+      malformed → 400, unknown id → 404, wrong confirmation → 400 with the
+      target untouched, correct confirmation (name or email, any case) →
+      200 with the auth user gone, profile tombstoned, application row and
+      avatar/selfie/CV files removed, exactly one audit row written and
+      shown with the admin's name. **Not deployed to prod.**
+- [x] Verification and report queues, decided from the UI —
+      `20260919150000_admin_moderation_decisions.sql` (`admin_decide_verification`,
+      `admin_decide_report`) + `supabase/tests/admin_moderation_decisions.sql`
+      (18 assertions); both are thin wrappers around the exact UPDATE
+      MODERATION.md already documents, so the existing triggers (profile
+      promotion on verification, nothing-but-a-record on reports) fire
+      unchanged. `/verifications` shows the selfie/CV via signed URLs from
+      the storage policy added in phase 2 — the first thing that actually
+      exercises it. `/reports` surfaces `subject_prior_reports` vs
+      `subject_prior_reporters` per MODERATION.md's own guidance (one
+      angry counterparty isn't a pattern). Repo-wide typecheck/lint/test/
+      build all pass; dev server smoke-tested. Pushed to dev and
+      pgTAP-verified. **Found by using it on real data:** the three
+      applications on dev (John Doe, Test, Testt) predate evidence storage
+      (submitted 2026-09-18 ~14:00 UTC, before the 16:46 migration) — no
+      `selfie_path`, a placeholder `cv_path`, an empty bucket; their files
+      are email attachments in the `verify@gigaway.app` inbox and nowhere
+      else. The page rendered blank because it ignored `createSignedUrl`'s
+      `error` (it returns one rather than throwing) and its "no evidence"
+      branch missed the placeholder path; it now says what's missing and
+      why, and surfaces signing errors per file. The real path (admin signs
+      and fetches a stored PNG/PDF; a member and a logged-out visitor are
+      refused) was verified against dev with test files, since removed.
+      **Still to see with your own eyes:** submit a fresh application from
+      the mobile app and open it here.
+- [x] **Bug: a member rejected once could never be approved** (found by
+      using it, 2026-09-20). `submit-verification` reopens a rejected
+      application to `pending` but never touched `profiles.status`, and
+      `handle_verification_decision` only promotes a profile that is
+      `pending` — so approving the reapplication flipped the application and
+      left the profile `rejected`, with the admin app reporting success.
+      `20260920120000_verification_reopen_and_approval_check.sql` restores
+      the invariant the trigger already assumed (reopening puts the profile
+      back to `pending`), repairs rows already stuck that way (one on dev),
+      and makes `admin_decide_verification` fail — rolling back — if an
+      approval can't actually approve the profile (suspended/deleted member)
+      instead of reporting success. **Reverses one assertion in
+      `tests/verification.sql`** (it expected the profile to stay `rejected`
+      during re-review; what it was guarding — reopening must not silently
+      re-approve — still holds). Pushed to dev; all 5 verification/admin
+      files pass; the full suite shows only the 6 known empty-DB failures.
+      **Not on prod yet.** Not yet re-walked on a device: reject → reapply →
+      approve from the mobile app.
+- [x] Operational dashboard + audit log viewer — all the SQL for this
+      already existed from phase 2 (`admin_cron_status`,
+      `admin_stuck_notifications`, `admin_recent_signups`), so this was
+      mostly frontend: `/` now shows three cards instead of a "signed in
+      as" placeholder. One SQL gap found and closed —
+      `20260919160000_admin_audit_log_names.sql` joins `admin_users` into
+      `admin_audit_log()` so the trail shows a name instead of a bare
+      admin_id uuid (dropped and recreated, since a `setof <table>` return
+      can't gain a joined column via `create or replace`; its grants are
+      redone in the same migration). `/audit-log` paginates with
+      `admin_audit_log`'s existing `p_before` cursor via
+      `useInfiniteQuery`. Repo-wide typecheck/lint/test/build all pass; dev
+      server smoke-tested. Pushed to dev and pgTAP-verified.
+- [x] `admin-scripts/` — new workspace package for operator scripts that use
+      the service-role key, first one `create-admin` (run `pnpm create-admin` and answer the prompts;
+      creates a login,
+      removes the auto-created member profile, registers it in
+      `admin_users`; new accounts only, all-or-nothing, Enter at the project
+      prompt means dev, typed confirmation for prod). Verified against dev
+      end to end: created an admin, signed in as the admin app does,
+      `is_admin()` true and admin-only functions returned data; a repeat
+      run refused and changed nothing; an injected failure rolled back
+      cleanly; the hidden password prompt and prod confirmation were driven
+      through a real pty (which found and fixed an echo-ordering bug). All
+      test accounts removed from dev. `.env.prod` is not created — add it
+      yourself when a prod admin is needed.
+- [x] **`functions:deploy` fixed, and the backend deploy now previews before it
+      asks for approval** (2026-09-21). Current Supabase CLIs reject
+      `--import-map`, so the old script would have failed *after* prod's
+      migrations were already applied. `pnpm functions:deploy` is now `sync:shared`
+      + `scripts/sync-function-configs.mjs` (writes each function's `deno.json`
+      from the single shared one; the copies are gitignored) +
+      `supabase functions deploy --use-api`. Run for real against dev: all nine
+      functions deployed and each one answered from its own code (not just
+      bundled). `deploy-backend.yml` is now two jobs: **`preview`** (no
+      approval; dry run + a plain-English review on the run's summary page via
+      `scripts/summarize-pending-migrations.mjs`, which flags anything that
+      drops tables/columns/rows and fails closed if it can't read the CLI's
+      output) then **`deploy`** (the `production` reviewer gate, so you approve
+      *after* reading the preview; it re-checks that the pending list hasn't
+      changed since, then applies migrations, then functions, with a written
+      explanation on the summary page if either step fails). The CLI is pinned
+      to 2.109.1 because the review tool parses its text output. Also refuses to
+      run unless `SUPABASE_PROJECT_REF` is prod's. Tested by running the
+      workflow's own shell steps locally with a stub CLI: secret checks, an
+      unreadable dry-run failing instead of reporting "nothing pending", and
+      the unchanged-since-preview guard. **Not yet run on GitHub.** Needs the
+      three Supabase secrets to be *repository* secrets (the preview runs before
+      the gate, so it can't see environment-only ones) — I couldn't check
+      where they live.
+- [x] `deploy-admin.yml` written — dev on push to `develop`, prod on push to
+      `main` behind the same `production` reviewer environment as
+      `deploy-backend.yml`; each job builds, then publishes to its own Pages
+      project (creating it on first run) and checks the live deployment
+      (index page, a deep link, the security headers). Ahead of any build, a
+      guard (`apps/admin/scripts/verify-build-env.mjs`) refuses a build whose
+      key is a *secret* key, or whose key/URL belong to the wrong project —
+      each dangerous case exercised locally. `apps/admin/public/_headers`
+      (no framing/sniffing/indexing) and `robots.txt` ship with the build.
+      Validated locally (YAML, guard, a real build, no key in the bundle);
+      **has not yet run on GitHub** — that needs the steps below.
+- [ ] **To go live on dev** — (1) add repo secret
+      `ADMIN_DEV_SUPABASE_ANON_KEY`; (2) commit and push to `develop`, which
+      creates the `gigaway-admin-dev` Pages project and deploys it, reachable
+      at its `*.pages.dev` URL immediately; (3) Cloudflare dashboard → Workers
+      & Pages → gigaway-admin-dev → Custom domains → `admin-dev.gigaway.app`
+      (the zone is already on Cloudflare, so it creates the DNS record).
+- [ ] **To go live on prod** — needs decisions that are yours: prod is several
+      migrations behind dev, including destructive ones from the
+      invite-removal work, and `deploy-backend.yml` applies *all* of them.
+      Order: fix `functions:deploy` (item above) → merge `develop` to `main`
+      → approve the backend deploy → add secret
+      `ADMIN_PROD_SUPABASE_ANON_KEY` → approve the admin deploy → attach
+      `admin.gigaway.app` → `pnpm create-admin --env prod` (needs
+      `admin-scripts/.env.prod`).
+- [ ] Recommended, not done: Cloudflare Access (Zero Trust) in front of both
+      domains, so the login form isn't reachable by the whole internet.
+- [x] Rewrote `MODERATION.md`, `README.md`, `Project-Plan.md` to describe the
+      app instead of its absence (they name `admin.gigaway.app` /
+      `admin-dev.gigaway.app`, which don't resolve until the domains above
+      are attached).
 
 ## In progress, on other branches (not detailed here)
 

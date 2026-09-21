@@ -1,13 +1,40 @@
 # Moderator runbook
 
-There is no admin interface, deliberately. Moderation runs on the Supabase
-dashboard's SQL editor, against the views listed here. This document is the
-manual: what to look at, what each action does downstream, and what it does not
-undo.
+Moderation runs in the **admin app** (`admin.gigaway.app`; `admin-dev.gigaway.app`
+against the development database). This document is the manual behind it: what
+to look at, what each action does downstream, and what it does not undo.
+
+Every action the app offers is one of the SQL statements below, wrapped in a
+function that checks you are an admin and writes an audit-log row. The SQL
+stays here because it is the fallback when the app is down and the only way to
+do anything the app deliberately doesn't (see the end of this section) — and
+because reading it is the clearest description of what a button actually does.
+If you use the SQL directly, note **nothing is written to the audit log**.
+
+| To do this | In the admin app | What it runs |
+|---|---|---|
+| Decide an application | **Verifications** → open it → Approve / Reject | `admin_decide_verification` |
+| Decide a report | **Reports** → open it → Action / Dismiss / Mark reviewing | `admin_decide_report` |
+| Look someone up | **Users** → search → open | `admin_search_profiles`, `admin_get_user_detail` |
+| Suspend / reinstate | **Users** → their page → Suspend / Reinstate | `admin_set_user_status` |
+| Delete someone | **Users** → their page → Delete (type their email) | the `admin-delete-user` Edge Function |
+| Look up or delete a trip | **Trips** | `admin_search_trips`, `admin_delete_trip` |
+| Operational checks | **Dashboard** | `admin_stuck_notifications`, `admin_cron_status`, `admin_recent_signups` |
+| See who did what | **Audit log** | `admin_audit_log` |
+
+The app deliberately does **not** do: delete a trip that produced a stay (it
+would cascade into the other member's reviews — there is no button for it, only
+a refusal saying why), edit a member's profile text, or bulk anything. Those
+stay manual.
+
+**Admin accounts** are created with `pnpm create-admin` (see
+`admin-scripts/README.md`). An admin has no member profile: `admin_users` and
+`profiles` are separate on purpose.
 
 Everything below is run as the dashboard's privileged role. None of these views
-is readable by the app — they are revoked from `anon` and `authenticated`, and
-the pgTAP suite asserts that.
+is readable by the app's members — they are revoked from `anon` and
+`authenticated`, and the pgTAP suite asserts that. The admin app reaches the
+same data only through `security definer` functions that check `is_admin()`.
 
 > **Before acting on anything:** decisions here are visible to real people and
 > most are hard to reverse. Read `v_user_summary` for the person first. One
@@ -34,7 +61,11 @@ given at submission — it changes per attempt, so an old photo won't match).
 `days_waiting` is the column that matters day to day — anything over three
 days has already triggered the nudge email.
 
-**To approve or reject:**
+**To approve or reject** — in the admin app this is **Verifications**, which
+also shows the selfie and CV (via short-lived links; only an admin session can
+open them). Applications submitted before evidence was stored in the app have
+no files there — for those the originals are email attachments in the
+`verify@gigaway.app` inbox. By hand:
 
 ```sql
 update verification_applications
@@ -134,14 +165,26 @@ Prefer suspension. Deletion is irreversible and is normally the user's own
 action from Settings, not yours.
 
 If you must delete on someone's behalf — a support request from an account they
-have lost access to, say — verify identity out of band first, then:
+have lost access to, say — verify identity out of band first, then use
+**Delete** on their page in the admin app. It asks you to type their email or
+name, checks that server-side against the record it is about to erase, and then
+does all of the following in one go, telling you which steps succeeded if one
+fails:
+
+1. `delete_account` — the SQL tombstone below,
+2. removes their avatar and any verification selfie/CV from Storage,
+3. deletes the auth user, last,
+4. writes an audit-log row.
+
+By hand, the same job is three separate things and it is easy to forget one:
 
 ```sql
 select delete_account('…');
 ```
 
-Then delete the auth user in **Authentication → Users**, and remove their avatar
-from the `avatars` bucket. The SQL function cannot do either.
+then delete the auth user in **Authentication → Users**, and remove their avatar
+and their verification files (`verification-docs/<their id>/`) from Storage. The
+SQL function can do none of the last two.
 
 What survives, and why:
 

@@ -42,7 +42,9 @@
 
 ### Deliberate non-choices
 
-Carried over from the brief and re-confirmed: **no payments**, **no in-app chat**, **no custom admin UI** (moderation runs on the Supabase dashboard, assisted by saved SQL views), **no real-time subscriptions**.
+Carried over from the brief and re-confirmed: **no payments**, **no in-app chat**, **no real-time subscriptions**.
+
+**Reversed after launch prep: the custom admin UI.** This originally read "no custom admin UI (moderation runs on the Supabase dashboard, assisted by saved SQL views)". Running moderation as hand-written SQL turned out to be the wrong trade for a tool used daily, so it was built as Milestone 6 — `apps/admin`, a static Vite + React SPA on Cloudflare Pages, one deployment per Supabase project. It adds no new data model for members: it reads and writes through `security definer` functions that gate on an `admin_users` allowlist and log every action. See `Milestone-6-Admin-Platform.md`.
 
 ---
 
@@ -199,7 +201,7 @@ Confirmed from `Project-Raw.md`:
 
 - Any payments, fees or money transfer
 - In-app chat or real-time messaging
-- A custom admin dashboard
+- ~~A custom admin dashboard~~ — built afterwards as Milestone 6 (see above)
 - The services marketplace (tax help, website building, lessons, sheet music)
 - The social feed / "social media for artists" layer
 - Anonymous reviews of institutions, schools or teachers — **carries substantially higher legal exposure and must not ship casually; requires notice-and-takedown, identity retention, moderation capacity and legal advice**

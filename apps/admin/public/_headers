@@ -1,0 +1,13 @@
+# Cloudflare Pages response headers. The app renders members' personal data,
+# so it must never be framed, sniffed, indexed, or leak its URLs as a referrer.
+/*
+  X-Frame-Options: DENY
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: no-referrer
+  X-Robots-Tag: noindex, nofollow
+  Permissions-Policy: camera=(), microphone=(), geolocation=()
+  Strict-Transport-Security: max-age=31536000
+
+# Vite fingerprints everything under /assets, so it can be cached for good.
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable

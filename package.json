@@ -15,7 +15,8 @@
     "test": "pnpm -r --if-present test",
     "db:test": "supabase test db --linked",
     "db:types": "supabase gen types typescript --linked > packages/shared/src/types/database.types.ts",
-    "functions:deploy": "pnpm sync:shared && supabase functions deploy --import-map supabase/functions/deno.json"
+    "functions:deploy": "pnpm sync:shared && node scripts/sync-function-configs.mjs && supabase functions deploy --use-api",
+    "create-admin": "node admin-scripts/scripts/create-admin.mjs"
   },
   "devDependencies": {
     "@types/node": "^22.10.2",
