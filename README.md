@@ -178,7 +178,11 @@ most of it waiting on the first iOS build.
 - [ ] **pnpm 11** — `corepack enable && corepack prepare pnpm@11.21.0 --activate`
 - [ ] **Supabase CLI** — `brew install supabase/tap/supabase`. Used against the
       hosted dev project only — there is no local Supabase stack, and none is
-      ever started. Docker is not needed for anything in this workflow.
+      ever started.
+- [ ] **A Docker runtime, only for `pnpm db:test`** — `brew install colima
+      docker && colima start` (CLI-only, no Docker Desktop needed). The CLI
+      runs its pgTAP tooling in a container even against the hosted project;
+      no database runs locally.
 - [ ] **CocoaPods** — `brew install cocoapods`
 
 Verified working on Node 24.9.0, pnpm 11.21.0, Xcode 26.3, CocoaPods 1.16.2 and
@@ -370,20 +374,22 @@ If all five hold, your environment is sound.
 pnpm typecheck   # every workspace package
 pnpm lint
 pnpm test        # vitest, in packages/shared
-pnpm db:test     # pgTAP: 341 assertions across 16 files, against the dev project
+pnpm db:test     # pgTAP: ~417 assertions across 20 files, against the dev project
 ```
 
-`pnpm db:test` is `supabase test db --linked` — there is no local stack to run
-it against instead, so this always runs against the real, shared dev project's
-current data, not a clean slate.
+`pnpm db:test` is `supabase test db --linked`. It needs a Docker runtime running
+(`colima start`) because the CLI runs pgTAP in a container, but the database it
+tests is the real, shared dev project — its current data, not a clean slate.
+Add file paths to run only some files.
 
-> **The suite assumes an empty database**, because that's what CI's own run
-> gets (CI has Docker and resets a throwaway database from scratch before
-> testing; this workflow never does). Around 22 assertions across a handful
-> of files use unscoped `count(*)` or `limit 1`, so they fail here even
-> though CI is green — known noise against dev's accumulated data, not a
-> regression. New test files should scope every query to their own fixture
-> ids so they don't join that list.
+> **Some failures against dev are expected.** The suite assumes an empty
+> database, which is what CI gets (it resets a throwaway database from scratch
+> before testing). Against dev, 6 assertions — `home_feed` (3), `reports` (1),
+> `trips_and_availability` (2) — count across every visible row, so dev's real
+> rows make them fail even though CI is green. Known noise, not a regression,
+> and we chose not to change it. Any other failure is real. New test files
+> should scope every query to their own fixture ids so they don't join that
+> list.
 
 If you change anything under `packages/shared/src`, run `pnpm sync:shared`
 before touching the Edge Functions, and commit the result.

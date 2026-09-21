@@ -5,26 +5,43 @@ real time to (re)discover across different sessions working this repo.
 
 ## The only database that exists is the one in the cloud
 
-There is no local Supabase stack, and there never will be one to try — this
-environment has no Docker. Do **not** run `supabase start`,
-`supabase test db --local`, `supabase db reset` (without `--linked`), or
-anything else that assumes a local stack — these hang or fail waiting on
-Docker, not fail fast. Direct access to the **cloud** database (psql via
+There is no local Supabase stack, and none is ever started — the user weighed
+bringing one back (2026-09-20) and decided it was too much work. Do **not** run
+`supabase start`, `supabase test db --local`, `supabase db reset` (without
+`--linked`), or anything else that assumes a local stack. A Docker runtime
+(colima) is installed on this Mac only because the CLI needs one to host its
+pgTAP runner, even against the linked project; that is not a local database.
+Direct access to the **cloud** database (psql via
 `.gigaway-dev-credentials`, or the Supabase CLI against dev) is explicitly
 welcome for fast debugging — the line is "local," not "direct."
 
 What to do instead:
-- Run pgTAP with `supabase test db --linked`, against whichever project is
-  currently linked. This is the only way to actually execute the test suite
-  in this environment — there is no "fresh database" run available
-  interactively.
-- CI (`.github/workflows/ci.yml`) *does* have Docker and runs a real
-  `supabase db reset` + the full pgTAP suite from scratch on every PR. That
-  clean-database run only happens there. Locally/interactively you are
-  always testing against real data on a real project (see below), which is
-  also why ~22 pgTAP assertions across a few files are known to fail against
-  `--linked` (they assume an empty table) — that's noise, not a regression;
-  see `MEMORY.md`-tracked context if unsure which ones.
+- Run pgTAP with `pnpm db:test` (`supabase test db --linked`), against whichever
+  project is currently linked. Start colima first (`colima start`); with no
+  Docker daemon it fails with `LegacyDockerRunError`. Pass file paths to run
+  only some: `supabase test db --linked supabase/tests/x.sql`.
+- CI (`.github/workflows/ci.yml`) runs the whole suite from scratch on an
+  empty database on every PR. Against dev you are testing real data, so
+  **6 assertions are known to fail there and always will** (the user decided
+  on 2026-09-20 to leave them): `home_feed` tests 2, 7, 11; `reports` test 21;
+  `trips_and_availability` tests 11, 12. They count across every visible row
+  and assume an empty table — noise, not a regression. Any other failure is
+  real; every other file, admin ones included, passes.
+- What that run depends on, already done on dev but **not on prod**: pgTAP
+  lives in the `extensions` schema, and the CLI's temporary login role has no
+  `extensions` in its search_path, so dev has
+  `alter database postgres set search_path to "$user", public, extensions`.
+  Without it every file fails with `function plan(integer) does not exist`.
+- Gotchas: back-to-back runs can trip the pooler's `ECIRCUITBREAKER` ("too
+  many authentication failures") — wait a minute instead of retrying in a
+  loop. `docker-credential-desktop not found` means a stale `credsStore` key
+  in `~/.docker/config.json`; delete that key.
+- When writing pgTAP tests: RLS filtering never raises (a blocked UPDATE
+  affects 0 rows, a blocked SELECT returns none), so assert on counts, not
+  `throws_ok('42501')` — trigger guards do raise. `now()` is frozen inside the
+  test transaction, so use an interval when a value must differ. A
+  data-modifying `WITH` can't sit inside `is()`; use `results_eq` with SQL
+  strings. Scope every query to fixture ids.
 - Prefer verifying a migration by writing SQL and testing it directly
   against the **dev** project (`psql`, or a scoped transaction you roll
   back) before trusting a `db push --dry-run` alone — dry-run only shows
