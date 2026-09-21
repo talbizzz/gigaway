@@ -23,7 +23,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 24
           cache: pnpm
 
       - run: pnpm install --frozen-lockfile
@@ -65,14 +65,37 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # Pinned, same as deploy-backend.yml. `latest` makes the action call the
+      # GitHub API to resolve a version, and that call gets rate-limited on shared
+      # runners ("Failed to resolve latest Supabase CLI release"). Bump both
+      # files together, deliberately.
       - uses: supabase/setup-cli@v1
         with:
-          version: latest
+          version: 2.109.1
 
       # Applies every migration in order against a clean database. A migration
       # that cannot apply from scratch fails here rather than in production.
+      #
+      # On failure the reason is repeated as an error annotation. The raw log of
+      # a run needs a signed-in GitHub session; annotations are on the run's page
+      # (and API) without one, so the cause is visible at a glance.
       - name: Start Supabase
-        run: supabase start
+        run: |
+          set +e
+          supabase start 2>&1 | tee start.log
+          status=${PIPESTATUS[0]}
+          if [ "$status" -ne 0 ]; then
+            {
+              echo "supabase start failed (exit $status). Last lines of its output:"
+              tail -n 25 start.log
+              echo "--- containers ---"
+              docker ps -a --format '{{.Names}}: {{.Status}}' | head -n 20
+            } > start-failure.txt
+            # Annotations are single-line: newlines must be percent-encoded.
+            msg=$(sed -e 's/%/%25/g' -e 's/\r//g' start-failure.txt | awk '{printf "%s%%0A", $0}')
+            echo "::error title=supabase start failed::$msg"
+            exit "$status"
+          fi
 
       # No migration creates pgtap — it is a per-project setup step, mirrored
       # here so CI matches the live project.

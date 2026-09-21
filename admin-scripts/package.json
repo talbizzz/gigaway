@@ -5,7 +5,7 @@
   "type": "module",
   "description": "Operator scripts for the GigAway Supabase projects — run by hand, never deployed.",
   "engines": {
-    "node": ">=20"
+    "node": ">=22.13"
   },
   "scripts": {
     "create-admin": "node scripts/create-admin.mjs"

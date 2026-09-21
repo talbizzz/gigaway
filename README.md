@@ -174,7 +174,7 @@ most of it waiting on the first iOS build.
 
 - [ ] **macOS with Xcode** — needed for the iOS simulator. Android works too and
       needs Android Studio instead, but iOS is the better trodden path today.
-- [ ] **Node 20 or newer** — `node -v`
+- [ ] **Node 22.13 or newer** — `node -v`
 - [ ] **pnpm 11** — `corepack enable && corepack prepare pnpm@11.21.0 --activate`
 - [ ] **Supabase CLI** — `brew install supabase/tap/supabase`. Used against the
       hosted dev project only — there is no local Supabase stack, and none is
