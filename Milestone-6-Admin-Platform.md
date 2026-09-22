@@ -92,8 +92,8 @@ same libraries rather than introducing alternatives.
   gated API surface in front of the existing data model, it doesn't touch
   `MODERATION.md`'s underlying views or their grants
 - Cloudflare Access / Zero Trust in front of the deployed domain — strongly
-  recommended as a follow-up (see Known Risks) but it's dashboard
-  configuration outside this repo, not code
+  recommended as a follow-up (see "Follow-on: Cloudflare Access" at the end
+  of this file) but it's dashboard configuration outside this repo, not code
 
 ---
 
@@ -597,3 +597,59 @@ isn't in `admin_users`.
 - **`ilike` search has no index until the migration adds one.** Fine at
   today's user count; revisit if search feels slow before assuming something
   else is wrong.
+
+---
+
+## Follow-on: Cloudflare Access (not started)
+
+**Status:** deliberately deferred — not required for this milestone, to be done
+when convenient. Nothing in the repo needs to change for it.
+
+**Why:** Supabase Auth + `is_admin()` is the real access control, but today
+anyone on the internet can reach the admin login form and only the password
+stands in the way. Cloudflare Access puts a second gate in front, so a stranger
+never sees the form. It is free (Zero Trust Free: up to 50 seats; the account
+already shows 0 of 50 used as of 2026-09-21, so its one-time setup is done).
+
+**Prerequisite:** the custom domain must exist first. Attach `admin-dev.gigaway.app`
+(Cloudflare → Workers & Pages → `gigaway-admin-dev` → Custom domains → Set up a
+custom domain) and wait for it to show **Active**. `admin.gigaway.app` follows the
+same steps on `gigaway-admin` once the prod project exists.
+
+### Steps (dev first)
+
+- [ ] **Create the application.** Cloudflare dashboard → **Zero Trust → Access
+      controls → Applications → Add an application → Self-hosted**.
+  - Application name `GigAway Admin (dev)`; session duration 24 hours.
+  - Public hostname: subdomain `admin-dev`, domain `gigaway.app`, path empty.
+  - Policy: name `Admins`, action **Allow**, include selector **Emails**, one
+    address per admin.
+  - Login method: **One-time PIN** (emails a 6-digit code; no identity provider
+    to set up). It is on by default for new accounts. If it isn't offered on the
+    form, the dashboard's newer layout keeps login methods under
+    **Integrations → Identity providers → Add new → One-time PIN** (location
+    recalled, not confirmed — the old "Settings → Authentication" is gone).
+- [ ] **Test it** in a private window: `admin-dev.gigaway.app` should show
+      Cloudflare's email prompt rather than the app; an allowed email receives a
+      code and then reaches the admin login form; an address that is not on the
+      list gets in nowhere.
+- [ ] **Repeat for prod** once `admin.gigaway.app` is attached: a separate
+      application `GigAway Admin (prod)`, with a stricter policy (fewer emails)
+      and a shorter session, since real member data sits behind it.
+
+### Things to know before doing it
+
+- Access only gates the **custom domain**. The site stays reachable at
+  `gigaway-admin-dev.pages.dev` and each deployment's
+  `<hash>.gigaway-admin-dev.pages.dev`; those show only the login form, so this is
+  no worse than today. Do **not** extend Access to the `pages.dev` hostnames
+  without also handling the next point.
+- `scripts/verify-admin-deploy.mjs` (run by `deploy-admin.yml` after every
+  publish) fetches the `<hash>.…pages.dev` address. If Access covered that
+  address, the check would receive the Cloudflare login page and fail. Locking
+  the `pages.dev` addresses would need an Access **service token** and the
+  script sending it (`CF-Access-Client-Id` / `CF-Access-Client-Secret` headers) —
+  not built.
+- Supabase is not behind Access: the app calls `supabase.co` directly from the
+  browser, so admins have two logins — the Cloudflare code, then their admin
+  email and password.

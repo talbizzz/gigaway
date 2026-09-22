@@ -6,12 +6,12 @@ Progress checklist. Detail lives in the `Milestone-N-*.md` files.
 
 - [x] Buy domain — `gigaway.app`, Cloudflare Registrar
 - [x] Decide public trader address — home address (Schlörstr. 6, Munich).
-      Apple DSA trader status *deferred*: declared non-trader for now, since
+      Apple DSA trader status _deferred_: declared non-trader for now, since
       TestFlight-only distribution does not require it and the verification
       flow demands a business/court document a sole trader has no equivalent of.
       **Must be switched to trader before any public EU App Store release.**
 - [x] Enrol in Apple Developer Program — paid and approved
-- [ ] Confirm the Free Apps agreement shows *Active* in App Store Connect
+- [x] Confirm the Free Apps agreement shows _Active_ in App Store Connect
 - [x] Register Google Play developer account — approved
 - [x] Android build via EAS — `.aab`, version code 2, build `7b250628`
 - [x] Play app created (`app.gigaway.mobile`) and internal testing rolled out
@@ -20,35 +20,34 @@ Progress checklist. Detail lives in the `Milestone-N-*.md` files.
       `xcrun devicectl device install app` once `expo run:ios`'s device-connect
       step stalled; the real blocker turned out to be `repo.reactnative.dev`
       having an outage, not anything project-specific (see Milestone 1)
-- [ ] Closed test track — blocked on App content, which is blocked on the
-      privacy policy URL being live
-- [ ] Collect 12 tester emails and get them opted in
-- [x] Create Supabase project in EU (Frankfurt) — `gigaway`, ref `hrhoqmmxgfpyxwncmpjx`, eu-central-1 *(the DPA is incorporated into Supabase's ToS — nothing separate to sign)*
+- [x] Closed test track — blocked on App content, which is blocked on the privacy policy URL being live
+- [x] Collect 12 tester emails and get them opted in
+- [x] Create Supabase project in EU (Frankfurt) — `gigaway`, ref `hrhoqmmxgfpyxwncmpjx`, eu-central-1 _(the DPA is incorporated into Supabase's ToS — nothing separate to sign)_
 - [x] Deploy the schema to it — all 27 migrations applied 2026-08-31, generated types match
-- [x] Deploy the Edge Functions — all 9 live 2026-08-31 *(`submit-report`, `export-data` and
+- [x] Deploy the Edge Functions — all 9 live 2026-08-31 _(`submit-report`, `export-data` and
       `delete-account` had never been deployed; `functions:deploy` now passes
       `--import-map`, without which server-side bundling cannot resolve `zod`;
-      superseded 2026-09-21 — current CLIs reject that flag, see Milestone 6)*
+      superseded 2026-09-21 — current CLIs reject that flag, see Milestone 6)_
 - [x] Overwrite the two Vault secrets — done 2026-09-06, verified by calling
       `dispatch-notifications` through `call_edge_function` and reading a 200 out
       of `net._http_response`. All five cron jobs are live.
-- [ ] Create Sentry, PostHog (EU) accounts *(Resend moved to Milestone 5)*
+- [ ] Create Sentry, PostHog (EU) accounts _(Resend moved to Milestone 5)_
 - [x] Draft privacy policy — `legal/privacy-policy.md`
 - [x] Draft terms of service / EULA — `legal/terms-of-service.md`
 - [x] Draft community guidelines — `legal/community-guidelines.md`
-- [x] List subprocessors in the privacy policy *(all 8 named)*
+- [x] List subprocessors in the privacy policy _(all 8 named)_
 - [x] Google Play Data safety answer sheet — `legal/play-data-safety.md`
 - [x] Host the legal documents — live at gigaway.app/privacy, /terms, /guidelines,
       /impressum and /delete-account, on Cloudflare Pages
 - [x] Create the verified demo account both stores require for review
 - [x] Moderator/support mail — Cloudflare Email Routing forwards `moderation@`,
       `support@`, `privacy@` and `security@gigaway.app` to a dedicated Gmail
-      account (not a personal inbox). Receiving is solved; *sending as* those
+      account (not a personal inbox). Receiving is solved; _sending as_ those
       addresses from Gmail is not — Google restricts "Send through Gmail" to
       Workspace domains, so a non-Workspace custom domain only gets the
       SMTP-relay option, which Gmail pre-fills with Cloudflare's **inbound** MX
       host and can never send. Fixed by adding Resend SMTP credentials
-      *(deferred, tracked under Milestone 5)*.
+      _(deferred, tracked under Milestone 5)_.
 
 ## Milestone 1: Foundations & Access
 
@@ -62,9 +61,9 @@ Progress checklist. Detail lives in the `Milestone-N-*.md` files.
 - [x] Seed cities table from GeoNames
 - [x] Auth: email sign-up and sign-in
 - [x] Profiles schema + verification state machine
-- [x] ~~Invite generation~~ *(built, then removed entirely — see below)*
-- [x] ~~redeem-invite Edge Function~~ *(built, then removed entirely — see below)*
-- [x] Verification submission flow *(rebuilt around email — see below)*
+- [x] ~~Invite generation~~ _(built, then removed entirely — see below)_
+- [x] ~~redeem-invite Edge Function~~ _(built, then removed entirely — see below)_
+- [x] Verification submission flow _(rebuilt around email — see below)_
 - [x] Full RLS policy set
 - [x] pgTAP tests for every policy
 - [x] Profile create / edit screens + avatar upload
@@ -157,11 +156,11 @@ Progress checklist. Detail lives in the `Milestone-N-*.md` files.
 - [x] Retry sweep + Expo receipt handling
 - [x] Email fallback on offer_accepted
 - [x] In-app Activity list
-- [x] Host-side discovery of open trips *(added — the proactive offer path had
-      no way to find a trip; see the milestone file)*
-- [x] Expiry sweep, and a date guard in the acceptance path *(added — the
+- [x] Host-side discovery of open trips _(added — the proactive offer path had
+      no way to find a trip; see the milestone file)_
+- [x] Expiry sweep, and a date guard in the acceptance path _(added — the
       acceptance path had no date check, so a stale offer could be accepted
-      into a backdated stay; see the milestone file)*
+      into a backdated stay; see the milestone file)_
 
 **Outstanding before Milestone 3 can be called done:**
 
@@ -182,7 +181,7 @@ Progress checklist. Detail lives in the `Milestone-N-*.md` files.
 > Corrections found by walking the app on-device are recorded in the milestone
 > file's "Corrections made after implementation" section.
 
-- [x] Stays table created on acceptance *(built in Milestone 3)*
+- [x] Stays table created on acceptance _(built in Milestone 3)_
 - [x] Review submission + would-again binary
 - [x] Double-blind release trigger
 - [x] 14-day release cron
@@ -203,9 +202,9 @@ Progress checklist. Detail lives in the `Milestone-N-*.md` files.
 - [ ] Confirm a report reaches `MODERATOR_EMAIL` within a minute
       (needs RESEND_API_KEY and MODERATOR_EMAIL, which arrive in Milestone 5)
 - [ ] Add a pgTAP test asserting a co-accommodation match is never reviewable
-      *(holds by construction today — `accept_co_request` creates a contact grant
+      _(holds by construction today — `accept_co_request` creates a contact grant
       and never a stay, and reviews hang off stays — but nothing asserts it, so a
-      future change to that path could silently break the guarantee)*
+      future change to that path could silently break the guarantee)_
 
 ## After Milestone 4: corrections from walking the app
 
@@ -215,8 +214,8 @@ Progress checklist. Detail lives in the `Milestone-N-*.md` files.
 > earlier milestone's plan are recorded in that milestone's file.
 
 - [x] Tab bar for home, profile and settings, replacing the ghost buttons at the
-      foot of the home screen *(supersedes Milestone 3's note that there is no
-      tab navigator)*
+      foot of the home screen _(supersedes Milestone 3's note that there is no
+      tab navigator)_
 - [x] Sign out moved into Settings, beside account deletion
 - [x] Profile split into a read view and an edit form — it opened straight into
       an editable form with no way to see yourself as others do
@@ -224,15 +223,15 @@ Progress checklist. Detail lives in the `Milestone-N-*.md` files.
 - [x] Home city could never be changed — one `null` meant both "untouched" and
       "cleared", so the picker always fell back to the stored city
 - [x] WhatsApp number collected and required, stored E.164, revealed with the
-      email on acceptance *(there was no screen to enter one, so the reveal
-      screen's WhatsApp row could never show anything)*
+      email on acceptance _(there was no screen to enter one, so the reveal
+      screen's WhatsApp row could never show anything)_
 - [x] Profiles readable from every match card before asking or offering, with
       the ask / offer action carried onto the profile
-- [x] Initials placeholder where a member has no photo *(the empty circle was
-      `bgRaised`, which is white in the light theme — invisible, not blank)*
+- [x] Initials placeholder where a member has no photo _(the empty circle was
+      `bgRaised`, which is white in the light theme — invisible, not blank)_
 - [x] One live offer per host per trip, enforced by a partial unique index
-      *(a host could answer the same request twice and leave two overlapping
-      offers; the traveller could accept either)*
+      _(a host could answer the same request twice and leave two overlapping
+      offers; the traveller could accept either)_
 - [x] Revising an unanswered offer, which replaces answering twice
 - [x] Traveller notified when an offer's nights change
 - [x] Welcome screen with full-bleed illustrated backgrounds
@@ -267,9 +266,9 @@ Progress checklist. Detail lives in the `Milestone-N-*.md` files.
       platforms; the settings restructure, avatar fix and keyboard fix above
       were themselves found and fixed by doing this
 - [ ] Re-run `offer_revision.sql` to confirm the two assertions corrected after
-      the first live run *(the migration behaviour was right; the test's
-      expectations were not)*
-- [ ] Decide what to do about the pgTAP suite assuming an empty database — ~22
+      the first live run _(the migration behaviour was right; the test's
+      expectations were not)_
+- [x] Decide what to do about the pgTAP suite assuming an empty database — ~22
       assertions across 6 files use unscoped `count(*)` and `limit 1`, so they
       fail against the cloud project's dev data. Known noise, not regressions.
       Either scope them to their fixtures or run them on a preview branch.
@@ -313,10 +312,10 @@ Progress checklist. Detail lives in the `Milestone-N-*.md` files.
       `ReactNativeDependencies` artifact) that was crashing fresh dev-client
       installs with `dyld: Library not loaded` — fixed by re-packaging a
       previously-cached copy of the artifact and pointing
-      `RCT_USE_LOCAL_RN_DEP` at it, not by any RN version change *(an RN
+      `RCT_USE_LOCAL_RN_DEP` at it, not by any RN version change _(an RN
       0.86.2→0.86.3 upgrade was attempted first, broke on
       `expo-modules-jsi`'s Swift/Xcode 26 incompatibility, and was fully
-      reverted once the real cause was found)*
+      reverted once the real cause was found)_
 - [x] `.gigaway-dev-credentials` (gitignored) — dev project ref/URL/keys, used
       for direct `psql` verification when Docker/local Supabase wasn't
       available
@@ -324,10 +323,9 @@ Progress checklist. Detail lives in the `Milestone-N-*.md` files.
 ## Milestone 5: Ship It
 
 - [ ] Next.js landing page (`/`, store badges) — not started
-- [ ] /i/[code] invite page — not started
 - [ ] Universal links + Android app links — not started
-- [x] Publish privacy, terms, guidelines *(plus Impressum and the account-deletion
-      page Google requires; done early — the Play track was blocked on the URL)*
+- [x] Publish privacy, terms, guidelines _(plus Impressum and the account-deletion
+      page Google requires; done early — the Play track was blocked on the URL)_
       as a plain static site (`legal/*.md` → `scripts/build-legal.mjs` → `site/`),
       **not** the Next.js app originally scoped for this — see next item
 - [x] Deploy web — **Cloudflare Pages**, not Vercel, via `deploy-web.yml` and
@@ -346,12 +344,12 @@ Progress checklist. Detail lives in the `Milestone-N-*.md` files.
       8 screenshots padded to 9:16 in `store/play/screenshots/`; separate dev
       variant icon/splash added alongside
 - [x] Play store listing copy and assets — `store/play/listing.md`
-- [ ] App Store listing (blocked on Apple Free Apps agreement / trader status)
+- [x] App Store listing (blocked on Apple Free Apps agreement / trader status)
 - [ ] Upgrade Supabase to Pro
 - [x] Create Resend account, verify `gigaway.app` (SPF + DKIM + DMARC, via
       Resend's Cloudflare auto-configure)
 - [x] Set `RESEND_API_KEY`, `MODERATOR_EMAIL`, `VERIFICATION_EMAIL` function
-      secrets on **dev** *(prod tracked in `PRODUCTION-TODO.md`)*. The single
+      secrets on **dev** _(prod tracked in `PRODUCTION-TODO.md`)_. The single
       `RESEND_FROM` originally planned turned out wrong once
       `dispatch-notifications` was checked alongside the other three
       senders — one address can't honestly be both "moderator alert" and
@@ -363,8 +361,8 @@ Progress checklist. Detail lives in the `Milestone-N-*.md` files.
 - [ ] Confirm moderation-digest returns emailed: true and the mail arrives
 - [ ] Point Supabase Auth at Resend via custom SMTP
 - [ ] **Send mail as `support@`/`moderation@`/`privacy@gigaway.app` from the
-      dedicated Gmail account** *(deferred from Milestone 0 — see there for
-      why Gmail's own SMTP-relay option can't do this)*: once the Resend
+      dedicated Gmail account** _(deferred from Milestone 0 — see there for
+      why Gmail's own SMTP-relay option can't do this)_: once the Resend
       account above exists, add its SMTP credentials (`smtp.resend.com:587`,
       user `resend`, password = API key) as a second "Send mail as" entry on
       that Gmail account — same domain, same DKIM/SPF, no new service
@@ -391,9 +389,9 @@ earlier could have caught, both fixed in
 
 - **`revoke all on function … from public` locked nothing out.** This
   project's default privileges grant `EXECUTE` on new functions to `anon`
-  and `authenticated` *directly*, not via `PUBLIC`, so a revoke from `PUBLIC`
+  and `authenticated` _directly_, not via `PUBLIC`, so a revoke from `PUBLIC`
   alone is a silent no-op. Confirmed against `information_schema
-  .routine_privileges`: `log_admin_action` — meant to be unreachable by any
+.routine_privileges`: `log_admin_action` — meant to be unreachable by any
   client — was callable by `anon`. Existing functions (`delete_account`,
   `export_user_data`) already named every role
   (`from public, anon, authenticated`); every `admin_*` revoke had shortened
@@ -454,7 +452,7 @@ application bug, but both would have looked like one.
       serve). Not yet exercised against real data through the UI.
 - [x] Privileged writes — `20260918200000_admin_privileged_writes.sql`
       (`admin_set_user_status`, `admin_delete_trip`) + `supabase/tests/
-      admin_privileged_writes.sql` (16 assertions); `admin-delete-user` Edge
+    admin_privileged_writes.sql` (16 assertions); `admin-delete-user` Edge
       Function consolidates the three manual steps in `MODERATION.md`'s
       "Deleting someone" and cross-checks the confirmation text
       server-side, not just client-enabled. Suspend/reinstate is a two-step
@@ -550,9 +548,8 @@ application bug, but both would have looked like one.
       yourself when a prod admin is needed.
 - [x] **`functions:deploy` fixed, and the backend deploy now previews before it
       asks for approval** (2026-09-21). Current Supabase CLIs reject
-      `--import-map`, so the old script would have failed *after* prod's
-      migrations were already applied. `pnpm functions:deploy` is now `sync:shared`
-      + `scripts/sync-function-configs.mjs` (writes each function's `deno.json`
+      `--import-map`, so the old script would have failed _after_ prod's
+      migrations were already applied. `pnpm functions:deploy` is now `sync:shared` + `scripts/sync-function-configs.mjs` (writes each function's `deno.json`
       from the single shared one; the copies are gitignored) +
       `supabase functions deploy --use-api`. Run for real against dev: all nine
       functions deployed and each one answered from its own code (not just
@@ -561,7 +558,7 @@ application bug, but both would have looked like one.
       `scripts/summarize-pending-migrations.mjs`, which flags anything that
       drops tables/columns/rows and fails closed if it can't read the CLI's
       output) then **`deploy`** (the `production` reviewer gate, so you approve
-      *after* reading the preview; it re-checks that the pending list hasn't
+      _after_ reading the preview; it re-checks that the pending list hasn't
       changed since, then applies migrations, then functions, with a written
       explanation on the summary page if either step fails). The CLI is pinned
       to 2.109.1 because the review tool parses its text output. Also refuses to
@@ -569,7 +566,7 @@ application bug, but both would have looked like one.
       workflow's own shell steps locally with a stub CLI: secret checks, an
       unreadable dry-run failing instead of reporting "nothing pending", and
       the unchanged-since-preview guard. **Not yet run on GitHub.** Needs the
-      three Supabase secrets to be *repository* secrets (the preview runs before
+      three Supabase secrets to be _repository_ secrets (the preview runs before
       the gate, so it can't see environment-only ones) — I couldn't check
       where they live.
 - [x] `deploy-admin.yml` written — dev on push to `develop`, prod on push to
@@ -578,7 +575,7 @@ application bug, but both would have looked like one.
       project (creating it on first run) and checks the live deployment
       (index page, a deep link, the security headers). Ahead of any build, a
       guard (`apps/admin/scripts/verify-build-env.mjs`) refuses a build whose
-      key is a *secret* key, or whose key/URL belong to the wrong project —
+      key is a _secret_ key, or whose key/URL belong to the wrong project —
       each dangerous case exercised locally. `apps/admin/public/_headers`
       (no framing/sniffing/indexing) and `robots.txt` ship with the build.
       Validated locally (YAML, guard, a real build, no key in the bundle);
@@ -591,14 +588,16 @@ application bug, but both would have looked like one.
       (the zone is already on Cloudflare, so it creates the DNS record).
 - [ ] **To go live on prod** — needs decisions that are yours: prod is several
       migrations behind dev, including destructive ones from the
-      invite-removal work, and `deploy-backend.yml` applies *all* of them.
+      invite-removal work, and `deploy-backend.yml` applies _all_ of them.
       Order: fix `functions:deploy` (item above) → merge `develop` to `main`
       → approve the backend deploy → add secret
       `ADMIN_PROD_SUPABASE_ANON_KEY` → approve the admin deploy → attach
       `admin.gigaway.app` → `pnpm create-admin --env prod` (needs
       `admin-scripts/.env.prod`).
 - [ ] Recommended, not done: Cloudflare Access (Zero Trust) in front of both
-      domains, so the login form isn't reachable by the whole internet.
+      domains, so the login form isn't reachable by the whole internet. Deferred
+      on purpose; the exact steps are in Milestone-6-Admin-Platform.md under
+      "Follow-on: Cloudflare Access".
 - [x] Rewrote `MODERATION.md`, `README.md`, `Project-Plan.md` to describe the
       app instead of its absence (they name `admin.gigaway.app` /
       `admin-dev.gigaway.app`, which don't resolve until the domains above

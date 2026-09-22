@@ -241,6 +241,9 @@ calls, so a prod admin site would load and then refuse every login.
 
 - [ ] **Recommended — Cloudflare Access in front of both admin domains**, so the
   login form isn't reachable by the whole internet. Not done; not required.
+  Steps (and one CI caveat) are in `Milestone-6-Admin-Platform.md` under
+  "Follow-on: Cloudflare Access". Prod wants its own application with a
+  stricter policy, created after `admin.gigaway.app` is attached.
 
 - [ ] **Smoke-test on prod**, without doing anything destructive to a real
   member:
