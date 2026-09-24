@@ -8,37 +8,54 @@ import { Button, TextLink } from '@/components/button'
 import { Callout } from '@/components/callout'
 import { Screen } from '@/components/screen'
 import { TextField } from '@/components/text-field'
-import { SignInSchema, type SignInValues } from '@/features/auth/schemas'
+import { ForgotPasswordSchema, type ForgotPasswordValues } from '@/features/auth/schemas'
+import { env } from '@/lib/env'
 import { supabase } from '@/lib/supabase'
 import { spacing, typography } from '@/theme/tokens'
 import { useTheme } from '@/theme/use-theme'
 
-export default function SignInScreen() {
+export default function ForgotPasswordScreen() {
   const theme = useTheme()
   const router = useRouter()
   const [submitError, setSubmitError] = useState<string | null>(null)
+  const [sent, setSent] = useState(false)
 
-  const form = useForm<SignInValues>({
-    resolver: zodResolver(SignInSchema),
-    defaultValues: { email: '', password: '' },
+  const form = useForm<ForgotPasswordValues>({
+    resolver: zodResolver(ForgotPasswordSchema),
+    defaultValues: { email: '' },
   })
 
   const onSubmit = form.handleSubmit(async (values) => {
     setSubmitError(null)
-    const { error } = await supabase.auth.signInWithPassword({
-      email: values.email,
-      password: values.password,
+    const { error } = await supabase.auth.resetPasswordForEmail(values.email, {
+      redirectTo: `${env.webBaseUrl}${env.authCallbackPath}`,
     })
 
-    // The session listener in the root layout handles navigation on success.
     if (error) {
-      setSubmitError(
-        error.message === 'Email not confirmed'
-          ? 'Please confirm your email address first — check your inbox.'
-          : error.message,
-      )
+      setSubmitError(error.message)
+      return
     }
+
+    // Supabase itself never reveals whether the address has an account —
+    // show the same confirmation regardless, so this screen doesn't leak it.
+    setSent(true)
   })
+
+  if (sent) {
+    return (
+      <Screen
+        footer={<Button label="Back to sign in" onPress={() => router.replace('/sign-in')} />}
+      >
+        <View style={styles.header}>
+          <Text style={[typography.display, { color: theme.text }]}>Check your email</Text>
+          <Text style={[typography.body, { color: theme.textMuted }]}>
+            If that address has an account, we've sent a link to reset the password. Open it on
+            this phone to continue here, or on any other device to reset it from the web.
+          </Text>
+        </View>
+      </Screen>
+    )
+  }
 
   return (
     <Screen
@@ -46,20 +63,15 @@ export default function SignInScreen() {
       floatingHeader
       footer={
         <>
-          <Button label="Sign in" onPress={onSubmit} loading={form.formState.isSubmitting} />
-          {/* push, not replace: a genuine drill-down, not a form swap — back
-              should return to sign-in, not skip past it to welcome. */}
-          <TextLink label="Forgot password?" onPress={() => router.push('/forgot-password')} />
-          {/* replace, not push: the two forms swap in place so back always
-              returns to welcome rather than walking a chain of them. */}
-          <TextLink label="Create an account" onPress={() => router.replace('/sign-up')} />
+          <Button label="Send reset link" onPress={onSubmit} loading={form.formState.isSubmitting} />
+          <TextLink label="Back to sign in" onPress={() => router.replace('/sign-in')} />
         </>
       }
     >
       <View style={styles.header}>
-        <Text style={[typography.display, { color: theme.text }]}>GigAway</Text>
+        <Text style={[typography.display, { color: theme.text }]}>Reset your password</Text>
         <Text style={[typography.body, { color: theme.textMuted }]}>
-          A couch, a colleague, a city you don't know yet.
+          Enter the email you signed up with and we'll send you a link to set a new one.
         </Text>
       </View>
 
@@ -77,24 +89,6 @@ export default function SignInScreen() {
             keyboardType="email-address"
             textContentType="emailAddress"
             placeholder="you@example.com"
-            error={fieldState.error?.message}
-          />
-        )}
-      />
-
-      <Controller
-        control={form.control}
-        name="password"
-        render={({ field, fieldState }) => (
-          <TextField
-            label="Password"
-            value={field.value}
-            onChangeText={field.onChange}
-            onBlur={field.onBlur}
-            autoCapitalize="none"
-            autoComplete="current-password"
-            textContentType="password"
-            secureTextEntry
             onSubmitEditing={onSubmit}
             returnKeyType="go"
             error={fieldState.error?.message}

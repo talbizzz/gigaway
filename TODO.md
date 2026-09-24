@@ -381,17 +381,31 @@ Progress checklist. Detail lives in the `Milestone-N-*.md` files.
       paused: there is nothing for it to point at yet, see the auth-callback
       item below
 - [ ] **Auth callbacks via Universal Links (confirmation + password reset)**
-      — scoped 2026-09-24, not yet built. Supersedes the old `/i/[code]`
-      invite-link plan in `Milestone-5-Ship-It.md`, which is dead now that
-      invites are gone entirely (Milestone 1). Full detail: that file's
-      "Corrections made during implementation," item 5. Build on **dev**
-      first, in this order:
-  - [ ] Forgot-password request screen + set-new-password screen in the
-        mobile app — neither exists today
-  - [ ] Deep-link listener (Expo `Linking`), since none exists anywhere in
-        the app yet — catches `/auth/callback` (prod) / `/auth/dev-callback`
-        (dev), routes confirmation into the app and recovery to the new
-        set-new-password screen
+      — scoped 2026-09-24. Supersedes the old `/i/[code]` invite-link plan in
+      `Milestone-5-Ship-It.md`, which is dead now that invites are gone
+      entirely (Milestone 1). Full detail: that file's "Corrections made
+      during implementation," item 5. Build on **dev** first, in this order:
+  - [x] Forgot-password request screen + set-new-password screen in the
+        mobile app (`(auth)/forgot-password.tsx`, `(auth)/set-new-password.tsx`).
+        `resetPasswordForEmail`'s response never reveals whether the address
+        has an account, so the request screen shows the same "check your
+        email" confirmation regardless of the outcome.
+  - [x] Deep-link listener (`features/auth/deep-link.ts`, Expo `Linking`) —
+        handles cold start (`getInitialURL`) and warm start (the `url`
+        event), extracts a PKCE `code` param and exchanges it via
+        `exchangeCodeForSession`. The client now sets `flowType: 'pkce'`
+        (was the implicit-flow default). Navigation is the auth gate's job,
+        not the listener's: a confirmation link's session is an ordinary
+        sign-in the gate already routes on; a recovery link's session is
+        flagged via Supabase's `PASSWORD_RECOVERY` event (new `isRecovering`
+        state in `session-store.ts`) specifically so the gate
+        (`use-auth-gate.ts`) sends it to `set-new-password` instead of
+        reading it as a normal sign-in and carrying the user straight into
+        the app. `EXPO_PUBLIC_AUTH_CALLBACK_PATH` is the new env var behind
+        the dev/prod path split (`/auth/callback` vs `/auth/dev-callback`).
+        typecheck and lint both pass repo-wide. **Not yet exercised for
+        real** — that needs the native associated-domains config and a new
+        dev-client build, both below.
   - [ ] `apple-app-site-association` + `assetlinks.json`, each listing
         **both** app IDs (prod and `.dev`), path-scoped to their own
         callback path so the OS isn't stuck choosing between two installed
@@ -660,6 +674,5 @@ application bug, but both would have looked like one.
 > Listed here so they don't get lost, not because they're committed work.
 
 - [ ] Chatwoot — evaluate for member/moderator support
-- [ ] A web version of the mobile app — discuss feasibility and scope
 - [ ] Design review
 - [ ] Introduce Unit tests for the apps & frontend & backend

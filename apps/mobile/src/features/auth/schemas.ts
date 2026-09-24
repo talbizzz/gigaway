@@ -27,3 +27,17 @@ export const SignUpSchema = z.object({
 })
 
 export type SignUpValues = z.infer<typeof SignUpSchema>
+
+export const ForgotPasswordSchema = z.object({
+  email: z.string().trim().toLowerCase().email('Enter a valid email address.'),
+})
+
+export type ForgotPasswordValues = z.infer<typeof ForgotPasswordSchema>
+
+export const SetNewPasswordSchema = z.object({
+  // Same floor as sign-up — an app that reveals home addresses deserves more
+  // than Supabase's own minimum of 6.
+  password: z.string().min(10, 'Use at least 10 characters.'),
+})
+
+export type SetNewPasswordValues = z.infer<typeof SetNewPasswordSchema>

@@ -53,6 +53,10 @@ export default function AuthLayout() {
           onward in the body, so a back button would only offer a way back to a
           form that has already been submitted. */}
       <Stack.Screen name="check-email" />
+      <Stack.Screen name="forgot-password" options={pushed} />
+      {/* Reached only by the deep-link handler, never pushed from within the
+          app — no back button, since there is nothing to go back to. */}
+      <Stack.Screen name="set-new-password" />
     </Stack>
   )
 }

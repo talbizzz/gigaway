@@ -15,6 +15,11 @@ export const supabase = createClient<Database>(env.supabaseUrl, env.supabaseAnon
     // There is no browser redirect flow in a native app; leaving this on makes
     // Supabase parse window.location, which does not exist here.
     detectSessionInUrl: false,
+    // PKCE, not the implicit-flow default: the confirmation/recovery link
+    // carries a `?code=` query param instead of a `#access_token=` hash
+    // fragment, which is what the Universal Link deep-link handler
+    // (features/auth/deep-link.ts) exchanges via exchangeCodeForSession.
+    flowType: 'pkce',
   },
 })
 

@@ -34,4 +34,13 @@ export const env = {
   posthogHost: process.env.EXPO_PUBLIC_POSTHOG_HOST ?? 'https://eu.i.posthog.com',
 
   webBaseUrl: process.env.EXPO_PUBLIC_WEB_BASE_URL ?? 'https://gigaway.app',
+
+  /**
+   * Universal Link path Supabase Auth redirects to after a confirmation or
+   * password-recovery email is followed. The prod and dev app variants claim
+   * different paths on the same domain so both can stay installed on one
+   * test device without the OS having to guess which should open a link —
+   * see Milestone-5-Ship-It.md, "Corrections made during implementation" 5.
+   */
+  authCallbackPath: process.env.EXPO_PUBLIC_AUTH_CALLBACK_PATH ?? '/auth/callback',
 } as const

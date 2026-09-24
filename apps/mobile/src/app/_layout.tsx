@@ -13,6 +13,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler'
 import { KeyboardProvider } from 'react-native-keyboard-controller'
 import { SafeAreaProvider } from 'react-native-safe-area-context'
 
+import { initialiseAuthDeepLink } from '@/features/auth/deep-link'
 import { initialiseSessionListener } from '@/features/auth/session-store'
 import { useAuthGate } from '@/features/auth/use-auth-gate'
 import { initialiseAnalytics } from '@/lib/analytics'
@@ -73,7 +74,14 @@ function RootNavigator() {
 export default function RootLayout() {
   const scheme = useColorScheme()
 
-  useEffect(() => initialiseSessionListener(), [])
+  useEffect(() => {
+    const unsubscribeSession = initialiseSessionListener()
+    const unsubscribeDeepLink = initialiseAuthDeepLink()
+    return () => {
+      unsubscribeSession()
+      unsubscribeDeepLink()
+    }
+  }, [])
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>

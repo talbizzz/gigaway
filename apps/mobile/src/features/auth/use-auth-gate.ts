@@ -15,10 +15,16 @@ import {
  * Decides which part of the app a user may be in, based on session and
  * verification state:
  *
+ *   recovering (see below)        → (auth)/set-new-password
  *   no session                    → (auth)/welcome
  *   session, status ≠ approved    → (onboarding)/verify
  *   approved, profile incomplete  → (onboarding)/profile
  *   approved, profile complete    → (app)
+ *
+ * "Recovering" is its own state, checked first, because a password-recovery
+ * deep link produces a real session — without this the branches below would
+ * read it as an ordinary sign-in and carry the user straight into the app
+ * before they have set a new password. See session-store.ts.
  *
  * "Complete" spans two tables: the profile row, and the WhatsApp number in
  * contact_details. Both are what another member needs before they can decide
@@ -35,6 +41,7 @@ export function useAuthGate(): { ready: boolean } {
 
   const session = useSessionStore((state) => state.session);
   const initialised = useSessionStore((state) => state.initialised);
+  const isRecovering = useSessionStore((state) => state.isRecovering);
   const { data: profile, isPending: profilePending } = useMyProfile();
   const { data: contact, isPending: contactPending } = useMyContactDetails();
 
@@ -58,6 +65,13 @@ export function useAuthGate(): { ready: boolean } {
     const inOnboarding = group === "(onboarding)";
     const inApp = group === "(app)";
 
+    // Checked before everything else — a recovery session is still a
+    // session, and none of the branches below know to treat it differently.
+    if (isRecovering) {
+      if (screen !== "set-new-password") router.replace("/set-new-password");
+      return;
+    }
+
     if (!session) {
       if (!inAuth) router.replace("/welcome");
       return;
@@ -80,7 +94,7 @@ export function useAuthGate(): { ready: boolean } {
     }
 
     if (!inApp) router.replace("/");
-  }, [ready, session, profile, contact, segments, router]);
+  }, [ready, isRecovering, session, profile, contact, segments, router]);
 
   return { ready };
 }

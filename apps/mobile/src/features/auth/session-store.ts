@@ -12,13 +12,24 @@ type SessionState = {
   session: Session | null
   /** False until the persisted session has been read from SecureStore. */
   initialised: boolean
+  /**
+   * True from the moment a password-recovery deep link establishes a session
+   * until the new password is actually set. A recovery session is a real
+   * session as far as Supabase is concerned, so without this the auth gate
+   * would read it as an ordinary sign-in and route straight into the app —
+   * see use-auth-gate.ts.
+   */
+  isRecovering: boolean
   setSession: (session: Session | null) => void
+  setRecovering: (isRecovering: boolean) => void
 }
 
 export const useSessionStore = create<SessionState>((set) => ({
   session: null,
   initialised: false,
+  isRecovering: false,
   setSession: (session) => set({ session, initialised: true }),
+  setRecovering: (isRecovering) => set({ isRecovering }),
 }))
 
 /**
@@ -32,7 +43,10 @@ export function initialiseSessionListener(): () => void {
 
   const {
     data: { subscription },
-  } = supabase.auth.onAuthStateChange((_event, session) => {
+  } = supabase.auth.onAuthStateChange((event, session) => {
+    // Fired specifically when the deep-link handler exchanges a recovery
+    // code — distinct from the SIGNED_IN a confirmation link produces.
+    if (event === 'PASSWORD_RECOVERY') useSessionStore.getState().setRecovering(true)
     useSessionStore.getState().setSession(session)
   })
 
@@ -41,3 +55,4 @@ export function initialiseSessionListener(): () => void {
 
 export const useSession = () => useSessionStore((state) => state.session)
 export const useIsAuthenticated = () => useSessionStore((state) => state.session !== null)
+export const useIsRecovering = () => useSessionStore((state) => state.isRecovering)
