@@ -2,9 +2,10 @@
 
 ## Goal
 
-An invite link sent over WhatsApp opens the app on a real phone, the app is installable by
-beta testers on both platforms, the legal documents are live, and CI protects the privacy
-policies from regression.
+The app is installable by beta testers on both platforms via TestFlight and Play's closed
+track, a tapped email-confirmation or password-reset link opens the app directly on a real
+phone (or completes on the web if no matching app is installed), the legal documents are
+live, and CI protects the privacy policies from regression.
 
 ## Goal in one sentence for the beta
 
@@ -14,8 +15,10 @@ an offer → stays → reviews, on a real device, with no developer intervention
 ## Context
 
 **Milestones 1–4 are complete.** The application works end to end against a local or
-hosted Supabase instance. Invite codes have so far been entered by pasting them, because
-there was no web page to link to and no deep-link association.
+hosted Supabase instance. The invite system this section originally referred to is gone
+entirely (Milestone 1). Email confirmation and password reset — the two flows that now
+need the deep-link infrastructure below — have so far had no web page to land on and no
+deep-link association; see Correction 5.
 
 **Milestone 0 must be complete before this milestone can finish.** Apple Developer
 Program active with the Free Apps agreement showing *Active*, Google Play account
@@ -29,10 +32,13 @@ requiring external review is submitted first and polished while it queues.
 ### In Scope
 
 - Next.js landing page with static export, deployed to Cloudflare Pages
-- `/i/[code]` invite page with platform detection and store links
+- ~~`/i/[code]` invite page with platform detection and store links~~ — the invite
+  system this served is gone entirely; see Correction 5
 - `/privacy`, `/terms`, `/guidelines` rendered from the Markdown written in Milestone 0
-- Universal Links (iOS) and App Links (Android) so invites open the app directly
-- Expo Router deep-link handling for `/i/[code]` in both cold and warm start
+- Universal Links (iOS) and App Links (Android), now carrying Supabase Auth
+  confirmation/recovery callbacks rather than invite codes — see Correction 5
+- Expo Router deep-link handling for auth callbacks (confirmation + password recovery),
+  in both cold and warm start — see Correction 5
 - App icon, splash screen, adaptive icon
 - EAS build profiles (`development`, `preview`, `production`) and OTA channels
 - GitHub Actions CI: typecheck, lint, Vitest, pgTAP, `sync:shared` freshness check
@@ -81,39 +87,50 @@ requiring external review is submitted first and polished while it queues.
     an unauthenticated endpoint; validation happens in `redeem-invite` behind a JWT.
   - Copy on the legal pages comes from Milestone 0 as Markdown files committed to the repo.
 
-#### 2. `/i/[code]` behaviour
+#### 2. Auth callback web fallback (was: `/i/[code]` invite behaviour — superseded, see
+   Correction 5)
 
-1. If the app is installed, the universal/app link opens it directly — the web page is
-   never seen.
-2. Otherwise the page renders: a short explanation, the store badge for the detected
-   platform, and the code displayed prominently so it can be copied manually.
-3. Store the code in `localStorage` and append it to the store link where supported. **Do
-   not rely on deferred deep linking** — it is unreliable across platforms and store
-   redirects. The fallback is always "here is your code, paste it in the app."
-4. Show both store badges when the platform cannot be detected.
+1. If a matching app variant is installed, the universal/app link opens it directly — the
+   web page is never seen. This is how Universal Links behave by design; the page does not
+   need to detect or engineer this itself.
+2. Otherwise (desktop, or a phone with neither app variant installed) the page renders a
+   **real password-reset form**, not a store badge — it runs Supabase's JS client directly
+   in the browser (CDN import, no build step) against whichever project's link was
+   clicked, and completes `updateUser({ password })` using the token in the URL.
+3. For a confirmation link specifically (`type=signup` rather than `type=recovery`), the
+   fallback page has nothing left to complete — it just confirms and offers the store
+   link.
 
 #### 3. Deep-link association
 
 - **iOS:** serve `/.well-known/apple-app-site-association` with no file extension and
-  `Content-Type: application/json`, containing the team ID and bundle ID with path
-  `/i/*`. Set `associatedDomains: ["applinks:<domain>"]` in `app.config.ts`.
-- **Android:** serve `/.well-known/assetlinks.json` with the package name and the SHA-256
-  fingerprint **of the certificate EAS actually signs with** — take it from
-  `eas credentials`, not from a local debug keystore.
+  `Content-Type: application/json`, listing **two** app IDs on the same domain — prod's
+  scoped to path `/auth/callback/*`, and the dev variant's scoped to
+  `/auth/dev-callback/*`. Set `associatedDomains: ["applinks:gigaway.app"]` in
+  `app.config.ts` for both variants. See Correction 5 for why both need to coexist on one
+  domain rather than one file per environment.
+- **Android:** serve `/.well-known/assetlinks.json` the same way — two `package_name` /
+  `sha256_cert_fingerprints` entries, one per variant, each scoped to its own path. Take
+  each fingerprint **from `eas credentials` for that exact profile** — a local debug
+  keystore fingerprint will not match.
 - Cloudflare Pages needs explicit headers configuration (a `_headers` file) so both files
   are served with the correct content type and no redirect.
-- **Both files must be live before submitting builds for review**, since reviewers test
-  the link.
+- **Both files must be live before submitting a production build for review**, since
+  reviewers test the link.
 
 #### 4. Expo Router deep-link handling
 
-- Route `/i/[code]` in the app extracts the code and:
-  - if signed out → sign-up flow with the code pre-filled
-  - if signed in and `pending` → straight to redemption
-  - if signed in and `approved` → a friendly "you're already a member" screen
+- A route under the app's own auth-callback path (`/auth/callback` for prod,
+  `/auth/dev-callback` for the dev variant) catches the incoming URL via Expo's
+  `Linking`, extracts the session/token, and:
+  - a confirmation link (`type=signup`) → establish the session, land in the app (the
+    "check your email" branch already exists in `sign-up.tsx`)
+  - a recovery link (`type=recovery`) → establish the recovery session, route to the new
+    set-new-password screen (Correction 5)
 - **Handle cold start explicitly.** A warm-start deep link arrives through a listener; a
   cold start requires reading the initial URL. Both paths must be tested — cold start is
-  the one that breaks, and it is the common case for a first-time user.
+  the one that breaks, and it is the common case here, since tapping a confirmation email
+  almost always cold-starts the app.
 
 #### 5. App identity assets
 
@@ -271,7 +288,7 @@ None. This milestone adds no tables.
 | `NOTIFICATION_FROM` | Edge Function secret | `dispatch-notifications`'s offer-accepted fallback — the one member-facing case. Must be on the Resend-verified domain, and should match the SMTP sender below |
 | SMTP host / port / user / pass | Supabase Auth settings | From Resend; these are not function secrets |
 | `site_url` | Supabase Auth settings | Real domain — **not** the `127.0.0.1:3000` in `config.toml` |
-| `additional_redirect_urls` | Supabase Auth settings | App scheme, for deep-linked auth returns |
+| `additional_redirect_urls` | Supabase Auth settings | `https://gigaway.app/auth/callback` (prod) and `https://gigaway.app/auth/dev-callback` (dev) — Universal Links, not a bare app scheme, see Correction 5 |
 
 ---
 
@@ -305,9 +322,12 @@ None. This milestone adds no tables.
 - [ ] `/privacy`, `/terms` and `/guidelines` are live and reachable without JavaScript
 - [ ] `/.well-known/apple-app-site-association` serves as `application/json`, no redirect
 - [ ] `/.well-known/assetlinks.json` carries the SHA-256 of the **EAS signing certificate**
-- [ ] Tapping an invite link with the app installed opens the app directly on both platforms
-- [ ] The same link **cold-starts** the app to the invite screen with the code pre-filled
-- [ ] Without the app installed, the link shows the store badge and a copyable code
+- [ ] Tapping a confirmation or recovery link with the matching app variant installed
+      opens the app directly on both platforms
+- [ ] The same link **cold-starts** the app to the right screen (straight into the app for
+      confirmation, the set-new-password screen for recovery)
+- [ ] Without a matching app variant installed (including from a desktop), the link opens
+      a working web page that completes the password reset for real
 - [ ] An OTA update published to `preview` appears on a device without reinstalling
 - [ ] CI runs typecheck, lint, Vitest, pgTAP and the `sync:shared` freshness check on PRs
 - [ ] CI fails when a deliberately broken RLS policy is pushed *(verify this once)*
@@ -376,6 +396,48 @@ choice changed.
    (default `GigAway <notifications@gigaway.app>`) covers the fourth, and is what
    Supabase Auth's SMTP sender should match too, since auth mail is member-facing as
    well. Both are set on dev as of 2026-09-18; prod is tracked in `PRODUCTION-TODO.md`.
+5. **The deep-link mechanism (components 2–4) now carries Supabase Auth callbacks, not
+   invite codes — the invite system it was originally scoped around is gone entirely**
+   (Milestone 1's "Corrections and follow-on work"). The Universal Links / App Links
+   mechanics in component 3 are still needed and still correct as written
+   (AASA/assetlinks, Cloudflare headers, the iOS-caches-the-association-file gotcha in
+   Known Risks) — only the purpose and the payload changed. Scoped 2026-09-24, not yet
+   built.
+
+   - **Sender chosen for Auth's own SMTP: `noreply@gigaway.app`**, not
+     `notifications@gigaway.app` as originally suggested above — a deliberate choice, not
+     an inconsistency with it. Doesn't need a Cloudflare Email Routing rule, since nothing
+     should ever reply to it.
+   - **Two new mobile screens**, since password reset had no UI at all before this: a
+     "forgot password?" request screen calling `resetPasswordForEmail`, and a set-new-
+     password screen calling `updateUser`. Confirmation already has its landing behaviour
+     — `sign-up.tsx` already branches on whether `signUp()` returns a session — it only
+     needs the deep-link listener below to actually catch the incoming link; today it
+     opens the app to nothing in particular.
+   - **A deep-link listener (Expo's `Linking`)**, since none exists yet anywhere in the
+     app. Catches the incoming `https://gigaway.app/auth/...` URL, extracts the
+     session/token, and routes: confirmation lands straight in the app, recovery routes to
+     the new set-new-password screen.
+   - **Path-scoped associated domains, not one file per environment.** Both app variants
+     (prod and `.dev`) stay installed side by side on the same physical test device
+     (Milestone 0's "Infrastructure & tooling"), so a bare `gigaway.app` domain claimed by
+     both would leave the OS no reliable way to decide which app should open a given link.
+     The association files instead list two app IDs on the same domain, each scoped to its
+     own path — prod on `/auth/callback/*`, dev on `/auth/dev-callback/*` — and each
+     Supabase project's `redirectTo` points at its own path accordingly.
+   - **The web fallback does a real password reset, not a store-badge page.** Component
+     2's original job — show a store badge when the app isn't installed — doesn't fit an
+     auth callback: someone resetting their password from a desktop email client needs to
+     actually finish the reset, not be told to go install a phone app. The fallback page
+     runs Supabase's JS client directly in the browser (CDN import, no build step) against
+     whichever project's link was clicked; this is new infrastructure, not part of the
+     `legal/*.md` → static-site pipeline, since that path is Markdown-only.
+   - **Sequenced dev-first**, consistent with everywhere else in this project. Build and
+     prove the whole round trip — confirmation email → tap → lands in app; request reset →
+     tap → set new password; the same link opened on a desktop → web form completes it —
+     against the dev Supabase project and a fresh dev-client build (the native
+     associated-domains entitlement can't be tested without one) before extending the
+     association files to the prod app ID and flipping `enable_confirmations` on for prod.
 
 ## Known Risks & Watch-Outs
 

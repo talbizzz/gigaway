@@ -359,17 +359,55 @@ Progress checklist. Detail lives in the `Milestone-N-*.md` files.
       (`dispatch-notifications`'s offer-accepted fallback, the one
       member-facing case)
 - [ ] Confirm moderation-digest returns emailed: true and the mail arrives
-- [ ] Point Supabase Auth at Resend via custom SMTP
+- [x] Point Supabase Auth at Resend via custom SMTP — done on **prod**
+      2026-09-24: sender `noreply@gigaway.app` (deliberately not
+      `notifications@gigaway.app` — nothing should ever reply to it, so it
+      skips needing a Cloudflare Email Routing rule), `smtp.resend.com:587`,
+      username `resend`. Still needed on **dev** before the auth-callback
+      round trip below can be tested there.
 - [ ] **Send mail as `support@`/`moderation@`/`privacy@gigaway.app` from the
       dedicated Gmail account** _(deferred from Milestone 0 — see there for
       why Gmail's own SMTP-relay option can't do this)_: once the Resend
       account above exists, add its SMTP credentials (`smtp.resend.com:587`,
       user `resend`, password = API key) as a second "Send mail as" entry on
       that Gmail account — same domain, same DKIM/SPF, no new service
-- [ ] Raise auth email rate limits off the shared-sender defaults
-- [ ] Set site_url and redirect URLs to production (never 127.0.0.1)
-- [ ] Confirmation email round trip from a production build
-- [ ] Password reset round trip from a production build
+- [ ] Raise auth email rate limits off the shared-sender defaults — reviewed
+      2026-09-24: prod's "Rate limit for sending emails" is 30/h. Resend's
+      free plan caps at 100 emails/**day**, shared between dev and prod
+      across every mail path (Auth plus all four Edge Function senders), so
+      that's the real ceiling regardless of this number — 30/h is probably
+      already fine. No change made yet; final call still open.
+- [ ] Set site_url and redirect URLs to production (never 127.0.0.1) —
+      paused: there is nothing for it to point at yet, see the auth-callback
+      item below
+- [ ] **Auth callbacks via Universal Links (confirmation + password reset)**
+      — scoped 2026-09-24, not yet built. Supersedes the old `/i/[code]`
+      invite-link plan in `Milestone-5-Ship-It.md`, which is dead now that
+      invites are gone entirely (Milestone 1). Full detail: that file's
+      "Corrections made during implementation," item 5. Build on **dev**
+      first, in this order:
+  - [ ] Forgot-password request screen + set-new-password screen in the
+        mobile app — neither exists today
+  - [ ] Deep-link listener (Expo `Linking`), since none exists anywhere in
+        the app yet — catches `/auth/callback` (prod) / `/auth/dev-callback`
+        (dev), routes confirmation into the app and recovery to the new
+        set-new-password screen
+  - [ ] `apple-app-site-association` + `assetlinks.json`, each listing
+        **both** app IDs (prod and `.dev`), path-scoped to their own
+        callback path so the OS isn't stuck choosing between two installed
+        variants
+  - [ ] Web fallback page that does a **real** password reset via
+        Supabase's JS client (CDN import) — new infrastructure, not part of
+        the `legal/*.md` static-site pipeline
+  - [ ] New dev-client build — associated domains is a native capability,
+        can't be tested without rebuilding
+  - [ ] Custom SMTP + site_url/redirect URLs on **dev**, flip
+        `enable_confirmations` on for dev, walk the full round trip on a
+        real device: confirmation email → tap → lands in app; request
+        reset → tap → set new password; same link opened on a desktop →
+        web form completes it
+  - [ ] Only once verified on dev: extend the association files to the prod
+        app ID, flip `enable_confirmations` on for prod
 - [ ] TestFlight build to beta testers
 - [ ] Play closed test track live
 - [ ] End-to-end smoke test on real devices
