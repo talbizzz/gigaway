@@ -452,7 +452,7 @@ application bug, but both would have looked like one.
       serve). Not yet exercised against real data through the UI.
 - [x] Privileged writes — `20260918200000_admin_privileged_writes.sql`
       (`admin_set_user_status`, `admin_delete_trip`) + `supabase/tests/
-    admin_privileged_writes.sql` (16 assertions); `admin-delete-user` Edge
+  admin_privileged_writes.sql` (16 assertions); `admin-delete-user` Edge
       Function consolidates the three manual steps in `MODERATION.md`'s
       "Deleting someone" and cross-checks the confirmation text
       server-side, not just client-enabled. Suspend/reinstate is a two-step
@@ -602,6 +602,8 @@ application bug, but both would have looked like one.
       app instead of its absence (they name `admin.gigaway.app` /
       `admin-dev.gigaway.app`, which don't resolve until the domains above
       are attached).
+- [ ] Icon/favicon for the admin website's browser tab — still the default
+      Vite icon.
 
 ## In progress, on other branches (not detailed here)
 
@@ -613,3 +615,13 @@ application bug, but both would have looked like one.
   system gating trip creation, earned by offering availability, plus an
   open-ended "ongoing availability" type). Not detailed here since it's still
   being built; see that branch directly for its current state.
+
+## Ideas to discuss (not yet planned)
+
+> Raised but not yet talked through — no decisions made, no scope defined.
+> Listed here so they don't get lost, not because they're committed work.
+
+- [ ] Chatwoot — evaluate for member/moderator support
+- [ ] A web version of the mobile app — discuss feasibility and scope
+- [ ] Design review
+- [ ] Introduce Unit tests for the apps & frontend & backend

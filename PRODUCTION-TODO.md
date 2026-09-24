@@ -99,43 +99,24 @@ one.
   It does **not** prune functions that were removed from the repo, so the two
   orphans stay until deleted below.
 
-- [ ] **Delete the two orphaned functions**
-  Prod is running `redeem-invite` (v3) and `purge-verification-docs` (v2)
-  (re-confirmed 2026-09-21) —
-  both error on every call once the migration above lands, since the SQL
-  they depend on (`redeem_invite()`, the doc-purge columns) is gone.
-  ```
-  supabase functions delete redeem-invite
-  supabase functions delete purge-verification-docs
-  ```
+- [x] **Delete the two orphaned functions** — done 2026-09-23. Both were
+  erroring on every call since the SQL they depended on
+  (`redeem_invite()`, the doc-purge columns) was already gone.
 
 - [x] **Resend account created, `gigaway.app` verified** (2026-09-18, via
   Resend's Cloudflare auto-configure — SPF/DKIM/DMARC all landed in one
   step). This part is account-level, not per-project, so it's already true
   for prod too — nothing to redo here.
 
-- [ ] **Set the mail secrets on prod**
-  Prod has no mail-related secrets set at all yet. `RESEND_FROM` — the
-  single shared sender originally planned — turned out wrong once
-  `dispatch-notifications`'s member-facing offer-accepted email was
-  considered alongside the three moderator-ops senders, so it split in two;
-  see Milestone 5's "Corrections" (item 4) for the reasoning. Get a
-  **separate** Resend API key for prod (Dashboard → API keys → Create,
-  named `gigaway-prod` or similar) rather than reusing dev's, so either can
-  be revoked independently.
-
-  Until `RESEND_API_KEY` and `VERIFICATION_EMAIL` both exist,
-  `submit-verification` correctly fails closed with a clear 503 rather than
-  silently losing an application, so this doesn't block the migration/deploy
-  above — it blocks the feature actually working for a real applicant.
-  ```
-  supabase secrets set \
-    RESEND_API_KEY=<prod key> \
-    MODERATOR_FROM="GigAway <moderation@gigaway.app>" \
-    NOTIFICATION_FROM="GigAway <notifications@gigaway.app>" \
-    MODERATOR_EMAIL=moderation@gigaway.app \
-    VERIFICATION_EMAIL=verify@gigaway.app
-  ```
+- [x] **Set the mail secrets on prod** — done 2026-09-24: `RESEND_API_KEY`,
+  `MODERATOR_FROM`, `NOTIFICATION_FROM`, `MODERATOR_EMAIL`,
+  `VERIFICATION_EMAIL` all confirmed present (`supabase secrets list`
+  shows names + timestamps, never values — Supabase doesn't expose a
+  secret's value again once set, on either project). `RESEND_API_KEY` is a
+  **separate prod key**, per the original plan below — not shared with
+  dev, so either can be revoked independently. The other four values are
+  identical to dev on purpose (`moderation@`/`notifications@`/`verify@`
+  are domain-level addresses, not per-environment secrets).
 
 - [x] **Add `verify@gigaway.app` and `notifications@gigaway.app` to
   Cloudflare Email Routing** — done 2026-09-18, both forwarding to the
