@@ -49,6 +49,17 @@ const config: ExpoConfig = {
        */
       ITSAppUsesNonExemptEncryption: false,
     },
+    /**
+     * Both variants claim the same domain, deliberately — unlike `scheme`
+     * above, which is split per variant specifically to avoid iOS picking
+     * one app arbitrarily. Universal Links don't have that ambiguity problem
+     * in the first place: `apple-app-site-association` on gigaway.app lists
+     * both app IDs, each scoped to its own path (`/auth/callback` for prod,
+     * `/auth/dev-callback` for dev), so iOS already knows which app a given
+     * link belongs to before either one is even asked. See
+     * Milestone-5-Ship-It.md, "Corrections made during implementation" 5.
+     */
+    associatedDomains: ['applinks:gigaway.app'],
   },
   android: {
     package: bundleId,
@@ -63,6 +74,26 @@ const config: ExpoConfig = {
       monochromeImage: './assets/images/android-icon-monochrome.png',
     },
     predictiveBackGestureEnabled: false,
+    /**
+     * Unlike iOS, the path restriction lives here too, not only in
+     * assetlinks.json — each variant's intent filter only ever fires for its
+     * own callback path, so there is no runtime ambiguity between the two
+     * variants even before Android verifies the domain association.
+     */
+    intentFilters: [
+      {
+        action: 'VIEW',
+        autoVerify: true,
+        data: [
+          {
+            scheme: 'https',
+            host: 'gigaway.app',
+            pathPrefix: isDev ? '/auth/dev-callback' : '/auth/callback',
+          },
+        ],
+        category: ['BROWSABLE', 'DEFAULT'],
+      },
+    ],
   },
   web: {
     output: 'static',

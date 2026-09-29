@@ -51,6 +51,14 @@ jobs:
       - name: Legal site builds
         run: pnpm build:legal
 
+      - name: Auth callback / Universal Link files build
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+          SUPABASE_DEV_URL: ${{ secrets.SUPABASE_DEV_URL }}
+          SUPABASE_DEV_ANON_KEY: ${{ secrets.SUPABASE_DEV_ANON_KEY }}
+        run: pnpm build:auth-web
+
   # The only pre-production check on a migration: there is no staging project
   # and no local stack on developer machines, so this is where migrations are
   # verified before they reach the live database.

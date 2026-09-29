@@ -8,6 +8,7 @@ on:
     paths:
       - 'legal/**'
       - 'scripts/build-legal.mjs'
+      - 'scripts/build-auth-web.mjs'
       - 'scripts/publish-pages.mjs'
   workflow_dispatch: {}
 
@@ -32,6 +33,26 @@ jobs:
       - name: Render legal/*.md into site/
         run: pnpm build:legal
 
+      # Universal Links (iOS) / App Links (Android) for the auth-callback
+      # deep link, plus the password-reset/confirmation fallback pages —
+      # see Milestone-5-Ship-It.md, "Corrections made during implementation"
+      # 5. Reuses the same Supabase secrets keepalive.yml already has; anon
+      # keys are safe to embed client-side (RLS is what protects data, not
+      # secrecy of this key).
+      - name: Add Universal Link / App Link files
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+          SUPABASE_DEV_URL: ${{ secrets.SUPABASE_DEV_URL }}
+          SUPABASE_DEV_ANON_KEY: ${{ secrets.SUPABASE_DEV_ANON_KEY }}
+          # Both default to a placeholder until retrieved by hand — prod's
+          # from Play Console (Setup → App integrity), dev's from the next
+          # EAS dev-client build. A placeholder means Android App Links
+          # won't verify yet; it does not break anything already live.
+          PROD_ANDROID_SHA256: ${{ secrets.PROD_ANDROID_SHA256 }}
+          DEV_ANDROID_SHA256: ${{ secrets.DEV_ANDROID_SHA256 }}
+        run: pnpm build:auth-web
+
       # scripts/publish-pages.mjs runs wrangler through npx and always passes
       # `--branch main`. Without that flag wrangler files the deploy as a preview
       # and gigaway.app keeps serving the previous version while the run reports
@@ -47,8 +68,20 @@ jobs:
         run: |
           set -euo pipefail
           sleep 10
-          for p in privacy terms guidelines impressum delete-account; do
+          for p in privacy terms guidelines impressum delete-account auth/callback auth/dev-callback; do
             code=$(curl -sS -o /dev/null -w '%{http_code}' --max-time 20 "https://gigaway.app/$p")
             echo "  /$p → $code"
             [ "$code" = "200" ] || { echo "::error::/$p returned $code"; exit 1; }
+          done
+
+          # Apple and Google both fetch these directly — no redirect, and the
+          # AASA file specifically must come back as application/json with no
+          # extension, or iOS silently refuses to associate the domain.
+          for p in .well-known/apple-app-site-association .well-known/assetlinks.json; do
+            content_type=$(curl -sS -o /dev/null -w '%{content_type}' --max-time 20 "https://gigaway.app/$p")
+            echo "  /$p → $content_type"
+            case "$content_type" in
+              application/json*) ;;
+              *) echo "::error::/$p served as '$content_type', not application/json"; exit 1 ;;
+            esac
           done
