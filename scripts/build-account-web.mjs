@@ -276,11 +276,20 @@ for (const env of ENVIRONMENTS) {
   // --- _headers ---
   // Cloudflare Pages must serve the AASA file as application/json with no
   // redirect and no extension — Apple follows neither redirects nor content
-  // negotiation to fetch it. callback.asset needs an explicit Content-Type
-  // too, now that its extension no longer implies one.
+  // negotiation to fetch it.
+  //
+  // The Content-Type rule for the callback page is keyed on CALLBACK_PATH
+  // (the externally-requested URL, /callback), not callback.asset (the
+  // internal file the _redirects rewrite below resolves to) — confirmed
+  // empirically, 2026-10-02: a rule written against /callback.asset was
+  // silently ignored, and the page served through the rewrite came back as
+  // application/octet-stream (its extension's generic default), which a
+  // real browser would try to download rather than render. _headers
+  // matching happens against the request path, before _redirects resolves
+  // it internally, so the rule has to target the same path _redirects does.
   writeFileSync(
     join(env.outDir, '_headers'),
-    `/.well-known/apple-app-site-association\n  Content-Type: application/json\n\n/.well-known/assetlinks.json\n  Content-Type: application/json\n\n/callback.asset\n  Content-Type: text/html; charset=utf-8\n`,
+    `/.well-known/apple-app-site-association\n  Content-Type: application/json\n\n/.well-known/assetlinks.json\n  Content-Type: application/json\n\n${CALLBACK_PATH}\n  Content-Type: text/html; charset=utf-8\n`,
   )
 
   // --- _redirects ---

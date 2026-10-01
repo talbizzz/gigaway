@@ -5,12 +5,15 @@
  *
  *   verify-account-deploy.mjs <base-url>
  *
- * Two things, each a way a "successful" upload can still be broken:
+ * Three things, each a way a "successful" upload can still be broken:
  *   - `/callback` serves the fallback page with no redirect — pinned by an
  *     explicit `_redirects` rewrite rule in build-account-web.mjs, not left
  *     to Cloudflare's own extensionless-path handling, which turned out to
  *     normalize in opposite directions on the bare *.pages.dev URL versus
  *     the real custom domain (confirmed empirically 2026-10-02)
+ *   - `/callback` serves it as `text/html`, not the backing file's
+ *     extension-default `application/octet-stream` — a real browser
+ *     downloads the latter instead of rendering it (also found 2026-10-02)
  *   - `/.well-known/apple-app-site-association` serves as application/json —
  *     proof _headers was applied; Apple follows no redirects and does no
  *     content negotiation to fetch this file, so the wrong content type
@@ -38,6 +41,15 @@ const get = (path) => fetch(`${base}${path}`, { redirect: 'manual', signal: Abor
 async function check() {
   const callback = await get('/callback')
   if (callback.status !== 200) throw new Error(`/callback returned ${callback.status}`)
+  // Status 200 alone isn't enough — this exact page once served 200 with
+  // Content-Type: application/octet-stream (its backing file's extension
+  // has no implied type, and the _headers rule fixing that has to target
+  // the requested path, not the internal one — easy to get wrong again).
+  // A real browser would try to download that instead of rendering it.
+  const callbackContentType = callback.headers.get('content-type') ?? ''
+  if (!callbackContentType.startsWith('text/html')) {
+    throw new Error(`/callback served as '${callbackContentType}', not text/html`)
+  }
 
   const aasa = await get('/.well-known/apple-app-site-association')
   if (aasa.status !== 200) throw new Error(`/.well-known/apple-app-site-association returned ${aasa.status}`)
