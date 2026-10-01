@@ -39,18 +39,14 @@ jobs:
       # 5. Reuses the same Supabase secrets keepalive.yml already has; anon
       # keys are safe to embed client-side (RLS is what protects data, not
       # secrecy of this key).
+      # The two Android SHA-256 fingerprints are hardcoded in the script
+      # itself, not passed as secrets — see its own comment for why.
       - name: Add Universal Link / App Link files
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
           SUPABASE_DEV_URL: ${{ secrets.SUPABASE_DEV_URL }}
           SUPABASE_DEV_ANON_KEY: ${{ secrets.SUPABASE_DEV_ANON_KEY }}
-          # Both default to a placeholder until retrieved by hand — prod's
-          # from Play Console (Setup → App integrity), dev's from the next
-          # EAS dev-client build. A placeholder means Android App Links
-          # won't verify yet; it does not break anything already live.
-          PROD_ANDROID_SHA256: ${{ secrets.PROD_ANDROID_SHA256 }}
-          DEV_ANDROID_SHA256: ${{ secrets.DEV_ANDROID_SHA256 }}
         run: pnpm build:auth-web
 
       # scripts/publish-pages.mjs runs wrangler through npx and always passes

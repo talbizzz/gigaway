@@ -44,21 +44,27 @@ const APPLE_TEAM_ID = '6V6QDY52A4'
 const PROD_BUNDLE_ID = 'app.gigaway.mobile'
 const DEV_BUNDLE_ID = 'app.gigaway.mobile.dev'
 
-// Neither fingerprint can be fetched by this script. Google Play re-signs a
-// published app with its own key ("Play App Signing"), so the certificate
-// that matters for prod lives in Play Console (Setup → App integrity → App
-// signing key certificate → SHA-256), not in `eas credentials`. The dev
-// variant has never gone through an EAS build at all — it's been tested via
-// a local `expo run:android`, which uses a machine-local debug keystore — so
-// its real fingerprint only exists once a real EAS dev-client build has been
-// made (`eas credentials -p android`, or extract it from that build's .apk).
-// `||`, not `??`: an unset GitHub secret resolves to an empty string in the
-// workflow, not undefined, so `??` would silently let "" through instead of
-// falling back to the placeholder.
-const PROD_ANDROID_SHA256 = process.env.PROD_ANDROID_SHA256 || 'PENDING_PLAY_CONSOLE_APP_SIGNING_CERT'
-const DEV_ANDROID_SHA256 = process.env.DEV_ANDROID_SHA256 || 'PENDING_EAS_DEV_BUILD_CERT'
+// Like APPLE_TEAM_ID above, neither of these is secret — assetlinks.json is
+// published specifically so Android can fetch and read it. Hardcoded rather
+// than routed through a GitHub secret for the same reason.
+//
+// Prod's is the Play App Signing certificate (Play re-signs every published
+// app with its own key, so this is NOT the same certificate `eas
+// credentials` would show — that's the upload key, a different thing).
+// Retrieved 2026-10-01 from Play Console → Protected with Play → Automatic
+// protection → Advanced settings → Classical key → SHA-256 certificate
+// fingerprint.
+const PROD_ANDROID_SHA256 =
+  'C6:53:65:58:FA:D6:5F:4B:3A:6B:93:25:AC:48:63:93:A8:6C:B8:AE:DB:23:5C:F6:DD:81:37:0E:2F:DB:FD:AB'
 
-const PLACEHOLDER_MARKERS = ['PENDING_PLAY_CONSOLE_APP_SIGNING_CERT', 'PENDING_EAS_DEV_BUILD_CERT']
+// Dev's doesn't exist yet — dev testing has only ever used a local
+// `expo run:android` build, never an EAS one, so there's no certificate to
+// point at until that build happens. Fetch it with `keytool -list -v
+// -keystore ~/.android/debug.keystore -alias androiddebugkey -storepass
+// android -keypass android` once it does, and replace this placeholder.
+const DEV_ANDROID_SHA256 = 'PENDING_LOCAL_ANDROID_BUILD'
+
+const PLACEHOLDER_MARKERS = ['PENDING_LOCAL_ANDROID_BUILD']
 
 const PROD_SUPABASE_URL = required(process.env.SUPABASE_URL, 'SUPABASE_URL')
 const PROD_SUPABASE_ANON_KEY = required(process.env.SUPABASE_ANON_KEY, 'SUPABASE_ANON_KEY')
@@ -121,9 +127,10 @@ const usingPlaceholder = PLACEHOLDER_MARKERS.some(
 )
 if (usingPlaceholder) {
   console.warn(
-    '\n  ⚠ assetlinks.json has a placeholder SHA-256 fingerprint — Android App Links will not ' +
-      'verify until PROD_ANDROID_SHA256 (Play Console → Setup → App integrity) and ' +
-      'DEV_ANDROID_SHA256 (from the next EAS dev-client build) are both real.\n',
+    "\n  ⚠ assetlinks.json still has the dev variant's placeholder SHA-256 fingerprint — " +
+      'Android App Links will not verify for the dev build until DEV_ANDROID_SHA256 is replaced ' +
+      "with the real one (keytool against ~/.android/debug.keystore, once a build exists). " +
+      "Prod's is already real.\n",
   )
 }
 
