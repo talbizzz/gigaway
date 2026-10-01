@@ -255,30 +255,40 @@ for (const env of ENVIRONMENTS) {
   writeFileSync(join(wellKnownDir, 'assetlinks.json'), JSON.stringify(assetlinks, null, 2))
 
   // --- the fallback page itself ---
-  // Written as callback.html; _redirects below is what actually makes
-  // CALLBACK_PATH (/callback) serve this, not Cloudflare's own guess.
+  // Written with a deliberately non-.html extension (.asset) and served via
+  // the _redirects rewrite below, not at its own filename. A first attempt
+  // used callback.html directly: Cloudflare Pages auto-redirects *any*
+  // request that resolves to a .html file over to the extensionless form
+  // (the same built-in behavior build-legal.mjs's own comment relies on for
+  // privacy.html -> /privacy) — including, it turns out, one reached via an
+  // internal _redirects rewrite rather than a direct request. That collided
+  // with the rewrite below (CALLBACK_PATH -> callback.html) into a literal
+  // self-redirect loop (confirmed empirically, 2026-10-02: requesting
+  // CALLBACK_PATH came back as a 308 whose Location header was CALLBACK_PATH
+  // itself). An extension Cloudflare has no special handling for sidesteps
+  // the conflict entirely; _headers below sets its Content-Type by hand
+  // since the extension no longer implies one.
   writeFileSync(
-    join(env.outDir, 'callback.html'),
+    join(env.outDir, 'callback.asset'),
     callbackPage({ supabaseUrl: env.supabaseUrl, supabaseAnonKey: env.supabaseAnonKey }),
   )
 
   // --- _headers ---
   // Cloudflare Pages must serve the AASA file as application/json with no
   // redirect and no extension — Apple follows neither redirects nor content
-  // negotiation to fetch it.
+  // negotiation to fetch it. callback.asset needs an explicit Content-Type
+  // too, now that its extension no longer implies one.
   writeFileSync(
     join(env.outDir, '_headers'),
-    `/.well-known/apple-app-site-association\n  Content-Type: application/json\n\n/.well-known/assetlinks.json\n  Content-Type: application/json\n`,
+    `/.well-known/apple-app-site-association\n  Content-Type: application/json\n\n/.well-known/assetlinks.json\n  Content-Type: application/json\n\n/callback.asset\n  Content-Type: text/html; charset=utf-8\n`,
   )
 
   // --- _redirects ---
   // A 200 status here is a rewrite, not an HTTP redirect: Cloudflare serves
-  // callback.html's content at the exact CALLBACK_PATH URL, with no
-  // round-trip and no dependence on whichever way a given hostname's
-  // default extensionless-path handling happens to go (see CALLBACK_PATH's
-  // comment above — confirmed to differ between the bare *.pages.dev URL
-  // and the real custom domain for this exact project).
-  writeFileSync(join(env.outDir, '_redirects'), `${CALLBACK_PATH}  /callback.html  200\n`)
+  // callback.asset's content at the exact CALLBACK_PATH URL, with no visible
+  // round-trip — and, unlike callback.html, nothing about serving a .asset
+  // file triggers Cloudflare's own redirect behavior to fight this rule.
+  writeFileSync(join(env.outDir, '_redirects'), `${CALLBACK_PATH}  /callback.asset  200\n`)
 
   console.log(`${env.outDir.replace(root + '/', '')}/ built — ${env.domain}`)
 }
