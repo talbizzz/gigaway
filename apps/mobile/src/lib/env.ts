@@ -39,8 +39,11 @@ export const env = {
    * domain (account.gigaway.app / account-dev.gigaway.app) rather than
    * sharing one with path-scoping, so both app variants can be tested
    * independently — see Milestone-5-Ship-It.md, "Corrections made during
-   * implementation" 6.
+   * implementation" 6. Trailing slash is load-bearing: this Cloudflare
+   * Pages project normalizes extensionless paths by redirecting to one with
+   * a trailing slash, and Android's intent filter only verifies against the
+   * literal URL in this value, which never follows redirects to get there.
    */
   accountCallbackUrl:
-    process.env.EXPO_PUBLIC_ACCOUNT_CALLBACK_URL ?? 'https://account.gigaway.app/callback',
+    process.env.EXPO_PUBLIC_ACCOUNT_CALLBACK_URL ?? 'https://account.gigaway.app/callback/',
 } as const
