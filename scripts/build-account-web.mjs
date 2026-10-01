@@ -38,18 +38,17 @@ function required(value, name) {
 // already exposes this one publicly.
 const APPLE_TEAM_ID = '6V6QDY52A4'
 
-// WITH the trailing slash, deliberately. These gigaway-account(-dev) Pages
-// projects turn out to normalize every extensionless path by redirecting it
-// to one with a trailing slash first (a per-project default apparently
-// different from whatever the older gigaway-admin(-dev) projects got) —
-// confirmed empirically against the real deployment, 2026-10-02: a flat
-// callback.html served at /callback redirected (308) to /callback/, and
-// callback.html's own literal extensioned path 404'd outright. Rather than
-// depend on a dashboard setting this script can't control, every reference
-// to this path (here, in the mobile app's EXPO_PUBLIC_ACCOUNT_CALLBACK_URL,
-// and in verify-account-deploy.mjs) just targets the form Cloudflare
-// actually serves with 200.
-const CALLBACK_PATH = '/callback/'
+// No trailing slash — and it's pinned by an explicit _redirects rewrite
+// below, not left to Cloudflare's own clean-URL guessing. Confirmed
+// empirically, 2026-10-02: the bare *.pages.dev deployment URL and the real
+// account-dev.gigaway.app custom domain normalize extensionless paths in
+// OPPOSITE directions (one redirects /callback -> /callback/, the other
+// /callback/ -> /callback) — almost certainly because the custom domain
+// sits inside the gigaway.app zone, picking up zone-level behavior the raw
+// pages.dev hostname never sees. Chasing whichever one the OS validator
+// happens to hit was never going to be reliable, hence the rewrite rule
+// instead of relying on either host's default.
+const CALLBACK_PATH = '/callback'
 
 const PROD_SUPABASE_URL = required(process.env.SUPABASE_URL, 'SUPABASE_URL')
 const PROD_SUPABASE_ANON_KEY = required(process.env.SUPABASE_ANON_KEY, 'SUPABASE_ANON_KEY')
@@ -225,8 +224,9 @@ for (const env of ENVIRONMENTS) {
   // No file extension, and Cloudflare must serve this as application/json —
   // see the _headers rule below. Apple follows no redirects to get here.
   //
-  // Exact match on /callback/ WITH the trailing slash — see the comment on
-  // CALLBACK_PATH below for why that's the one that actually serves 200.
+  // Exact match on CALLBACK_PATH, pinned to resolve with no redirect by the
+  // _redirects rewrite below — see that constant's own comment for why this
+  // isn't just left to Cloudflare's default extensionless-path handling.
   const aasa = {
     applinks: {
       details: [
@@ -255,9 +255,8 @@ for (const env of ENVIRONMENTS) {
   writeFileSync(join(wellKnownDir, 'assetlinks.json'), JSON.stringify(assetlinks, null, 2))
 
   // --- the fallback page itself ---
-  // A flat callback.html — Cloudflare maps a request for CALLBACK_PATH
-  // (/callback/) to this file; see CALLBACK_PATH's own comment above for why
-  // the trailing slash is load-bearing here.
+  // Written as callback.html; _redirects below is what actually makes
+  // CALLBACK_PATH (/callback) serve this, not Cloudflare's own guess.
   writeFileSync(
     join(env.outDir, 'callback.html'),
     callbackPage({ supabaseUrl: env.supabaseUrl, supabaseAnonKey: env.supabaseAnonKey }),
@@ -271,6 +270,15 @@ for (const env of ENVIRONMENTS) {
     join(env.outDir, '_headers'),
     `/.well-known/apple-app-site-association\n  Content-Type: application/json\n\n/.well-known/assetlinks.json\n  Content-Type: application/json\n`,
   )
+
+  // --- _redirects ---
+  // A 200 status here is a rewrite, not an HTTP redirect: Cloudflare serves
+  // callback.html's content at the exact CALLBACK_PATH URL, with no
+  // round-trip and no dependence on whichever way a given hostname's
+  // default extensionless-path handling happens to go (see CALLBACK_PATH's
+  // comment above — confirmed to differ between the bare *.pages.dev URL
+  // and the real custom domain for this exact project).
+  writeFileSync(join(env.outDir, '_redirects'), `${CALLBACK_PATH}  /callback.html  200\n`)
 
   console.log(`${env.outDir.replace(root + '/', '')}/ built — ${env.domain}`)
 }

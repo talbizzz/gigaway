@@ -6,10 +6,11 @@
  *   verify-account-deploy.mjs <base-url>
  *
  * Two things, each a way a "successful" upload can still be broken:
- *   - `/callback/` (trailing slash — this project normalizes extensionless
- *     paths that way, confirmed empirically 2026-10-02; the bare `/callback`
- *     308-redirects here rather than serving directly) serves the fallback
- *     page, not a Cloudflare error page
+ *   - `/callback` serves the fallback page with no redirect — pinned by an
+ *     explicit `_redirects` rewrite rule in build-account-web.mjs, not left
+ *     to Cloudflare's own extensionless-path handling, which turned out to
+ *     normalize in opposite directions on the bare *.pages.dev URL versus
+ *     the real custom domain (confirmed empirically 2026-10-02)
  *   - `/.well-known/apple-app-site-association` serves as application/json —
  *     proof _headers was applied; Apple follows no redirects and does no
  *     content negotiation to fetch this file, so the wrong content type
@@ -35,8 +36,8 @@ const startedAt = Date.now()
 const get = (path) => fetch(`${base}${path}`, { redirect: 'manual', signal: AbortSignal.timeout(20_000) })
 
 async function check() {
-  const callback = await get('/callback/')
-  if (callback.status !== 200) throw new Error(`/callback/ returned ${callback.status}`)
+  const callback = await get('/callback')
+  if (callback.status !== 200) throw new Error(`/callback returned ${callback.status}`)
 
   const aasa = await get('/.well-known/apple-app-site-association')
   if (aasa.status !== 200) throw new Error(`/.well-known/apple-app-site-association returned ${aasa.status}`)
