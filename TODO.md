@@ -452,14 +452,37 @@ Progress checklist. Detail lives in the `Milestone-N-*.md` files.
         no committed `ios/`/`android/`, regenerated fresh from
         `app.config.ts` on every build). Also where the dev Android
         fingerprint above came from.
-  - [ ] **Not yet live anywhere.** Needs three new Cloudflare Pages custom
-        domains attached by hand (`legal.gigaway.app`, `account.gigaway.app`,
-        `account-dev.gigaway.app`) — same manual step `admin.gigaway.app`
-        needed earlier; the deploy workflows create the underlying Pages
-        projects automatically on first push to `develop`/`main`, but can't
-        attach a custom domain themselves. Also: update the privacy policy
-        URL on file in Play Console once `legal.gigaway.app` is live — not
-        urgent, since neither store submission is actually under review yet.
+  - [x] **`account-dev.gigaway.app` is live and verified** (2026-10-02):
+        `/callback` returns 200 as `text/html` with the real page content,
+        both `.well-known` files serve as `application/json`. Took three
+        follow-up fixes after the first real deploy, each only found by
+        checking the actual response, not by reasoning about it — see
+        `scripts/build-account-web.mjs`'s own comments on `CALLBACK_PATH`
+        for the full history: (1) a flat `callback.html` redirected to
+        `callback/index.html`'s trailing-slash form; (2) the bare
+        `*.pages.dev` URL and the real custom domain turned out to
+        normalize extensionless paths in *opposite* directions, so there
+        was no single trailing-slash convention to standardize on; (3) an
+        explicit `_redirects` rewrite rule fixed that, but Cloudflare's own
+        `.html`-stripping behavior fought it into a literal self-redirect
+        loop, fixed by writing the page as a non-`.html` `.asset` file
+        instead; (4) that then served with `Content-Type:
+        application/octet-stream` (a real browser would download it, not
+        render it) because the `_headers` content-type rule was keyed on
+        the internal filename rather than the externally-requested path.
+        `verify-account-deploy.mjs` now checks both the content-type bugs
+        specifically, not just status 200.
+  - [ ] **`legal.gigaway.app` and `account.gigaway.app` (prod) still need
+        the same treatment.** Both require merging to `main` first (neither
+        deploy workflow runs on `develop` for these two), then attaching
+        the custom domain by hand in Cloudflare, same manual step as
+        `account-dev.gigaway.app` and `admin.gigaway.app` before it. Given
+        what `account-dev` just went through, re-verify the response
+        headers directly after attaching each domain rather than assuming
+        the dev fixes automatically carry over. Also: update the privacy
+        policy URL on file in Play Console once `legal.gigaway.app` is
+        live — not urgent, since neither store submission is actually under
+        review yet.
   - [ ] Custom SMTP + site_url/redirect URLs on **dev**, flip
         `enable_confirmations` on for dev, walk the full round trip on a
         real device: confirmation email → tap → lands in app; request
