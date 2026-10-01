@@ -417,16 +417,19 @@ Progress checklist. Detail lives in the `Milestone-N-*.md` files.
         `ci.yml` so a broken script fails a PR, not a deploy. AASA lists
         both app IDs path-scoped to their own callback path; assetlinks.json
         lists both package names. **Both Android SHA-256 fingerprints are
-        still placeholders** — neither can be fetched by a script: prod's
-        real cert lives in Play Console (Setup → App integrity → App
-        signing key certificate), since Play re-signs the app with its own
-        key; dev's doesn't exist anywhere yet, since dev testing has only
-        ever used a local `expo run:android` build, never an EAS one — it
-        only becomes fetchable once the new dev-client build below exists
-        (`eas credentials -p android`, or extract it from that build
-        directly). The build script warns loudly on every run while either
-        is a placeholder. iOS needs no such value — Apple's Team ID
-        (`6V6QDY52A4`) is already known and isn't secret.
+        now real**, hardcoded directly in the script (not a GitHub secret —
+        neither is actually sensitive, same reasoning as the Apple Team ID).
+        Prod's: Play Console → Protected with Play → Automatic protection →
+        Advanced settings → Classical key → SHA-256 certificate fingerprint
+        — **not** `eas credentials`, since Play re-signs the published app
+        with its own key and that would have been the wrong certificate
+        entirely. Dev's: `keytool` against the project-local debug keystore
+        (`apps/mobile/android/app/debug.keystore` — this project's build
+        puts it there, not the usual machine-wide
+        `~/.android/debug.keystore`), after the first local
+        `expo run:android` build with the new associated-domains config.
+        Tied to this machine; would need regenerating if the keystore is
+        ever reset or testing moves to a different computer.
   - [x] Web fallback page that does a **real** password reset — also from
         `build-auth-web.mjs`: `site/auth/callback.html` and
         `site/auth/dev-callback.html`, each hardcoded to its own project's
@@ -438,9 +441,12 @@ Progress checklist. Detail lives in the `Milestone-N-*.md` files.
         branches on `PASSWORD_RECOVERY` vs `SIGNED_IN` exactly like the
         native gate does. **Not yet deployed** — this lands with the next
         push to `main` that touches these paths.
-  - [ ] New dev-client build — associated domains is a native capability,
-        can't be tested without rebuilding. Also the source of the dev
-        Android fingerprint above.
+  - [x] New dev-client build — `pnpm ios -- --device` and
+        `pnpm android -- --device`, both local rather than EAS (associated
+        domains applies correctly either way, since this project uses CNG —
+        no committed `ios/`/`android/`, regenerated fresh from
+        `app.config.ts` on every build). Also where the dev Android
+        fingerprint above came from.
   - [ ] Custom SMTP + site_url/redirect URLs on **dev**, flip
         `enable_confirmations` on for dev, walk the full round trip on a
         real device: confirmation email → tap → lands in app; request
