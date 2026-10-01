@@ -50,16 +50,16 @@ const config: ExpoConfig = {
       ITSAppUsesNonExemptEncryption: false,
     },
     /**
-     * Both variants claim the same domain, deliberately — unlike `scheme`
-     * above, which is split per variant specifically to avoid iOS picking
-     * one app arbitrarily. Universal Links don't have that ambiguity problem
-     * in the first place: `apple-app-site-association` on gigaway.app lists
-     * both app IDs, each scoped to its own path (`/auth/callback` for prod,
-     * `/auth/dev-callback` for dev), so iOS already knows which app a given
-     * link belongs to before either one is even asked. See
-     * Milestone-5-Ship-It.md, "Corrections made during implementation" 5.
+     * Each variant gets its own domain — account.gigaway.app for prod,
+     * account-dev.gigaway.app for dev — rather than one shared domain with
+     * path-scoping. That was the first design (both variants claiming
+     * `applinks:gigaway.app`, disambiguated by path in the AASA file); split
+     * into separate domains once it became clear "account" needed a
+     * genuinely independent staging target, not just a path on a shared
+     * prod domain. See Milestone-5-Ship-It.md, "Corrections made during
+     * implementation" 6.
      */
-    associatedDomains: ['applinks:gigaway.app'],
+    associatedDomains: [isDev ? 'applinks:account-dev.gigaway.app' : 'applinks:account.gigaway.app'],
   },
   android: {
     package: bundleId,
@@ -74,12 +74,8 @@ const config: ExpoConfig = {
       monochromeImage: './assets/images/android-icon-monochrome.png',
     },
     predictiveBackGestureEnabled: false,
-    /**
-     * Unlike iOS, the path restriction lives here too, not only in
-     * assetlinks.json — each variant's intent filter only ever fires for its
-     * own callback path, so there is no runtime ambiguity between the two
-     * variants even before Android verifies the domain association.
-     */
+    // Same per-variant domain as iOS's associatedDomains above; /callback is
+    // the only path either domain ever serves.
     intentFilters: [
       {
         action: 'VIEW',
@@ -87,8 +83,8 @@ const config: ExpoConfig = {
         data: [
           {
             scheme: 'https',
-            host: 'gigaway.app',
-            pathPrefix: isDev ? '/auth/dev-callback' : '/auth/callback',
+            host: isDev ? 'account-dev.gigaway.app' : 'account.gigaway.app',
+            pathPrefix: '/callback',
           },
         ],
         category: ['BROWSABLE', 'DEFAULT'],

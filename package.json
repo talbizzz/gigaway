@@ -8,7 +8,7 @@
   },
   "scripts": {
     "build:legal": "node scripts/build-legal.mjs",
-    "build:auth-web": "node scripts/build-auth-web.mjs",
+    "build:account-web": "node scripts/build-account-web.mjs",
     "sync:shared": "node scripts/sync-shared.mjs",
     "sync:shared:check": "node scripts/sync-shared.mjs --check",
     "typecheck": "pnpm -r --if-present typecheck",

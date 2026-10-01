@@ -1,0 +1,10 @@
+# The legal pages used to live here directly; they moved to their own
+# subdomain so this root domain is free for the Milestone 5 landing page —
+# see Milestone-5-Ship-It.md, "Corrections made during implementation" 6.
+# Kept as redirects, not removed, so nothing already linking or bookmarking
+# the old gigaway.app/privacy-style URLs ever hits a dead page.
+/privacy        https://legal.gigaway.app/privacy        301
+/terms          https://legal.gigaway.app/terms          301
+/guidelines     https://legal.gigaway.app/guidelines     301
+/impressum      https://legal.gigaway.app/impressum      301
+/delete-account https://legal.gigaway.app/delete-account 301

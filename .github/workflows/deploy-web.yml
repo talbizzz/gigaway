@@ -1,25 +1,68 @@
 name: Deploy website
 
-# The legal pages are a hard dependency of both store listings: Play and
-# App Store both refuse a submission without a live privacy policy URL.
+# Two independent static sites, split onto their own domains so the root
+# domain is free for the Milestone 5 landing page — see
+# Milestone-5-Ship-It.md, "Corrections made during implementation" 6:
+#
+#   gigaway.app        site-root/    a placeholder + redirects for the old
+#                                    gigaway.app/privacy-style URLs, until
+#                                    the real landing page is built
+#   legal.gigaway.app  site-legal/   privacy, terms, guidelines, impressum,
+#                                    account deletion — a hard dependency of
+#                                    both store listings
+#
+# The account-callback pages (account.gigaway.app / account-dev.gigaway.app)
+# are a separate workflow, deploy-account.yml — they need a real dev/prod
+# split, which neither of these two does.
 on:
   push:
     branches: [main]
     paths:
       - 'legal/**'
+      - 'site-root/**'
       - 'scripts/build-legal.mjs'
-      - 'scripts/build-auth-web.mjs'
       - 'scripts/publish-pages.mjs'
+      - '.github/workflows/deploy-web.yml'
   workflow_dispatch: {}
 
-concurrency:
-  group: deploy-web
-  cancel-in-progress: true
-
 jobs:
-  deploy:
+  deploy-root:
+    name: Deploy root placeholder
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    concurrency:
+      group: deploy-web-root
+      cancel-in-progress: true
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Publish to Cloudflare Pages
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: node scripts/publish-pages.mjs site-root gigaway --create
+
+      - name: Verify it's live
+        run: |
+          set -euo pipefail
+          sleep 10
+          code=$(curl -sS -o /dev/null -w '%{http_code}' --max-time 20 "https://gigaway.app/")
+          echo "  / → $code"
+          [ "$code" = "200" ] || { echo "::error::/ returned $code"; exit 1; }
+
+          # 301, not followed — confirms the redirect exists without requiring
+          # legal.gigaway.app to already be live too (the two jobs run in parallel).
+          code=$(curl -sS -o /dev/null -w '%{http_code}' --max-time 20 "https://gigaway.app/privacy")
+          echo "  /privacy → $code"
+          [ "$code" = "301" ] || { echo "::error::/privacy returned $code, expected a 301 redirect"; exit 1; }
+
+  deploy-legal:
+    name: Deploy legal pages
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    concurrency:
+      group: deploy-web-legal
+      cancel-in-progress: true
     steps:
       - uses: actions/checkout@v4
 
@@ -30,54 +73,26 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
 
-      - name: Render legal/*.md into site/
+      - name: Render legal/*.md into site-legal/
         run: pnpm build:legal
-
-      # Universal Links (iOS) / App Links (Android) for the auth-callback
-      # deep link, plus the password-reset/confirmation fallback pages —
-      # see Milestone-5-Ship-It.md, "Corrections made during implementation"
-      # 5. Reuses the same Supabase secrets keepalive.yml already has; anon
-      # keys are safe to embed client-side (RLS is what protects data, not
-      # secrecy of this key).
-      # The two Android SHA-256 fingerprints are hardcoded in the script
-      # itself, not passed as secrets — see its own comment for why.
-      - name: Add Universal Link / App Link files
-        env:
-          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
-          SUPABASE_DEV_URL: ${{ secrets.SUPABASE_DEV_URL }}
-          SUPABASE_DEV_ANON_KEY: ${{ secrets.SUPABASE_DEV_ANON_KEY }}
-        run: pnpm build:auth-web
 
       # scripts/publish-pages.mjs runs wrangler through npx and always passes
       # `--branch main`. Without that flag wrangler files the deploy as a preview
-      # and gigaway.app keeps serving the previous version while the run reports
-      # success. (It replaced cloudflare/wrangler-action, whose `pnpm add wrangler`
-      # at the workspace root pnpm refuses.)
+      # and legal.gigaway.app keeps serving the previous version while the run
+      # reports success. (It replaced cloudflare/wrangler-action, whose
+      # `pnpm add wrangler` at the workspace root pnpm refuses.)
       - name: Publish to Cloudflare Pages
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-        run: node scripts/publish-pages.mjs site gigaway
+        run: node scripts/publish-pages.mjs site-legal gigaway-legal --create
 
       - name: Verify the pages are live
         run: |
           set -euo pipefail
           sleep 10
-          for p in privacy terms guidelines impressum delete-account auth/callback auth/dev-callback; do
-            code=$(curl -sS -o /dev/null -w '%{http_code}' --max-time 20 "https://gigaway.app/$p")
+          for p in privacy terms guidelines impressum delete-account; do
+            code=$(curl -sS -o /dev/null -w '%{http_code}' --max-time 20 "https://legal.gigaway.app/$p")
             echo "  /$p → $code"
             [ "$code" = "200" ] || { echo "::error::/$p returned $code"; exit 1; }
-          done
-
-          # Apple and Google both fetch these directly — no redirect, and the
-          # AASA file specifically must come back as application/json with no
-          # extension, or iOS silently refuses to associate the domain.
-          for p in .well-known/apple-app-site-association .well-known/assetlinks.json; do
-            content_type=$(curl -sS -o /dev/null -w '%{content_type}' --max-time 20 "https://gigaway.app/$p")
-            echo "  /$p → $content_type"
-            case "$content_type" in
-              application/json*) ;;
-              *) echo "::error::/$p served as '$content_type', not application/json"; exit 1 ;;
-            esac
           done

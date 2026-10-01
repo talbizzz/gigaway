@@ -28,7 +28,7 @@ export default function ForgotPasswordScreen() {
   const onSubmit = form.handleSubmit(async (values) => {
     setSubmitError(null)
     const { error } = await supabase.auth.resetPasswordForEmail(values.email, {
-      redirectTo: `${env.webBaseUrl}${env.authCallbackPath}`,
+      redirectTo: env.accountCallbackUrl,
     })
 
     if (error) {
