@@ -57,14 +57,17 @@ const DEV_BUNDLE_ID = 'app.gigaway.mobile.dev'
 const PROD_ANDROID_SHA256 =
   'C6:53:65:58:FA:D6:5F:4B:3A:6B:93:25:AC:48:63:93:A8:6C:B8:AE:DB:23:5C:F6:DD:81:37:0E:2F:DB:FD:AB'
 
-// Dev's doesn't exist yet — dev testing has only ever used a local
-// `expo run:android` build, never an EAS one, so there's no certificate to
-// point at until that build happens. Fetch it with `keytool -list -v
-// -keystore ~/.android/debug.keystore -alias androiddebugkey -storepass
-// android -keypass android` once it does, and replace this placeholder.
-const DEV_ANDROID_SHA256 = 'PENDING_LOCAL_ANDROID_BUILD'
-
-const PLACEHOLDER_MARKERS = ['PENDING_LOCAL_ANDROID_BUILD']
+// Dev's is the project-local debug keystore CNG/Gradle generates on a local
+// `expo run:android` build — note this one is NOT ~/.android/debug.keystore
+// (the machine-wide default keytool docs usually point at); this project's
+// build puts it inside the generated android/ folder instead. Retrieved
+// 2026-10-01 with:
+//   keytool -list -v -keystore apps/mobile/android/app/debug.keystore \
+//     -alias androiddebugkey -storepass android -keypass android
+// Tied to this machine — regenerate if the keystore is ever reset or dev
+// testing moves to a different computer.
+const DEV_ANDROID_SHA256 =
+  'FA:C6:17:45:DC:09:03:78:6F:B9:ED:E6:2A:96:2B:39:9F:73:48:F0:BB:6F:89:9B:83:32:66:75:91:03:3B:9C'
 
 const PROD_SUPABASE_URL = required(process.env.SUPABASE_URL, 'SUPABASE_URL')
 const PROD_SUPABASE_ANON_KEY = required(process.env.SUPABASE_ANON_KEY, 'SUPABASE_ANON_KEY')
@@ -121,18 +124,6 @@ const assetlinks = [
 
 writeFileSync(join(wellKnownDir, 'assetlinks.json'), JSON.stringify(assetlinks, null, 2))
 console.log('  /.well-known/assetlinks.json'.padEnd(42) + '← generated')
-
-const usingPlaceholder = PLACEHOLDER_MARKERS.some(
-  (marker) => PROD_ANDROID_SHA256 === marker || DEV_ANDROID_SHA256 === marker,
-)
-if (usingPlaceholder) {
-  console.warn(
-    "\n  ⚠ assetlinks.json still has the dev variant's placeholder SHA-256 fingerprint — " +
-      'Android App Links will not verify for the dev build until DEV_ANDROID_SHA256 is replaced ' +
-      "with the real one (keytool against ~/.android/debug.keystore, once a build exists). " +
-      "Prod's is already real.\n",
-  )
-}
 
 // --- auth callback fallback pages ----------------------------------------
 
