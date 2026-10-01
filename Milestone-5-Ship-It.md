@@ -103,16 +103,20 @@ requiring external review is submitted first and polished while it queues.
 
 #### 3. Deep-link association
 
+> **Superseded by Correction 6**: one app ID per domain now
+> (`account.gigaway.app` / `account-dev.gigaway.app`), not two on a shared
+> `gigaway.app` as described below — kept for the mechanics, which are still
+> accurate, just not the domain layout.
+
 - **iOS:** serve `/.well-known/apple-app-site-association` with no file extension and
-  `Content-Type: application/json`, listing **two** app IDs on the same domain — prod's
-  scoped to path `/auth/callback/*`, and the dev variant's scoped to
-  `/auth/dev-callback/*`. Set `associatedDomains: ["applinks:gigaway.app"]` in
-  `app.config.ts` for both variants. See Correction 5 for why both need to coexist on one
-  domain rather than one file per environment.
-- **Android:** serve `/.well-known/assetlinks.json` the same way — two `package_name` /
-  `sha256_cert_fingerprints` entries, one per variant, each scoped to its own path. Take
-  each fingerprint **from `eas credentials` for that exact profile** — a local debug
-  keystore fingerprint will not match.
+  `Content-Type: application/json`. Set `associatedDomains: ["applinks:<domain>"]` in
+  `app.config.ts`, one domain per variant (Correction 6).
+- **Android:** serve `/.well-known/assetlinks.json` the same way. Take the fingerprint
+  **from Play Console's App Signing certificate for prod** (not `eas credentials` — Play
+  re-signs the published app with its own key, so that would be the wrong certificate
+  entirely) and, for dev, from whatever actually signed the build under test — a local
+  `expo run:android` build's debug keystore has one too (Correction 6 has the exact
+  `keytool` invocation), it's just tied to that one machine.
 - Cloudflare Pages needs explicit headers configuration (a `_headers` file) so both files
   are served with the correct content type and no redirect.
 - **Both files must be live before submitting a production build for review**, since
@@ -120,9 +124,9 @@ requiring external review is submitted first and polished while it queues.
 
 #### 4. Expo Router deep-link handling
 
-- A route under the app's own auth-callback path (`/auth/callback` for prod,
-  `/auth/dev-callback` for the dev variant) catches the incoming URL via Expo's
-  `Linking`, extracts the session/token, and:
+- A route at the app's own `/callback` path (Correction 6: one domain per
+  variant now, so no path-scoping is needed here either) catches the incoming URL via
+  Expo's `Linking`, extracts the session/token, and:
   - a confirmation link (`type=signup`) → establish the session, land in the app (the
     "check your email" branch already exists in `sign-up.tsx`)
   - a recovery link (`type=recovery`) → establish the recovery session, route to the new
@@ -288,7 +292,7 @@ None. This milestone adds no tables.
 | `NOTIFICATION_FROM` | Edge Function secret | `dispatch-notifications`'s offer-accepted fallback — the one member-facing case. Must be on the Resend-verified domain, and should match the SMTP sender below |
 | SMTP host / port / user / pass | Supabase Auth settings | From Resend; these are not function secrets |
 | `site_url` | Supabase Auth settings | Real domain — **not** the `127.0.0.1:3000` in `config.toml` |
-| `additional_redirect_urls` | Supabase Auth settings | `https://gigaway.app/auth/callback` (prod) and `https://gigaway.app/auth/dev-callback` (dev) — Universal Links, not a bare app scheme, see Correction 5 |
+| `additional_redirect_urls` | Supabase Auth settings | `https://account.gigaway.app/callback` (prod) / `https://account-dev.gigaway.app/callback` (dev) — Universal Links, not a bare app scheme; see Corrections 5 and 6 |
 
 ---
 
@@ -318,10 +322,16 @@ None. This milestone adds no tables.
 
 ## Done Criteria
 
-- [ ] `https://<domain>/` is live and describes the product
-- [ ] `/privacy`, `/terms` and `/guidelines` are live and reachable without JavaScript
-- [ ] `/.well-known/apple-app-site-association` serves as `application/json`, no redirect
-- [ ] `/.well-known/assetlinks.json` carries the SHA-256 of the **EAS signing certificate**
+- [ ] `https://gigaway.app/` is live and describes the product (Correction 6: or still the
+      placeholder, until the real landing page exists)
+- [ ] `https://legal.gigaway.app/privacy`, `/terms` and `/guidelines` are live and
+      reachable without JavaScript (Correction 6: moved off the root domain)
+- [ ] `/.well-known/apple-app-site-association` serves as `application/json`, no redirect,
+      on both `account.gigaway.app` and `account-dev.gigaway.app`
+- [ ] `/.well-known/assetlinks.json` carries the SHA-256 of **the certificate that actually
+      signs the installed build** — Play Console's App Signing certificate for prod (not
+      `eas credentials`'s upload-key certificate, a different thing), the local debug
+      keystore's for a local dev build (Correction 6 has the exact command either way)
 - [ ] Tapping a confirmation or recovery link with the matching app variant installed
       opens the app directly on both platforms
 - [ ] The same link **cold-starts** the app to the right screen (straight into the app for
@@ -438,12 +448,63 @@ choice changed.
      against the dev Supabase project and a fresh dev-client build (the native
      associated-domains entitlement can't be tested without one) before extending the
      association files to the prod app ID and flipping `enable_confirmations` on for prod.
+6. **The path-scoped shared domain from Correction 5 — `gigaway.app` carrying both
+   `/auth/callback` and `/auth/dev-callback` — was replaced with real per-environment
+   domains before any of it went live**, once it became clear the deeper goal was a
+   genuinely independent staging target for this feature, not just a mechanism that let
+   two app variants coexist. Scoped and built 2026-10-01, same day as Correction 5 — that
+   correction's reasoning about *why* Universal Links replaced the dead `/i/[code]` plan
+   still holds; only the domain layout changed. Three domains now exist where Correction 5
+   had one:
+   - **`gigaway.app` is freed entirely**, reserved for this milestone's still-unbuilt
+     landing page (component 1). It currently serves only a placeholder
+     (`site-root/index.html`) plus redirects from the old `/privacy`-style paths to their
+     new home below (`site-root/_redirects`) — nothing bookmarked or already submitted to
+     a store listing silently breaks.
+   - **Legal pages move to `legal.gigaway.app`** (`site-legal/`,
+     `scripts/build-legal.mjs`, unchanged content). The store listings' privacy policy URL
+     needs updating to the new address once it's live — not urgent, since neither
+     submission is actually under review yet (confirmed 2026-10-01: Android is still
+     accumulating closed-test days, iOS hasn't been submitted for review at all), but
+     worth doing before either is.
+   - **The deep-link work gets two real domains, not a shared one**: `account.gigaway.app`
+     (prod) and `account-dev.gigaway.app` (dev) — "account," not "auth," chosen
+     deliberately over the AASA/assetlinks' own terminology, since nothing here is a login
+     flow and "auth" risked reading that way; "verify" was ruled out as already meaning
+     the artist-verification review process (`verify@gigaway.app`). Each domain's
+     AASA/assetlinks now needs only one app ID, not two — the path-scoping Correction 5
+     relied on (`/auth/callback` vs `/auth/dev-callback` on one domain) is gone along with
+     the shared domain that needed it. `app.config.ts`'s `associatedDomains` is a plain
+     per-variant domain swap now instead of a shared value. `EXPO_PUBLIC_AUTH_CALLBACK_PATH`
+     + `EXPO_PUBLIC_WEB_BASE_URL` collapsed into one `EXPO_PUBLIC_ACCOUNT_CALLBACK_URL` (a
+     full URL, since there's no shared base left to combine with a path).
+   - **`scripts/build-auth-web.mjs` is renamed `build-account-web.mjs`** and now writes
+     two independent output directories (`site-account/`, `site-account-dev/`) instead of
+     one shared `site/`, each with its own `.well-known/*` and `/callback` page. A new
+     `deploy-account.yml` workflow deploys them on the same develop→dev / main→prod split
+     `deploy-admin.yml` uses, since "account" is the one piece here that actually needed a
+     real staging environment — the legal pages and root placeholder don't, and stayed on
+     a single always-current `deploy-web.yml`, now split across two parallel jobs (one per
+     domain) rather than the one it used to deploy.
+   - **Not gated behind the `production` reviewer environment**, unlike
+     `deploy-backend.yml`/`deploy-admin.yml`'s prod jobs. This is static content with no
+     migration risk, the data-safety reasoning behind that gate doesn't apply here — same
+     risk profile the legal pages already deployed under unattended.
+   - **Not yet live anywhere.** Needs three new Cloudflare Pages custom domains attached
+     by hand (`legal.gigaway.app`, `account.gigaway.app`, `account-dev.gigaway.app`), the
+     same manual step `admin.gigaway.app` needed earlier — the deploy workflows create the
+     underlying Pages projects automatically on first run, but cannot attach a custom
+     domain themselves.
 
 ## Known Risks & Watch-Outs
 
 - **`assetlinks.json` fingerprint mismatch** is the most common Android deep-link failure.
-  Take the SHA-256 from `eas credentials` for the exact profile you are shipping — a local
-  debug keystore fingerprint will not match.
+  Take the SHA-256 from whatever **actually signs the build you're testing** — for this
+  project that turned out to be Play Console's App Signing certificate for prod (`eas
+  credentials` would have given the wrong one: the upload-key certificate, not the one
+  Play re-signs with) and a local debug keystore for dev (since dev testing has only ever
+  used `expo run:android`, never an EAS build). Don't assume `eas credentials` is the
+  right source without checking which signing path your build actually went through.
 - **Cloudflare Pages may serve `apple-app-site-association` with the wrong content type or
   a redirect.** Apple follows no redirects and requires `application/json`. Configure
   headers explicitly and test with `curl -I`.
