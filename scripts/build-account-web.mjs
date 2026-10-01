@@ -211,12 +211,18 @@ for (const env of ENVIRONMENTS) {
   // --- apple-app-site-association ---
   // No file extension, and Cloudflare must serve this as application/json —
   // see the _headers rule below. Apple follows no redirects to get here.
+  //
+  // Exact match, not a `/callback/*` prefix: redirectTo is always exactly
+  // `.../callback` (Supabase appends `?code=...` as a query string, which
+  // doesn't change the path), and nothing is ever nested under this path —
+  // there is no `/callback/something` to match. A prefix pattern would also
+  // not reliably match the bare path without a trailing slash anyway.
   const aasa = {
     applinks: {
       details: [
         {
           appIDs: [`${APPLE_TEAM_ID}.${env.bundleId}`],
-          components: [{ '/': '/callback/*' }],
+          components: [{ '/': '/callback' }],
         },
       ],
     },
@@ -239,10 +245,15 @@ for (const env of ENVIRONMENTS) {
   writeFileSync(join(wellKnownDir, 'assetlinks.json'), JSON.stringify(assetlinks, null, 2))
 
   // --- the fallback page itself ---
-  const callbackDir = join(env.outDir, 'callback')
-  mkdirSync(callbackDir, { recursive: true })
+  // A flat callback.html, not callback/index.html: Cloudflare Pages serves a
+  // directory's index.html by 308-redirecting the bare path to one with a
+  // trailing slash first, which both breaks the exact-match AASA path above
+  // and fails verify-account-deploy.mjs's check (found running this for
+  // real against account-dev.gigaway.app, 2026-10-02). A top-level .html
+  // file is served at the extension-less path directly, no redirect — the
+  // same pattern build-legal.mjs already relies on.
   writeFileSync(
-    join(callbackDir, 'index.html'),
+    join(env.outDir, 'callback.html'),
     callbackPage({ supabaseUrl: env.supabaseUrl, supabaseAnonKey: env.supabaseAnonKey }),
   )
 
