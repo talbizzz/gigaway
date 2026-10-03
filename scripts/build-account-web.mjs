@@ -162,8 +162,9 @@ function callbackPage({ supabaseUrl, supabaseAnonKey }) {
 <script type="module">
   import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
+  // detectSessionInUrl off: this page verifies the token_hash itself below.
   const supabase = createClient(${JSON.stringify(supabaseUrl)}, ${JSON.stringify(supabaseAnonKey)}, {
-    auth: { flowType: 'pkce', detectSessionInUrl: true, persistSession: false },
+    auth: { detectSessionInUrl: false, persistSession: false },
   })
 
   function show(id) {
@@ -172,7 +173,10 @@ function callbackPage({ supabaseUrl, supabaseAnonKey }) {
   }
 
   const params = new URLSearchParams(window.location.search)
-  if (!params.get('code')) {
+  const tokenHash = params.get('token_hash')
+  const type = params.get('type')
+
+  if (!tokenHash || (type !== 'recovery' && type !== 'signup')) {
     show('failed')
   } else {
     supabase.auth.onAuthStateChange((event) => {
@@ -180,9 +184,13 @@ function callbackPage({ supabaseUrl, supabaseAnonKey }) {
       else if (event === 'SIGNED_IN') show('confirmed')
     })
 
-    // If exchanging the code itself fails (expired, already used), neither
-    // event above ever fires — time out to the failure state rather than
-    // leaving "One moment…" showing forever.
+    supabase.auth.verifyOtp({ token_hash: tokenHash, type }).then(({ error }) => {
+      if (error) show('failed')
+    })
+
+    // An expired or already-used token fails verification without firing any
+    // auth event, so time out to the failure state rather than leaving
+    // "One moment…" showing forever.
     setTimeout(() => {
       if (!document.getElementById('reset-form').classList.contains('hidden')) return
       if (!document.getElementById('confirmed').classList.contains('hidden')) return

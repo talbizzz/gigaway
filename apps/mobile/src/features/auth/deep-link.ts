@@ -4,28 +4,32 @@ import { reportError } from '@/lib/monitoring'
 import { supabase } from '@/lib/supabase'
 
 /**
- * Catches the Universal Link Supabase Auth redirects to after a confirmation
- * or password-recovery email is followed, and exchanges the PKCE code it
- * carries for a session.
+ * Catches the Universal Link carried by a password-recovery or confirmation
+ * email and verifies its hashed token with verifyOtp.
  *
- * Navigation is not this module's job. A confirmation link's session is an
- * ordinary sign-in — the auth gate routes on from it exactly as it does after
- * signInWithPassword. A recovery link's session is flagged separately (the
- * PASSWORD_RECOVERY event, handled in session-store.ts) precisely so the gate
- * can send it to the set-new-password screen instead.
+ * The email links straight to this app's own domain with a token_hash, not to
+ * a Supabase-hosted URL that redirects back: a redirect chain starting at
+ * supabase.co never opens the app, because iOS only hands over navigations to
+ * the associated domain itself. verifyOtp is used instead of PKCE's
+ * exchangeCodeForSession because a PKCE verifier lives on the device that
+ * requested the reset, so a link opened anywhere else could never finish.
+ *
+ * Navigation is not this module's job. A recovery verification emits
+ * PASSWORD_RECOVERY (handled in session-store.ts) so the gate can send the
+ * user to set-new-password; a signup verification signs the user in and the
+ * gate routes on from there.
  */
 async function handleUrl(url: string | null): Promise<void> {
   if (!url) return
 
   const { queryParams } = Linking.parse(url)
-  const code = queryParams?.code
-  if (typeof code !== 'string') return
+  const tokenHash = queryParams?.token_hash
+  const type = queryParams?.type
+  if (typeof tokenHash !== 'string') return
+  if (type !== 'recovery' && type !== 'signup') return
 
-  try {
-    await supabase.auth.exchangeCodeForSession(code)
-  } catch (error) {
-    reportError(error, { feature: 'auth-deep-link' })
-  }
+  const { error } = await supabase.auth.verifyOtp({ token_hash: tokenHash, type })
+  if (error) reportError(error, { feature: 'auth-deep-link' })
 }
 
 /**
