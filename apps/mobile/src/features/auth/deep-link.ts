@@ -1,7 +1,22 @@
 import * as Linking from 'expo-linking'
+import { create } from 'zustand'
 
-import { reportError } from '@/lib/monitoring'
 import { supabase } from '@/lib/supabase'
+
+type DeepLinkError = { message: string; code?: string } | null
+
+/**
+ * The most recent verification failure, for the callback screen to show.
+ * Expired and already-used links are ordinary user states, not crashes, so
+ * they stay out of Sentry and out of the console.
+ */
+export const useDeepLinkError = create<{
+  error: DeepLinkError
+  setError: (error: DeepLinkError) => void
+}>((set) => ({
+  error: null,
+  setError: (error) => set({ error }),
+}))
 
 /**
  * Catches the Universal Link carried by a password-recovery or confirmation
@@ -28,8 +43,9 @@ async function handleUrl(url: string | null): Promise<void> {
   if (typeof tokenHash !== 'string') return
   if (type !== 'recovery' && type !== 'signup') return
 
+  useDeepLinkError.getState().setError(null)
   const { error } = await supabase.auth.verifyOtp({ token_hash: tokenHash, type })
-  if (error) reportError(error, { feature: 'auth-deep-link' })
+  if (error) useDeepLinkError.getState().setError({ message: error.message, code: error.code })
 }
 
 /**

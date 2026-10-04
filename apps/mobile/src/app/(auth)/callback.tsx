@@ -4,6 +4,7 @@ import { Text, View } from 'react-native'
 
 import { Button } from '@/components/button'
 import { Screen } from '@/components/screen'
+import { useDeepLinkError } from '@/features/auth/deep-link'
 import { spacing, typography } from '@/theme/tokens'
 import { useTheme } from '@/theme/use-theme'
 
@@ -12,12 +13,13 @@ import { useTheme } from '@/theme/use-theme'
  * recovery email. The deep-link listener (features/auth/deep-link.ts)
  * verifies the token, and the auth gate moves the user on once that succeeds:
  * PASSWORD_RECOVERY goes to set-new-password, SIGNED_IN goes into the app.
- * This screen exists so the URL matches a route at all, and it only speaks
- * up if verification never resolves.
+ * A failed verification shows here straight away, and the raw error is shown
+ * in development builds only.
  */
 export default function CallbackScreen() {
   const theme = useTheme()
   const router = useRouter()
+  const deepLinkError = useDeepLinkError((state) => state.error)
   const [stalled, setStalled] = useState(false)
 
   useEffect(() => {
@@ -25,21 +27,27 @@ export default function CallbackScreen() {
     return () => clearTimeout(timer)
   }, [])
 
+  const failed = deepLinkError !== null || stalled
+
   return (
     <Screen
-      footer={
-        stalled ? <Button label="Back to sign in" onPress={() => router.replace('/sign-in')} /> : undefined
-      }
+      footer={failed ? <Button label="Back to sign in" onPress={() => router.replace('/sign-in')} /> : undefined}
     >
       <View style={{ gap: spacing.sm }}>
         <Text style={[typography.display, { color: theme.text }]}>
-          {stalled ? "This link didn't work" : 'One moment…'}
+          {failed ? "This link didn't work" : 'One moment…'}
         </Text>
         <Text style={[typography.body, { color: theme.textMuted }]}>
-          {stalled
+          {failed
             ? 'It may have expired or already been used. Request a new one from the app.'
             : 'Confirming your link.'}
         </Text>
+        {__DEV__ && deepLinkError ? (
+          <Text style={[typography.caption, { color: theme.danger }]}>
+            {deepLinkError.code ? `${deepLinkError.code}: ` : ''}
+            {deepLinkError.message}
+          </Text>
+        ) : null}
       </View>
     </Screen>
   )
