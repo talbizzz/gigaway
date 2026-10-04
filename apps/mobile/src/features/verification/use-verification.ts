@@ -30,6 +30,9 @@ export function useMyApplication() {
   return useQuery({
     queryKey: verificationKeys.mine,
     enabled: Boolean(session),
+    // Same reason as the profile: a decision on a pending application arrives
+    // while the waiting screen is open. Stop once it is no longer pending.
+    refetchInterval: (query) => (query.state.data?.status === 'pending' ? 15_000 : false),
     queryFn: async (): Promise<VerificationApplication | null> => {
       const { data, error } = await supabase
         .from('verification_applications')

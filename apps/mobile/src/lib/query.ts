@@ -1,4 +1,5 @@
-import { QueryClient } from '@tanstack/react-query'
+import { focusManager, QueryClient } from '@tanstack/react-query'
+import { AppState, Platform } from 'react-native'
 
 /**
  * Server state lives here rather than in a global store.
@@ -21,3 +22,12 @@ export const queryClient = new QueryClient({
     },
   },
 })
+
+// "Focus" is a browser concept. On a phone, the equivalent is the app coming
+// back to the foreground, and nothing tells React Query that unless it is wired
+// up here. Without this, refetchOnWindowFocus above never fires on device.
+if (Platform.OS !== 'web') {
+  AppState.addEventListener('change', (status) => {
+    focusManager.setFocused(status === 'active')
+  })
+}

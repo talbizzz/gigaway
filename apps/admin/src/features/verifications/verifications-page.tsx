@@ -14,6 +14,9 @@ export function VerificationsPage() {
 
   const { data, isLoading, error } = useQuery({
     queryKey: ['admin_pending_verifications'],
+    // New applications arrive while this page sits open. Refetch on a timer so
+    // the queue fills in without a manual reload.
+    refetchInterval: 30_000,
     queryFn: async () => {
       const { data, error } = await supabase.rpc('admin_pending_verifications')
       if (error) throw error

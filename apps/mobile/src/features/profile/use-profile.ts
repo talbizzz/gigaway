@@ -22,6 +22,10 @@ export function useMyProfile() {
   return useQuery({
     queryKey: profileKeys.mine(userId),
     enabled: Boolean(userId),
+    // An admin's approval lands while a pending member is looking at the
+    // waiting screen, and nothing else tells this app about it. Poll until the
+    // profile is approved, then stop, since the gate takes over from there.
+    refetchInterval: (query) => (query.state.data?.status === 'approved' ? false : 15_000),
     queryFn: async (): Promise<Profile> => {
       const { data, error } = await supabase
         .from('profiles')
