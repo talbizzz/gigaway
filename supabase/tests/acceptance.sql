@@ -12,7 +12,7 @@ begin;
 -- the CLI recreates on every run, so the privileges these fixtures need (writing
 -- to auth.users) must be claimed explicitly. Locally this is a no-op.
 set local role postgres;
-select plan(30);
+select plan(31);
 
 -- ── fixtures ───────────────────────────────────────────────────────────────
 -- Anna travels to Munich. Bruno and Clara both offer her a couch; Dieter is an
@@ -322,6 +322,18 @@ select is(
   (select count(*)::int from public.notifications where type = 'co_request_accepted'),
   2,
   'both travellers are told the co-accommodation request was accepted'
+);
+
+-- Reviews hang off stays (reviews.stay_id is not null), so no stay between the
+-- pair means nothing to review. Scoped to the two fixture profiles.
+select is(
+  (select count(*)::int from public.stays
+    where (host_id = '44444444-4444-4444-4444-444444444444'
+           and guest_id = '11111111-1111-1111-1111-111111111111')
+       or (host_id = '11111111-1111-1111-1111-111111111111'
+           and guest_id = '44444444-4444-4444-4444-444444444444')),
+  0,
+  'a co-accommodation pair has no stay, so it can never be reviewed'
 );
 
 select * from finish();

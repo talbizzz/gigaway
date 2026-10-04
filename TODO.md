@@ -201,7 +201,7 @@ Progress checklist. Detail lives in the `Milestone-N-*.md` files.
       implementation while doing this (see "corrections" section below)
 - [ ] Confirm a report reaches `MODERATOR_EMAIL` within a minute
       (needs RESEND_API_KEY and MODERATOR_EMAIL, which arrive in Milestone 5)
-- [ ] Add a pgTAP test asserting a co-accommodation match is never reviewable
+- [x] Add a pgTAP test asserting a co-accommodation match is never reviewable _(added to `acceptance.sql`, passes on dev 2026-10-04)_
       _(holds by construction today — `accept_co_request` creates a contact grant
       and never a stay, and reviews hang off stays — but nothing asserts it, so a
       future change to that path could silently break the guarantee)_
@@ -265,7 +265,7 @@ Progress checklist. Detail lives in the `Milestone-N-*.md` files.
 - [x] Walk all of the above on a device — dev client blocker resolved for both
       platforms; the settings restructure, avatar fix and keyboard fix above
       were themselves found and fixed by doing this
-- [ ] Re-run `offer_revision.sql` to confirm the two assertions corrected after
+- [x] Re-run `offer_revision.sql` to confirm the two assertions corrected after _(passes on dev 2026-10-04)_
       the first live run _(the migration behaviour was right; the test's
       expectations were not)_
 - [x] Decide what to do about the pgTAP suite assuming an empty database — ~22
