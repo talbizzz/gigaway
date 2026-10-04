@@ -361,7 +361,12 @@ Progress checklist. Detail lives in the `Milestone-N-*.md` files.
       genuinely moderator-ops mail) and `NOTIFICATION_FROM`
       (`dispatch-notifications`'s offer-accepted fallback, the one
       member-facing case)
-- [ ] Confirm moderation-digest returns emailed: true and the mail arrives
+- [ ] Confirm moderation-digest returns emailed: true and the mail arrives — waiting on a
+      natural run. The prod cron job runs daily at 09:00 UTC and has succeeded, but there
+      were no pending applications on 2026-10-04, so it sent nothing. The next check is the
+      first run after an application has waited more than `doc_nudge_days` (3 by default),
+      then the moderator inbox the next morning. Forcing it sooner needs a prod write and
+      the service-role key.
 - [x] Point Supabase Auth at Resend via custom SMTP — done on **prod**
       2026-09-24: sender `noreply@gigaway.app` (deliberately not
       `notifications@gigaway.app` — nothing should ever reply to it, so it
