@@ -338,7 +338,6 @@ Progress checklist. Detail lives in the `Milestone-N-*.md` files.
 - [x] EAS build profiles — `apps/mobile/eas.json`, three profiles
       (development/preview/production), plus the dev/prod app-variant work
       under "Infrastructure & tooling" above
-- [ ] OTA channels — needs `expo-updates`, which is not installed
 - [x] GitHub Actions CI — `ci.yml`, built well ahead of schedule as part of the
       branching/CI setup (see "Infrastructure & tooling" above), not as
       Milestone 5 work specifically
@@ -735,7 +734,7 @@ application bug, but both would have looked like one.
       app instead of its absence (they name `admin.gigaway.app` /
       `admin-dev.gigaway.app`, which don't resolve until the domains above
       are attached).
-- [ ] Icon/favicon for the admin website's browser tab — still the default
+- [x] Icon/favicon for the admin website's browser tab — environment-specific, dev and prod differ _(done 2026-10-04)_
       Vite icon.
 
 ## In progress, on other branches (not detailed here)
@@ -748,6 +747,19 @@ application bug, but both would have looked like one.
   system gating trip creation, earned by offering availability, plus an
   open-ended "ongoing availability" type). Not detailed here since it's still
   being built; see that branch directly for its current state.
+
+## Future (lower priority)
+
+> Real work, but not before the launch blockers above. Ordered roughly by when
+> it would start to matter.
+
+- [ ] OTA channels with `expo-updates` — ship JavaScript fixes to installed apps
+      without a store review. Native change, so it needs a rebuilt dev client.
+      To verify on dev: publish a visible JS-only change to the `development`
+      channel, relaunch twice, confirm it lands, then roll back. Always publish
+      through `./scripts/with-env.sh .env.dev` so the right Supabase values are
+      baked in. Prod channel only after the production build is tested. Free
+      tier per third-party summaries of Expo's pricing; confirm on expo.dev/pricing.
 
 ## Ideas to discuss (not yet planned)
 
