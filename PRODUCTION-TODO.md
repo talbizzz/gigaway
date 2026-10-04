@@ -51,7 +51,9 @@ one.
   calls the RPC now. Confirmed working directly against dev's live database
   before pushing, and via updated pgTAP coverage in `supabase/tests/notifications.sql`.
 
-- [ ] **Look at what the destructive migrations will drop, on prod**
+- [x] **Look at what the destructive migrations will drop, on prod** — done 2026-09-23:
+  6 invites, 6 redemptions, 6 profiles with `invited_by` set, 0 applications. The
+  invite lineage was lost with the migration, which was accepted.
   Run in prod's SQL editor first. If any of these counts is not what you
   expect — real invites, real applications — stop and think before applying:
   ```sql
@@ -61,7 +63,9 @@ one.
   union all select 'verification_applications', count(*) from public.verification_applications;
   ```
 
-- [ ] **Push the thirteen pending migrations**
+- [x] **Push the thirteen pending migrations** — done 2026-09-23. Verified with
+  `supabase migration list --linked`: every local migration matches its remote
+  entry. The destructive ones included.
   Preferred: through CI, so the review is on record. Merge `develop` into
   `main`; `deploy-backend.yml`'s **preview** job then runs on its own and
   writes "Production deploy — what will change" to the run's summary page
@@ -81,7 +85,10 @@ one.
   `feature/artist-verification-gate`'s migration applied, unlike dev, so
   there's no phantom migration-history entry to fix here.
 
-- [ ] **Deploy the current Edge Functions**
+- [x] **Deploy the current Edge Functions** — done. Re-verified 2026-10-04: all nine
+  current functions are ACTIVE on prod, including `admin-delete-user` and
+  `submit-verification`, which were missing before. `redeem-invite` and
+  `purge-verification-docs` are gone.
   Confirmed on prod 2026-09-21: it runs nine functions, but not the same nine
   — `accept-co-request`, `accept-offer`, `delete-account`,
   `dispatch-notifications`, `export-data`, `moderation-digest`,
@@ -131,7 +138,8 @@ one.
   genuinely live. If a prod send to one of these ever bounces the same way,
   check Resend's suppression list before assuming the routing is broken.
 
-- [ ] **Regenerate `database.types.ts` for real**
+- [ ] **Regenerate `database.types.ts` for real** — now safe: prod is fully migrated,
+  so either project gives the same result. Still open.
   Currently hand-edited against the migrations' expected end-state — the
   verification changes, and now the whole admin platform
   (`admin_users`, `audit_log`, fourteen `admin_*` functions). **Do not run this
@@ -166,7 +174,9 @@ is **not yet published** (waiting on the secrets below and a first push); **prod
 has none of it** — its database doesn't have the tables and functions the app
 calls, so a prod admin site would load and then refuse every login.
 
-- [ ] **GitHub repository secrets.** As of 2026-09-21 the repo has
+- [x] **GitHub repository secrets.** Added by 2026-10-02; the prod admin and website
+  deploys have since run with them. The list below is the record of what's needed.
+  As of 2026-09-21 the repo had
   `ADMIN_DEV_SUPABASE_ANON_KEY`, and `SUPABASE_URL` / `SUPABASE_ANON_KEY` (those
   two belong to the keep-alive workflow). Still missing:
   - `CLOUDFLARE_API_TOKEN` (permission **Account → Cloudflare Pages → Edit**)
@@ -185,10 +195,12 @@ calls, so a prod admin site would load and then refuse every login.
   environment-only ones (it fails with a message saying so).
 
 - [ ] **The `production` GitHub environment exists with a required reviewer.**
-  Both `deploy-backend.yml` and the prod half of `deploy-admin.yml` use it. Not
-  checked — needs the repo settings.
+  Both `deploy-backend.yml` and the prod half of `deploy-admin.yml` use it. The
+  environment was created on 2026-10-02, but the reviewer rule hasn't been tested
+  yet: the first backend deploy that gets past the secrets check will be the real
+  test of it.
 
-- [ ] **Backend first.** Do the migration and function items above *before*
+- [x] **Backend first.** Done 2026-10-01: the grants check below passes on prod. Do the migration and function items above *before*
   approving the prod admin deploy. Then verify on prod directly that the admin
   functions are locked down (this project's default privileges hand `EXECUTE` to
   `anon` and `authenticated`, and an ordinary `revoke … from public` silently
@@ -205,18 +217,20 @@ calls, so a prod admin site would load and then refuse every login.
   Expected: `anon` false on every row; `authenticated` true on every `admin_*`
   row; **both false** on `log_admin_action`.
 
-- [ ] **Create the first prod admin.** Put prod's URL and **service-role** key in
+- [x] **Create the first prod admin** — done (`admin_users` has one row on prod,
+  checked 2026-10-01). Original instructions below. Put prod's URL and **service-role** key in
   `admin-scripts/.env.prod` (gitignored — see `.env.example`; never commit or
   paste it anywhere), then `pnpm create-admin`, answer `prod`, and type `prod` at
   the confirmation. The admin gets no member profile. It only works once the
   migrations above have landed (`admin_users` has to exist).
 
-- [ ] **Deploy the prod admin site.** Push to `main` also starts the prod half
+- [x] **Deploy the prod admin site** — done: `admin.gigaway.app` and `gigaway-admin.pages.dev`
+  both return 200 (checked 2026-10-01). Original instructions below. Push to `main` also starts the prod half
   of `deploy-admin.yml`; approve it after the backend deploy has finished. It
   creates the `gigaway-admin` Pages project on its first run. Reachable at its
   `*.pages.dev` address straight away.
 
-- [ ] **Attach `admin.gigaway.app`.** Cloudflare → Workers & Pages →
+- [x] **Attach `admin.gigaway.app`** — done (resolves and serves 200, checked 2026-10-01). Cloudflare → Workers & Pages →
   gigaway-admin → Custom domains. The zone is already on Cloudflare, so it
   creates the DNS record itself. `MODERATION.md` already names this address.
 
@@ -248,5 +262,8 @@ calls, so a prod admin site would load and then refuse every login.
 - [x] Create Resend account, verify the sending domain (SPF + DKIM + DMARC)
       — see above, done 2026-09-18
 - [ ] Raise auth email rate limits off the shared-sender defaults
-- [ ] Set `site_url` and redirect URLs to production (never `127.0.0.1`)
-- [ ] Confirmation email and password reset round trips from a production build
+- [x] Set `site_url` and redirect URLs to production (never `127.0.0.1`) — prod's
+      allowlist includes `account.gigaway.app/callback`, done 2026-10-04
+- [ ] Confirmation email and password reset round trips from a production build —
+      neither has run on prod yet. Both need the production mobile build first, and
+      confirmation also needs `enable_confirmations` turned on for prod.

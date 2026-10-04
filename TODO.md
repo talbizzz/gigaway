@@ -322,8 +322,11 @@ Progress checklist. Detail lives in the `Milestone-N-*.md` files.
 
 ## Milestone 5: Ship It
 
-- [ ] Next.js landing page (`/`, store badges) — not started
-- [ ] Universal links + Android app links — not started
+- [ ] Next.js landing page (`/`, store badges) — not started. `gigaway.app` serves a
+      placeholder with redirects until then
+- [x] Universal links + Android app links — live on `account.gigaway.app` and
+      `account-dev.gigaway.app`, carrying the auth callbacks; see the "Auth
+      callbacks" item below
 - [x] Publish privacy, terms, guidelines _(plus Impressum and the account-deletion
       page Google requires; done early — the Play track was blocked on the URL)_
       as a plain static site (`legal/*.md` → `scripts/build-legal.mjs` → `site/`),
@@ -363,8 +366,8 @@ Progress checklist. Detail lives in the `Milestone-N-*.md` files.
       2026-09-24: sender `noreply@gigaway.app` (deliberately not
       `notifications@gigaway.app` — nothing should ever reply to it, so it
       skips needing a Cloudflare Email Routing rule), `smtp.resend.com:587`,
-      username `resend`. Still needed on **dev** before the auth-callback
-      round trip below can be tested there.
+      username `resend`. The dev project's password-reset round trip has
+      passed, so dev's own SMTP is only needed for the confirmation test below.
 - [ ] **Send mail as `support@`/`moderation@`/`privacy@gigaway.app` from the
       dedicated Gmail account** _(deferred from Milestone 0 — see there for
       why Gmail's own SMTP-relay option can't do this)_: once the Resend
@@ -377,9 +380,12 @@ Progress checklist. Detail lives in the `Milestone-N-*.md` files.
       across every mail path (Auth plus all four Edge Function senders), so
       that's the real ceiling regardless of this number — 30/h is probably
       already fine. No change made yet; final call still open.
-- [ ] Set site_url and redirect URLs to production (never 127.0.0.1) —
-      paused: there is nothing for it to point at yet, see the auth-callback
-      item below
+- [x] Set site_url and redirect URLs to production (never 127.0.0.1) — prod's
+      redirect allowlist includes `https://account.gigaway.app/callback` and the
+      reset template uses the `token_hash` link (2026-10-04)
+- [ ] Point the privacy policy URL in Play Console (and App Store Connect, once set
+      up) at `https://legal.gigaway.app/privacy`. The old `gigaway.app/privacy` still
+      works through a redirect, so this isn't urgent.
 - [ ] **Auth callbacks via Universal Links (confirmation + password reset)**
       — scoped 2026-09-24, rescoped 2026-10-01 onto three domains instead of
       one. Supersedes the old `/i/[code]` invite-link plan in
@@ -394,9 +400,10 @@ Progress checklist. Detail lives in the `Milestone-N-*.md` files.
         email" confirmation regardless of the outcome.
   - [x] Deep-link listener (`features/auth/deep-link.ts`, Expo `Linking`) —
         handles cold start (`getInitialURL`) and warm start (the `url`
-        event), extracts a PKCE `code` param and exchanges it via
-        `exchangeCodeForSession`. The client now sets `flowType: 'pkce'`
-        (was the implicit-flow default). Navigation is the auth gate's job,
+        event), reads the `token_hash` and `type` params and calls
+        `verifyOtp`. The email links straight to this domain, and
+        `verifyOtp` needs no device-bound PKCE verifier, so it also works
+        from a desktop. Navigation is the auth gate's job,
         not the listener's: a confirmation link's session is an ordinary
         sign-in the gate already routes on; a recovery link's session is
         flagged via Supabase's `PASSWORD_RECOVERY` event (new `isRecovering`
@@ -472,26 +479,29 @@ Progress checklist. Detail lives in the `Milestone-N-*.md` files.
         the internal filename rather than the externally-requested path.
         `verify-account-deploy.mjs` now checks both the content-type bugs
         specifically, not just status 200.
-  - [ ] **`legal.gigaway.app` and `account.gigaway.app` (prod) still need
-        the same treatment.** Both require merging to `main` first (neither
-        deploy workflow runs on `develop` for these two), then attaching
-        the custom domain by hand in Cloudflare, same manual step as
-        `account-dev.gigaway.app` and `admin.gigaway.app` before it. Given
-        what `account-dev` just went through, re-verify the response
-        headers directly after attaching each domain rather than assuming
-        the dev fixes automatically carry over. Also: update the privacy
-        policy URL on file in Play Console once `legal.gigaway.app` is
-        live — not urgent, since neither store submission is actually under
-        review yet.
-  - [ ] Custom SMTP + site_url/redirect URLs on **dev**, flip
-        `enable_confirmations` on for dev, walk the full round trip on a
-        real device: confirmation email → tap → lands in app; request
-        reset → tap → set new password; same link opened on a desktop →
-        web form completes it
-  - [ ] Only once verified on dev: flip `enable_confirmations` on for prod
-        (its custom SMTP and mail secrets are already done)
-- [ ] TestFlight build to beta testers
-- [ ] Play closed test track live
+  - [x] **Prod domains live** (2026-10-04): `legal.gigaway.app` and
+        `account.gigaway.app` are attached and serve correctly, checked by IP
+        because a stale local DNS cache got in the way. `gigaway.app/privacy`
+        redirects to `legal.gigaway.app/privacy`.
+  - [x] **Password reset verified on dev, both paths** — native app opens
+        directly on set-new-password, and the desktop/browser fallback
+        completes the reset. This needed three more fixes after the first
+        attempt: the email template's `token_hash` link, `verifyOtp` in place
+        of the PKCE exchange, and a `callback` route so Expo Router no longer
+        shows "Unmatched Route" for the incoming link.
+  - [ ] **Email confirmation, not yet tested anywhere.** The "Confirm signup"
+        template still uses `{{ .ConfirmationURL }}` on both projects, so it
+        needs the same `token_hash` treatment with `type=signup`. Then flip
+        `enable_confirmations` on for dev and walk the round trip: sign up →
+        check-email screen → tap → lands in the app. Repeat on prod only after
+        dev passes.
+  - [ ] **Password reset from a production build**, once the production
+        build below is installed. Use a throwaway prod account, not a member's.
+- [ ] **Production mobile build**: `eas build --profile production --platform all`
+      from `apps/mobile`. It carries the auth changes and the
+      `account.gigaway.app` association. Nothing has been built or submitted yet.
+- [ ] TestFlight build to beta testers (after the production build)
+- [ ] Play closed test track live (after the production build)
 - [ ] End-to-end smoke test on real devices
 
 ## Milestone 6: Admin Platform
