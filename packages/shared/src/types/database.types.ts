@@ -10,7 +10,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.17"
+    PostgrestVersion: "14.5"
   }
   graphql_public: {
     Tables: {
@@ -39,12 +39,6 @@ export type Database = {
   }
   public: {
     Tables: {
-      // ─────────────────────────────────────────────────────────────────
-      // HAND-EDITED, Milestone 6 phases 1–2 (admin_users, audit_log) —
-      // there is no live database to regenerate from until these
-      // migrations are pushed. Re-run `pnpm db:types` for real once they
-      // are, same as Milestone 1's precedent for this file.
-      // ─────────────────────────────────────────────────────────────────
       admin_users: {
         Row: {
           created_at: string
@@ -60,6 +54,24 @@ export type Database = {
           created_at?: string
           display_name?: string
           id?: string
+        }
+        Relationships: []
+      }
+      app_config: {
+        Row: {
+          key: string
+          updated_at: string
+          value: Json
+        }
+        Insert: {
+          key: string
+          updated_at?: string
+          value: Json
+        }
+        Update: {
+          key?: string
+          updated_at?: string
+          value?: Json
         }
         Relationships: []
       }
@@ -100,24 +112,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
-      }
-      app_config: {
-        Row: {
-          key: string
-          updated_at: string
-          value: Json
-        }
-        Insert: {
-          key: string
-          updated_at?: string
-          value: Json
-        }
-        Update: {
-          key?: string
-          updated_at?: string
-          value?: Json
-        }
-        Relationships: []
       }
       availability: {
         Row: {
@@ -1355,7 +1349,29 @@ export type Database = {
           specialisation: string | null
           submitted_at: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "verification_applications_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "verification_applications_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: true
+            referencedRelation: "v_recent_signups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "verification_applications_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: true
+            referencedRelation: "v_user_summary"
+            referencedColumns: ["profile_id"]
+          },
+        ]
       }
       v_recent_signups: {
         Row: {
@@ -1430,13 +1446,14 @@ export type Database = {
       }
     }
     Functions: {
-      // ─────────────────────────────────────────────────────────────────
-      // HAND-EDITED, Milestone 6 phases 1–2 — see the note by admin_users
-      // above. Returns for the admin_* wrappers around v_pending_verifications
-      // /v_open_reports/v_stuck_notifications/v_recent_signups are inlined
-      // copies of those views' own Row types rather than a SetofOptions
-      // reference, since this is a stopgap pending real codegen.
-      // ─────────────────────────────────────────────────────────────────
+      accept_co_request: {
+        Args: { p_request_id: string; p_user: string }
+        Returns: Json
+      }
+      accept_offer: {
+        Args: { p_offer_id: string; p_user: string }
+        Returns: Json
+      }
       admin_audit_log: {
         Args: { p_before?: string; p_limit?: number }
         Returns: {
@@ -1446,18 +1463,18 @@ export type Database = {
           created_at: string
           detail: Json
           id: string
-          target_id: string | null
+          target_id: string
           target_table: string
         }[]
       }
       admin_cron_status: {
         Args: never
         Returns: {
-          active: boolean | null
-          jobname: string | null
-          last_run: string | null
-          last_status: string | null
-          schedule: string | null
+          active: boolean
+          jobname: string
+          last_run: string
+          last_status: string
+          schedule: string
         }[]
       }
       admin_decide_report: {
@@ -1465,57 +1482,58 @@ export type Database = {
         Returns: undefined
       }
       admin_decide_verification: {
-        Args: { p_application_id: string; p_decision: string; p_reason?: string }
+        Args: {
+          p_application_id: string
+          p_decision: string
+          p_reason?: string
+        }
         Returns: undefined
       }
-      admin_delete_trip: {
-        Args: { p_trip_id: string }
-        Returns: undefined
-      }
+      admin_delete_trip: { Args: { p_trip_id: string }; Returns: undefined }
       admin_get_trip_detail: {
         Args: { p_trip_id: string }
         Returns: {
-          city: string | null
-          created_at: string | null
-          end_date: string | null
-          needs: string[] | null
-          note: string | null
-          offers_count: number | null
-          owner_name: string | null
-          profile_id: string | null
-          requests_count: number | null
-          start_date: string | null
-          stays_count: number | null
-          status: Database["public"]["Enums"]["trip_status"] | null
-          trip_id: string | null
+          city: string
+          created_at: string
+          end_date: string
+          needs: string[]
+          note: string
+          offers_count: number
+          owner_name: string
+          profile_id: string
+          requests_count: number
+          start_date: string
+          status: Database["public"]["Enums"]["trip_status"]
+          stays_count: number
+          trip_id: string
         }[]
       }
       admin_get_user_detail: {
         Args: { p_profile_id: string }
         Returns: {
-          availability: number | null
-          blocks_made: number | null
-          blocks_received: number | null
-          discipline: string | null
-          display_name: string | null
-          distinct_reporters: number | null
-          email: string | null
-          home_city: string | null
-          joined_at: string | null
-          phone: string | null
-          profile_id: string | null
-          reports_filed: number | null
-          reports_received: number | null
-          reviews_received: number | null
-          reviews_written: number | null
-          status: Database["public"]["Enums"]["profile_status"] | null
-          stays_as_guest: number | null
-          stays_hosted: number | null
-          trips: number | null
-          verification_decision_reason: string | null
-          verification_status: Database["public"]["Enums"]["verification_status"] | null
-          whatsapp: string | null
-          would_again_pct: number | null
+          availability: number
+          blocks_made: number
+          blocks_received: number
+          discipline: string
+          display_name: string
+          distinct_reporters: number
+          email: string
+          home_city: string
+          joined_at: string
+          phone: string
+          profile_id: string
+          reports_filed: number
+          reports_received: number
+          reviews_received: number
+          reviews_written: number
+          status: Database["public"]["Enums"]["profile_status"]
+          stays_as_guest: number
+          stays_hosted: number
+          trips: number
+          verification_decision_reason: string
+          verification_status: Database["public"]["Enums"]["verification_status"]
+          whatsapp: string
+          would_again_pct: number
         }[]
       }
       admin_open_reports: {
@@ -1537,6 +1555,12 @@ export type Database = {
           subject_prior_reports: number | null
           subject_status: Database["public"]["Enums"]["profile_status"] | null
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "v_open_reports"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       admin_pending_verifications: {
         Args: never
@@ -1556,6 +1580,12 @@ export type Database = {
           specialisation: string | null
           submitted_at: string | null
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "v_pending_verifications"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       admin_recent_signups: {
         Args: never
@@ -1567,32 +1597,38 @@ export type Database = {
           id: string | null
           status: Database["public"]["Enums"]["profile_status"] | null
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "v_recent_signups"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       admin_search_profiles: {
         Args: { p_query?: string }
         Returns: {
-          display_name: string | null
-          email: string | null
-          home_city: string | null
-          joined_at: string | null
-          phone: string | null
-          profile_id: string | null
-          status: Database["public"]["Enums"]["profile_status"] | null
-          discipline: string | null
+          discipline: string
+          display_name: string
+          email: string
+          home_city: string
+          joined_at: string
+          phone: string
+          profile_id: string
+          status: Database["public"]["Enums"]["profile_status"]
         }[]
       }
       admin_search_trips: {
         Args: { p_query?: string }
         Returns: {
-          city: string | null
-          created_at: string | null
-          end_date: string | null
-          needs: string[] | null
-          owner_name: string | null
-          profile_id: string | null
-          start_date: string | null
-          status: Database["public"]["Enums"]["trip_status"] | null
-          trip_id: string | null
+          city: string
+          created_at: string
+          end_date: string
+          needs: string[]
+          owner_name: string
+          profile_id: string
+          start_date: string
+          status: Database["public"]["Enums"]["trip_status"]
+          trip_id: string
         }[]
       }
       admin_set_user_status: {
@@ -1613,24 +1649,12 @@ export type Database = {
           seconds_waiting: number | null
           type: string | null
         }[]
-      }
-      is_admin: { Args: never; Returns: boolean }
-      log_admin_action: {
-        Args: {
-          p_action: string
-          p_detail?: Json
-          p_target_id: string
-          p_target_table: string
+        SetofOptions: {
+          from: "*"
+          to: "v_stuck_notifications"
+          isOneToOne: false
+          isSetofReturn: true
         }
-        Returns: undefined
-      }
-      accept_co_request: {
-        Args: { p_request_id: string; p_user: string }
-        Returns: Json
-      }
-      accept_offer: {
-        Args: { p_offer_id: string; p_user: string }
-        Returns: Json
       }
       are_blocked: { Args: { a: string; b: string }; Returns: boolean }
       call_edge_function: {
@@ -1715,8 +1739,18 @@ export type Database = {
       export_user_data: { Args: { p_user: string }; Returns: Json }
       has_contact_grant: { Args: { other: string }; Returns: boolean }
       home_feed: { Args: never; Returns: Json }
+      is_admin: { Args: never; Returns: boolean }
       is_approved: { Args: never; Returns: boolean }
       is_blocked: { Args: { other: string }; Returns: boolean }
+      log_admin_action: {
+        Args: {
+          p_action: string
+          p_detail?: Json
+          p_target_id: string
+          p_target_table: string
+        }
+        Returns: undefined
+      }
       notification_stay_payload: { Args: { p_stay_id: string }; Returns: Json }
       notification_trip_payload: { Args: { p_trip_id: string }; Returns: Json }
       offerable_windows: {
@@ -1843,12 +1877,12 @@ export type Tables<
   DefaultSchemaTableNameOrOptions extends
     | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
         DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -1872,11 +1906,11 @@ export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -1897,11 +1931,11 @@ export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -1922,11 +1956,11 @@ export type Enums<
   DefaultSchemaEnumNameOrOptions extends
     | keyof DefaultSchema["Enums"]
     | { schema: keyof DatabaseWithoutInternals },
-  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+  EnumName extends (DefaultSchemaEnumNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaEnumNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -1939,11 +1973,11 @@ export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
     | keyof DefaultSchema["CompositeTypes"]
     | { schema: keyof DatabaseWithoutInternals },
-  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+  CompositeTypeName extends (PublicCompositeTypeNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
-    : never = never,
+    : never) = never,
 > = PublicCompositeTypeNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }

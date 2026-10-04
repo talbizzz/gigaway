@@ -379,12 +379,10 @@ Progress checklist. Detail lives in the `Milestone-N-*.md` files.
       account above exists, add its SMTP credentials (`smtp.resend.com:587`,
       user `resend`, password = API key) as a second "Send mail as" entry on
       that Gmail account — same domain, same DKIM/SPF, no new service
-- [ ] Raise auth email rate limits off the shared-sender defaults — reviewed
-      2026-09-24: prod's "Rate limit for sending emails" is 30/h. Resend's
-      free plan caps at 100 emails/**day**, shared between dev and prod
-      across every mail path (Auth plus all four Edge Function senders), so
-      that's the real ceiling regardless of this number — 30/h is probably
-      already fine. No change made yet; final call still open.
+- [x] Raise auth email rate limits off the shared-sender defaults — prod's "Rate limit
+      for sending emails" raised from 30/h by hand on 2026-10-04. Resend's free plan caps
+      at 100 emails/**day**, shared between dev and prod across every mail path, so that
+      is the real ceiling regardless of this number.
 - [x] Set site_url and redirect URLs to production (never 127.0.0.1) — prod's
       redirect allowlist includes `https://account.gigaway.app/callback` and the
       reset template uses the `token_hash` link (2026-10-04)

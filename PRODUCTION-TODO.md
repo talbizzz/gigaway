@@ -138,8 +138,10 @@ one.
   genuinely live. If a prod send to one of these ever bounces the same way,
   check Resend's suppression list before assuming the routing is broken.
 
-- [ ] **Regenerate `database.types.ts` for real** — now safe: prod is fully migrated,
-  so either project gives the same result. Still open.
+- [x] **Regenerate `database.types.ts` for real** — done 2026-10-04 from prod, after
+  checking the generated file covers every admin function and table. Typecheck, lint
+  and the 55 shared unit tests all pass. The old hand-edited stubs and their comments
+  are gone. Original notes below.
   Currently hand-edited against the migrations' expected end-state — the
   verification changes, and now the whole admin platform
   (`admin_users`, `audit_log`, fourteen `admin_*` functions). **Do not run this
