@@ -31,7 +31,7 @@ Progress checklist. Detail lives in the `Milestone-N-*.md` files.
 - [x] Overwrite the two Vault secrets — done 2026-09-06, verified by calling
       `dispatch-notifications` through `call_edge_function` and reading a 200 out
       of `net._http_response`. All five cron jobs are live.
-- [ ] Create Sentry, PostHog (EU) accounts _(Resend moved to Milestone 5)_
+- [x] Create Sentry (EU) account _(Resend moved to Milestone 5; PostHog deferred until analytics consent exists — see Milestone 5)_
 - [x] Draft privacy policy — `legal/privacy-policy.md`
 - [x] Draft terms of service / EULA — `legal/terms-of-service.md`
 - [x] Draft community guidelines — `legal/community-guidelines.md`

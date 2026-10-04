@@ -271,7 +271,7 @@ to learn this now than after the beta.
 - [x] Google Play developer account approved
 - [ ] Google Play closed test track created and beta testers' emails collected
 - [x] Supabase project created **in EU Frankfurt**, keys in a password manager *(DPA needs no separate signature — it is incorporated into the Supabase ToS accepted at sign-up)*
-- [ ] Sentry (EU) and PostHog (EU) accounts created *(Resend deferred to Milestone 5)*
+- [x] Sentry (EU) account created *(PostHog deferred until analytics consent exists; Resend deferred to Milestone 5)*
 - [x] Moderator email address chosen and receiving mail *(Cloudflare Email Routing → dedicated Gmail; sending-as still needs Resend SMTP, see Milestone 5)*
 - [ ] Privacy policy, terms/EULA and community guidelines drafted in Markdown
 - [ ] 5–10 artists asked about self-funding; answers written down
