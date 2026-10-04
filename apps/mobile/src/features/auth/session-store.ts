@@ -20,16 +20,26 @@ type SessionState = {
    * see use-auth-gate.ts.
    */
   isRecovering: boolean
+  /**
+   * True when the signed-in account was removed (by the member, or by an admin)
+   * and the app signed the device out. Shown once on the welcome screen, and
+   * cleared when someone signs in again.
+   */
+  accountRemoved: boolean
   setSession: (session: Session | null) => void
   setRecovering: (isRecovering: boolean) => void
+  markAccountRemoved: () => void
 }
 
 export const useSessionStore = create<SessionState>((set) => ({
   session: null,
   initialised: false,
   isRecovering: false,
-  setSession: (session) => set({ session, initialised: true }),
+  accountRemoved: false,
+  setSession: (session) =>
+    set(session ? { session, initialised: true, accountRemoved: false } : { session, initialised: true }),
   setRecovering: (isRecovering) => set({ isRecovering }),
+  markAccountRemoved: () => set({ accountRemoved: true }),
 }))
 
 /**

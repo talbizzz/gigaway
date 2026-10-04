@@ -2,6 +2,7 @@ import { useRouter, useSegments } from "expo-router";
 import { useEffect } from "react";
 
 import { useSessionStore } from "@/features/auth/session-store";
+import { supabase } from "@/lib/supabase";
 import {
   isContactComplete,
   useMyContactDetails,
@@ -80,6 +81,17 @@ export function useAuthGate(): { ready: boolean } {
     // A signed-in user whose profile row has not arrived yet — leave them be
     // rather than bouncing them somewhere wrong.
     if (!profile) return;
+
+    // The account was removed, by the member or by an admin. The tombstone keeps
+    // the profile row, so the token still works and the branches below would
+    // send them to the verification wall. End the session here instead. Local
+    // scope, so this does not depend on the network or on a server that has
+    // already deleted the auth user.
+    if (profile.status === "deleted") {
+      useSessionStore.getState().markAccountRemoved();
+      void supabase.auth.signOut({ scope: "local" });
+      return;
+    }
 
     if (profile.status !== "approved") {
       if (!inOnboarding) router.replace("/verify");

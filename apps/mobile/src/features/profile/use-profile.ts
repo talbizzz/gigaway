@@ -23,9 +23,11 @@ export function useMyProfile() {
     queryKey: profileKeys.mine(userId),
     enabled: Boolean(userId),
     // An admin's approval lands while a pending member is looking at the
-    // waiting screen, and nothing else tells this app about it. Poll until the
-    // profile is approved, then stop, since the gate takes over from there.
-    refetchInterval: (query) => (query.state.data?.status === 'approved' ? false : 15_000),
+    // waiting screen, and nothing else tells this app about it, so poll quickly
+    // until approved. Approved members are polled slowly, so a removal from an
+    // admin is noticed without a relaunch. Both are cheap single-row reads.
+    refetchInterval: (query) =>
+      query.state.data?.status === 'approved' ? 5 * 60_000 : 15_000,
     queryFn: async (): Promise<Profile> => {
       const { data, error } = await supabase
         .from('profiles')
