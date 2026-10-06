@@ -23,20 +23,22 @@ export default function SignUpScreen() {
 
   const form = useForm<SignUpValues>({
     resolver: zodResolver(SignUpSchema),
-    defaultValues: { displayName: '', email: '', password: '', confirmPassword: '' },
+    defaultValues: { firstName: '', lastName: '', email: '', password: '', confirmPassword: '' },
   })
 
   const onSubmit = form.handleSubmit(async (values) => {
     setSubmitError(null)
 
-    // display_name and discipline travel as auth metadata so the database
-    // trigger can build a complete profile row at sign-up.
+    // The names and discipline travel as auth metadata so the database
+    // trigger can build a complete profile row at sign-up. Other members only
+    // ever see the first name and the initial of the family name.
     const { data, error } = await supabase.auth.signUp({
       email: values.email,
       password: values.password,
       options: {
         data: {
-          display_name: values.displayName,
+          first_name: values.firstName,
+          last_name: values.lastName,
           discipline: values.discipline,
         },
       },
@@ -84,18 +86,36 @@ export default function SignUpScreen() {
 
       <Controller
         control={form.control}
-        name="displayName"
+        name="firstName"
         render={({ field, fieldState }) => (
           <TextField
-            label="Your name"
+            label="First name"
             value={field.value}
             onChangeText={field.onChange}
             onBlur={field.onBlur}
             autoCapitalize="words"
-            autoComplete="name"
-            textContentType="name"
-            placeholder="Anna Weber"
-            hint="As colleagues would know you professionally."
+            autoComplete="given-name"
+            textContentType="givenName"
+            placeholder="Anna"
+            error={fieldState.error?.message}
+          />
+        )}
+      />
+
+      <Controller
+        control={form.control}
+        name="lastName"
+        render={({ field, fieldState }) => (
+          <TextField
+            label="Family name"
+            value={field.value}
+            onChangeText={field.onChange}
+            onBlur={field.onBlur}
+            autoCapitalize="words"
+            autoComplete="family-name"
+            textContentType="familyName"
+            placeholder="Weber"
+            hint="Other members only see the first letter, like “Anna W.”."
             error={fieldState.error?.message}
           />
         )}

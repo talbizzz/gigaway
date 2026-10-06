@@ -135,7 +135,7 @@ values (least('11111111-1111-1111-1111-111111111111'::uuid,
 select is(
   (select public.export_user_data('11111111-1111-1111-1111-111111111111')
           -> 'profile' ->> 'display_name'),
-  'Anna Weber',
+  'Anna W.',
   'the export carries her profile'
 );
 
@@ -347,7 +347,7 @@ set local request.jwt.claims to
 
 select is(
   (select count(*)::int from public.profiles
-    where display_name = 'Anna Weber'),
+    where display_name = 'Anna W.'),
   0,
   'her name appears nowhere in another member''s app'
 );

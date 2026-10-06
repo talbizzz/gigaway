@@ -68,7 +68,8 @@ function ProfileForm({
 
   const initialLinks = (profile.links ?? []) as { label: string; url: string }[]
 
-  const [displayName, setDisplayName] = useState(profile.display_name)
+  const [firstName, setFirstName] = useState(profile.first_name ?? '')
+  const [lastName, setLastName] = useState(profile.last_name ?? '')
   const [discipline, setDiscipline] = useState<DisciplineValue>(
     profile.discipline as DisciplineValue,
   )
@@ -91,7 +92,8 @@ function ProfileForm({
   // the update itself cannot drift apart — the button is only live when this
   // differs from what is already stored.
   const draft = {
-    display_name: displayName.trim(),
+    first_name: firstName.trim(),
+    last_name: lastName.trim() || null,
     discipline,
     specialisation: specialisation.trim() || null,
     home_city_id: selectedCity?.id,
@@ -108,9 +110,21 @@ function ProfileForm({
   // not a change.
   const whatsappChanged = normalisePhoneNumber(whatsapp) !== (contact?.whatsapp ?? '')
 
+  // A member from before the split may have no family name yet. They can save
+  // everything else without one, but cannot clear one they already have.
+  const nameValid =
+    firstName.trim().length > 0 && (lastName.trim().length > 0 || !profile.last_name)
+
+  // What the database will derive from these two fields — the same rule as
+  // format_public_name(), shown so the member knows what others will see.
+  const previewName = lastName.trim()
+    ? `${firstName.trim()} ${lastName.trim().charAt(0).toUpperCase()}.`
+    : firstName.trim()
+
   const changed =
     whatsappChanged ||
-    draft.display_name !== profile.display_name ||
+    draft.first_name !== (profile.first_name ?? '') ||
+    draft.last_name !== (profile.last_name ?? null) ||
     draft.discipline !== profile.discipline ||
     draft.specialisation !== (profile.specialisation ?? null) ||
     draft.home_district !== (profile.home_district ?? null) ||
@@ -139,7 +153,7 @@ function ProfileForm({
           label="Save changes"
           onPress={save}
           loading={update.isPending || updateContact.isPending}
-          disabled={!changed || !isValidWhatsAppNumber(whatsapp)}
+          disabled={!changed || !nameValid || !isValidWhatsAppNumber(whatsapp)}
         />
       }
     >
@@ -173,7 +187,24 @@ function ProfileForm({
         <Callout tone="danger">{(uploadAvatar.error as Error).message}</Callout>
       ) : null}
 
-      <TextField label="Your name" value={displayName} onChangeText={setDisplayName} />
+      <TextField
+        label="First name"
+        value={firstName}
+        onChangeText={setFirstName}
+        autoCapitalize="words"
+        autoComplete="given-name"
+        textContentType="givenName"
+      />
+
+      <TextField
+        label="Family name"
+        value={lastName}
+        onChangeText={setLastName}
+        autoCapitalize="words"
+        autoComplete="family-name"
+        textContentType="familyName"
+        hint={`Other members see you as “${previewName}”.`}
+      />
 
       <OptionChips<DisciplineValue>
         label="Discipline"

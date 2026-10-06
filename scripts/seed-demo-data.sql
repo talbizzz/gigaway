@@ -97,30 +97,30 @@ begin
 
   -- ── the cast ────────────────────────────────────────────────────────────
   insert into public.profiles
-    (id, display_name, discipline, specialisation, home_city_id, home_district,
+    (id, display_name, first_name, last_name, discipline, specialisation, home_city_id, home_district,
      bio, status, verified_at, created_at)
   values
-    (v_lena, 'Lena Vogt', 'voice', 'Soprano', v_munich, 'Haidhausen',
+    (v_lena, 'Lena Vogt', 'Lena', 'Vogt', 'voice', 'Soprano', v_munich, 'Haidhausen',
      'Soprano, opera and concert. Munich for six years now — I know which pianists rehearse cheaply and where to warm up on a Sunday.',
      'approved', now() - interval '8 months', now() - interval '8 months'),
 
-    (v_tomas, 'Tomás Ferreira', 'strings', 'Cello', v_munich, 'Schwabing',
+    (v_tomas, 'Tomás Ferreira', 'Tomás', 'Ferreira', 'strings', 'Cello', v_munich, 'Schwabing',
      'Cellist, orchestral and chamber. Portuguese, in Munich since my studies. Spare room whenever my flatmate is on tour, which is often.',
      'approved', now() - interval '6 months', now() - interval '6 months'),
 
-    (v_chiara, 'Chiara Bellini', 'dance', 'Contemporary', v_munich, 'Sendling',
+    (v_chiara, 'Chiara Bellini', 'Chiara', 'Bellini', 'dance', 'Contemporary', v_munich, 'Sendling',
      'Contemporary dancer, currently freelancing between companies. Small flat, good couch, excellent coffee.',
      'approved', now() - interval '5 months', now() - interval '5 months'),
 
-    (v_marek, 'Marek Sobczak', 'winds', 'Clarinet', v_berlin, 'Kreuzberg',
+    (v_marek, 'Marek Sobczak', 'Marek', 'Sobczak', 'winds', 'Clarinet', v_berlin, 'Kreuzberg',
      'Clarinettist, mostly new music. Berlin-based. I have hosted eleven people and stayed with seven — it works.',
      'approved', now() - interval '10 months', now() - interval '10 months'),
 
-    (v_anneke, 'Anneke de Vries', 'keyboard', 'Piano', v_vienna, 'Leopoldstadt',
+    (v_anneke, 'Anneke de Vries', 'Anneke', 'de Vries', 'keyboard', 'Piano', v_vienna, 'Leopoldstadt',
      'Pianist and répétiteur in Vienna. Quiet flat, upright piano you are welcome to use, cat who will ignore you.',
      'approved', now() - interval '11 months', now() - interval '11 months'),
 
-    (v_jonas, 'Jonas Lindqvist', 'brass', 'Horn', v_berlin, 'Neukölln',
+    (v_jonas, 'Jonas Lindqvist', 'Jonas', 'Lindqvist', 'brass', 'Horn', v_berlin, 'Neukölln',
      'Horn player, Swedish, Berlin for now. Auditioning constantly, so I am away more than I am home.',
      'approved', now() - interval '4 months', now() - interval '4 months');
 

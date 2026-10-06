@@ -46,7 +46,7 @@ the database returns no member content to you at all.
 
 | Data | Why | Lawful basis |
 |---|---|---|
-| Display name | So colleagues know who they are talking to | Contract |
+| First name and family name | So colleagues know who they are talking to. The app shows other members only your first name and the first letter of your family name (for example “Anna W.”) | Contract |
 | Discipline and specialisation | Matching, and establishing professional standing | Contract |
 | Home city and district | Showing you people in your city, and you to them | Contract |
 | Short biography | Letting others decide whether to host or stay with you | Contract |

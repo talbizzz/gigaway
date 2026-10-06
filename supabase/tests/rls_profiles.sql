@@ -51,8 +51,8 @@ select is(
 select is(
   (select display_name from public.profiles
     where id = '11111111-1111-1111-1111-111111111111'),
-  'Anna Weber',
-  'display_name is carried through from sign-up metadata'
+  'Anna W.',
+  'a legacy single-field display_name is split and shortened to first name + initial'
 );
 
 select is(

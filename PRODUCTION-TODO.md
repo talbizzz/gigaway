@@ -258,6 +258,74 @@ calls, so a prod admin site would load and then refuse every login.
   - do **not** test Delete on a real member — sign up a throwaway account and
     delete that instead
 
+## First and family name (added 2026-10-06)
+
+Members now enter a first and a family name; other members see only
+"Aziz T." (`profiles.display_name`, derived by a trigger from the new
+`profiles.first_name` / `last_name`). Admins and moderators see the full name.
+Two migrations, already applied by hand to **dev** and tested there:
+`20260921100000_split_member_names` and `20260921110000_admin_full_names`.
+Neither drops anything, but the first one **rewrites `display_name` on every
+existing member** — the original text is kept, split on its first space, in
+`first_name` / `last_name`, so nothing is lost, but there is no undo and no
+backup.
+
+### Before merging to `develop`
+
+- [ ] Everything committed (mobile sign-up and edit profile, shared types,
+      both migrations, `member_names.sql`, the four edited pgTAP files, seed
+      script, privacy-policy and Play data-safety wording)
+- [ ] CI green — `Migrations and pgTAP` runs the whole suite on an empty
+      database, which is the one run that is not polluted by dev's real data
+- [ ] `supabase migration list` against dev shows both migrations applied
+      (they were pushed by hand, so CI has nothing to do for dev)
+
+### Smoke test on dev, with a build pointed at dev
+
+- [ ] Sign up with the new form: both name fields required, the family-name
+      hint shows, and the new member appears to others as "First L."
+- [ ] Edit profile: both fields saved, the preview under Family name matches
+      what another account then sees
+- [ ] A member from before the split (no family name) can still save their
+      profile without being forced to add one
+- [ ] Feed, a trip, a request, an offer and a review all show "First L."
+- [ ] Admin (dev site): users list and user detail show the full name, and a
+      search by family name finds the member
+- [ ] The web password-reset page asks for the password twice (account pages
+      redeploy on merge)
+
+### Before merging to `main` (this is what reaches prod)
+
+- [ ] `supabase link --project-ref hrhoqmmxgfpyxwncmpjx`, confirm the output
+      names `gigaway`
+- [ ] Look at what will be rewritten, and be happy with how each splits:
+      `select display_name from public.profiles where status <> 'deleted';`
+      — a name like "Mary Jane Smith" becomes first "Mary", family "Jane
+      Smith", shown as "Mary J."; a single word keeps no family name
+- [ ] The backend preview's dry run lists these two **together with every
+      other pending migration** (prod is behind — see above). Read all of it,
+      not only these two
+- [ ] Approve **Deploy backend** first. The admin site and the new app build
+      both assume the columns exist
+- [ ] Then let the admin and account-page deploys finish (they run on the same
+      merge)
+- [ ] Only then ship the new mobile build. Older builds keep working: they
+      send one name and the database splits it on the first space
+- [ ] Play Console data-safety form: the "Name" row wording changed in
+      `legal/play-data-safety.md`; update the console if it should match
+
+### After it is live on prod
+
+- [ ] `select count(*) from public.profiles where status <> 'deleted' and
+      first_name is null;` returns 0
+- [ ] No non-deleted profile has a `display_name` that still holds a full
+      family name: `select display_name from public.profiles where status <>
+      'deleted' and display_name !~ '^\S+( \S\.)?$';` returns nothing
+      except members who signed up with a single name
+- [ ] Sign up a throwaway account, check it shows as "First L.", delete it
+- [ ] Run `pnpm db:types` against prod only once prod has caught up with dev;
+      until then the committed `database.types.ts` is generated from dev
+
 ## Carried over from Milestone 5 (already tracked in `TODO.md`, listed here only because prod is where they land)
 
 - [ ] Upgrade Supabase to Pro

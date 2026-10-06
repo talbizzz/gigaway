@@ -104,7 +104,7 @@ select is(
 
 select is(
   (select public.home_feed() -> 'inYourCity' -> 0 -> 'profile' ->> 'displayName'),
-  'Bruno Kraus',
+  'Bruno K.',
   'and it is the one who is actually here'
 );
 
@@ -116,7 +116,7 @@ select is(
 
 select is(
   (select public.home_feed() -> 'comingToYourCity' -> 0 -> 'profile' ->> 'displayName'),
-  'Clara Ortiz',
+  'Clara O.',
   'and it is the one who is on the way'
 );
 
@@ -141,7 +141,7 @@ select is(
 
 select is(
   (select public.home_feed() -> 'destinations' -> 0 -> 'people' -> 0 -> 'profile' ->> 'displayName'),
-  'Erik Sund',
+  'Erik S.',
   'and although Erik also lives there, he appears once, as the host'
 );
 

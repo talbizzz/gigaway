@@ -637,9 +637,11 @@ export type Database = {
           created_at: string
           discipline: string
           display_name: string
+          first_name: string | null
           home_city_id: string | null
           home_district: string | null
           id: string
+          last_name: string | null
           links: Json
           photo_path: string | null
           specialisation: string | null
@@ -653,9 +655,11 @@ export type Database = {
           created_at?: string
           discipline: string
           display_name: string
+          first_name?: string | null
           home_city_id?: string | null
           home_district?: string | null
           id: string
+          last_name?: string | null
           links?: Json
           photo_path?: string | null
           specialisation?: string | null
@@ -669,9 +673,11 @@ export type Database = {
           created_at?: string
           discipline?: string
           display_name?: string
+          first_name?: string | null
           home_city_id?: string | null
           home_district?: string | null
           id?: string
+          last_name?: string | null
           links?: Json
           photo_path?: string | null
           specialisation?: string | null
@@ -1737,6 +1743,10 @@ export type Database = {
       }
       expire_stale_requests_and_offers: { Args: never; Returns: number }
       export_user_data: { Args: { p_user: string }; Returns: Json }
+      format_public_name: {
+        Args: { p_first: string; p_last: string }
+        Returns: string
+      }
       has_contact_grant: { Args: { other: string }; Returns: boolean }
       home_feed: { Args: never; Returns: Json }
       is_admin: { Args: never; Returns: boolean }

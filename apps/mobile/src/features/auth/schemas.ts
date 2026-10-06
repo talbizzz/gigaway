@@ -13,11 +13,16 @@ export type SignInValues = z.infer<typeof SignInSchema>
 
 export const SignUpSchema = z
   .object({
-    displayName: z
+    firstName: z
       .string()
       .trim()
-      .min(2, 'Please enter your name as colleagues would know it.')
-      .max(80, 'That name is too long.'),
+      .min(1, 'Enter your first name.')
+      .max(40, 'That name is too long.'),
+    lastName: z
+      .string()
+      .trim()
+      .min(1, 'Enter your family name.')
+      .max(40, 'That name is too long.'),
     discipline: z.enum(disciplineValues, {
       errorMap: () => ({ message: 'Choose the closest match.' }),
     }),
