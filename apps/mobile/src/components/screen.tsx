@@ -1,6 +1,14 @@
 import { Image, type ImageSource } from 'expo-image'
 import { type ReactNode, useState } from 'react'
-import { Platform, StyleSheet, useColorScheme, View, type ViewStyle } from 'react-native'
+import {
+  Platform,
+  Pressable,
+  StyleSheet,
+  Text,
+  useColorScheme,
+  View,
+  type ViewStyle,
+} from 'react-native'
 import { KeyboardAwareScrollView, KeyboardStickyView } from 'react-native-keyboard-controller'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
@@ -30,6 +38,11 @@ type ScreenProps = {
    * button.
    */
   floatingHeader?: boolean
+  /**
+   * Draws a back arrow fixed in the top-left corner, above the scrolling content,
+   * and leaves room for it. Omit it where there is nowhere to go back to.
+   */
+  onBack?: () => void
 }
 
 export function Screen({
@@ -39,6 +52,7 @@ export function Screen({
   contentStyle,
   background,
   floatingHeader = false,
+  onBack,
 }: ScreenProps) {
   const theme = useTheme()
   const insets = useSafeAreaInsets()
@@ -65,11 +79,14 @@ export function Screen({
   // defaults for a header with no large title, which is what this app draws.
   const headerOffset = floatingHeader ? (Platform.OS === 'ios' ? 44 : 56) : 0
 
+  // Room for the back arrow, so the first heading starts below it.
+  const backOffset = onBack ? BACK_SIZE : 0
+
   const body = scroll ? (
     <KeyboardAwareScrollView
       contentContainerStyle={[
         styles.content,
-        { paddingTop: spacing.xl + insetTop + headerOffset },
+        { paddingTop: spacing.xl + insetTop + headerOffset + backOffset },
         contentStyle,
       ]}
       keyboardShouldPersistTaps="handled"
@@ -86,7 +103,7 @@ export function Screen({
       style={[
         styles.content,
         styles.flex,
-        { paddingTop: spacing.xl + insetTop + headerOffset },
+        { paddingTop: spacing.xl + insetTop + headerOffset + backOffset },
         contentStyle,
       ]}
     >
@@ -112,6 +129,21 @@ export function Screen({
         />
       ) : null}
       {body}
+      {onBack ? (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Back"
+          onPress={onBack}
+          hitSlop={8}
+          style={({ pressed }) => [
+            styles.back,
+            { top: insetTop + spacing.sm },
+            pressed && styles.backPressed,
+          ]}
+        >
+          <Text style={[styles.backArrow, { color: theme.text }]}>←</Text>
+        </Pressable>
+      ) : null}
       {footer ? (
         // Rides above the keyboard instead of being buried by it. `opened` is
         // added to a negative translation, so a positive value moves the footer
@@ -141,8 +173,20 @@ export function Screen({
   )
 }
 
+const BACK_SIZE = 44
+
 const styles = StyleSheet.create({
   flex: { flex: 1 },
+  back: {
+    position: 'absolute',
+    left: spacing.md,
+    width: BACK_SIZE,
+    height: BACK_SIZE,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  backPressed: { opacity: 0.6 },
+  backArrow: { fontSize: 28, lineHeight: 32 },
   content: {
     padding: spacing.xl,
     gap: spacing.lg,

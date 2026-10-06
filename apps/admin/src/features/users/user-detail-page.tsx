@@ -1,4 +1,4 @@
-import type { AdminDeleteUserResponse } from '@gigaway/shared'
+import { disciplineLabel, type AdminDeleteUserResponse } from '@gigaway/shared'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import type { ReactNode } from 'react'
 import { useState } from 'react'
@@ -140,12 +140,11 @@ export function UserDetailPage() {
           <div className="card" style={{ marginBottom: 'var(--space-lg)' }}>
             <h2 style={{ fontSize: 15, marginBottom: 'var(--space-lg)' }}>Profile</h2>
             <dl className="detail-grid">
-              <DetailItem label="Discipline" value={data.discipline} />
+              <DetailItem label="Discipline" value={disciplineLabel(data.discipline)} />
               <DetailItem label="Home city" value={data.home_city} />
               <DetailItem label="Joined" value={formatDate(data.joined_at)} />
               <DetailItem label="Email" value={data.email} />
               <DetailItem label="Phone" value={data.phone} />
-              <DetailItem label="WhatsApp" value={data.whatsapp} />
               <DetailItem
                 label="Verification"
                 value={data.verification_status && <StatusPill status={data.verification_status} />}
@@ -186,7 +185,6 @@ export function UserDetailPage() {
                     <DetailItem label="Legal name" value={hold.data.full_legal_name} />
                     <DetailItem label="Email" value={hold.data.email} />
                     <DetailItem label="Phone" value={hold.data.phone} />
-                    <DetailItem label="WhatsApp" value={hold.data.whatsapp} />
                     <DetailItem label="Selfie file" value={hold.data.selfie_path} />
                     <DetailItem label="CV file" value={hold.data.cv_path} />
                   </dl>

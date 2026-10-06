@@ -49,20 +49,10 @@ export function isProfileComplete(profile: Profile | undefined): boolean {
   return Boolean(profile?.display_name && profile.discipline && profile.home_city_id)
 }
 
-export const DISCIPLINES = [
-  { value: 'voice', label: 'Voice' },
-  { value: 'strings', label: 'Strings' },
-  { value: 'keyboard', label: 'Keyboard' },
-  { value: 'winds', label: 'Winds' },
-  { value: 'brass', label: 'Brass' },
-  { value: 'percussion', label: 'Percussion' },
-  { value: 'dance', label: 'Dance' },
-  { value: 'conducting', label: 'Conducting' },
-  { value: 'composition', label: 'Composition' },
-  { value: 'other', label: 'Other' },
-] as const
-
-export type DisciplineValue = (typeof DISCIPLINES)[number]['value']
+// The categories live in the shared package so the admin site shows the same
+// labels. Re-exported here because that is where the screens already import
+// them from.
+export { DISCIPLINES, type DisciplineValue } from '@gigaway/shared'
 
 /**
  * Another member's profile.

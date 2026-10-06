@@ -318,7 +318,6 @@ export type Database = {
           preferred_channel: string | null
           profile_id: string
           updated_at: string
-          whatsapp: string | null
         }
         Insert: {
           email?: string | null
@@ -326,7 +325,6 @@ export type Database = {
           preferred_channel?: string | null
           profile_id: string
           updated_at?: string
-          whatsapp?: string | null
         }
         Update: {
           email?: string | null
@@ -334,7 +332,6 @@ export type Database = {
           preferred_channel?: string | null
           profile_id?: string
           updated_at?: string
-          whatsapp?: string | null
         }
         Relationships: [
           {
@@ -484,7 +481,6 @@ export type Database = {
           profile_id: string
           selfie_path: string | null
           tier: string
-          whatsapp: string | null
         }
         Insert: {
           created_at?: string
@@ -499,7 +495,6 @@ export type Database = {
           profile_id: string
           selfie_path?: string | null
           tier: string
-          whatsapp?: string | null
         }
         Update: {
           created_at?: string
@@ -514,7 +509,6 @@ export type Database = {
           profile_id?: string
           selfie_path?: string | null
           tier?: string
-          whatsapp?: string | null
         }
         Relationships: [
           {
@@ -1610,7 +1604,6 @@ export type Database = {
           profile_id: string
           selfie_path: string
           tier: string
-          whatsapp: string
         }[]
       }
       admin_get_trip_detail: {
@@ -1655,7 +1648,6 @@ export type Database = {
           trips: number
           verification_decision_reason: string
           verification_status: Database["public"]["Enums"]["verification_status"]
-          whatsapp: string
           would_again_pct: number
         }[]
       }
@@ -1902,6 +1894,7 @@ export type Database = {
         Args: { p_fallback: string; p_first: string; p_last: string }
         Returns: string
       }
+      normalize_discipline: { Args: { p_value: string }; Returns: string }
       notification_stay_payload: { Args: { p_stay_id: string }; Returns: Json }
       notification_trip_payload: { Args: { p_trip_id: string }; Returns: Json }
       offerable_windows: {

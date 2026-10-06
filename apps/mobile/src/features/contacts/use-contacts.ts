@@ -14,8 +14,7 @@ export type ContactDetails = {
   profile_id: string
   email: string | null
   phone: string | null
-  whatsapp: string | null
-  preferred_channel: 'whatsapp' | 'phone' | 'email' | null
+  preferred_channel: 'phone' | 'email' | null
 }
 
 export type Stay = {
@@ -43,7 +42,7 @@ export function useContact(profileId: string | undefined) {
     queryFn: async (): Promise<ContactDetails | null> => {
       const { data, error } = await supabase
         .from('contact_details')
-        .select('profile_id, email, phone, whatsapp, preferred_channel')
+        .select('profile_id, email, phone, preferred_channel')
         .eq('profile_id', profileId!)
         .maybeSingle()
       if (error) throw error
@@ -70,7 +69,7 @@ export function useMyContactDetails() {
     queryFn: async (): Promise<ContactDetails | null> => {
       const { data, error } = await supabase
         .from('contact_details')
-        .select('profile_id, email, phone, whatsapp, preferred_channel')
+        .select('profile_id, email, phone, preferred_channel')
         .eq('profile_id', userId!)
         .maybeSingle()
       if (error) throw error
@@ -91,7 +90,7 @@ export function useUpdateContactDetails() {
   const session = useSessionStore((state) => state.session)
 
   return useMutation({
-    mutationFn: async (update: { whatsapp?: string | null }) => {
+    mutationFn: async (update: { phone?: string | null }) => {
       const { error } = await supabase
         .from('contact_details')
         .upsert({ profile_id: session!.user.id, ...update }, { onConflict: 'profile_id' })
@@ -106,11 +105,11 @@ export function useUpdateContactDetails() {
 /**
  * The one contact channel a member has to supply themselves.
  *
- * Email arrives from auth at sign-up and is never missing, so WhatsApp is the
- * only thing standing between a new account and a usable reveal.
+ * Email arrives from auth at sign-up and is never missing, so the phone number
+ * is the only thing standing between a new account and a usable reveal.
  */
 export function isContactComplete(details: ContactDetails | null | undefined): boolean {
-  return Boolean(details?.whatsapp)
+  return Boolean(details?.phone)
 }
 
 /** Everyone the signed-in member may now contact, newest grant first. */

@@ -1,3 +1,4 @@
+import { disciplineLabel } from '@gigaway/shared'
 import { useQuery } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 
@@ -47,7 +48,7 @@ export function RecentSignupsCard() {
                   <td>
                     <StatusPill status={p.status} />
                   </td>
-                  <td>{p.discipline}</td>
+                  <td>{disciplineLabel(p.discipline)}</td>
                   <td>{p.home_city ?? '—'}</td>
                   <td>{formatDate(p.created_at)}</td>
                 </tr>

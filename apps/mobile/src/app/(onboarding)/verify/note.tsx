@@ -22,6 +22,10 @@ export default function VerifyNoteStep() {
         setVerification({ note: note.trim() })
         router.push('/(onboarding)/verify/review')
       }}
+      onSkip={() => {
+        setVerification({ note: '' })
+        router.push('/(onboarding)/verify/review')
+      }}
     >
       <TextField
         label="Note (optional)"

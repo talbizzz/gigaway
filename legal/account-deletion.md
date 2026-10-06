@@ -52,7 +52,7 @@ So that a safety concern raised soon after you leave can still be looked into,
 we keep the following for **30 days** after deletion, or **12 months** if a
 report has been made about you (including one made during those 30 days):
 
-- Your email address, phone number and WhatsApp number
+- Your email address and phone number
 - Your first and family name and your legal name
 - Your professional links
 - Your verification selfie, ID photo and CV

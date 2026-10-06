@@ -42,7 +42,7 @@ for advertising and sells nothing. Processors that merely host data are not
 |---|---|---|---|---|
 | **Name** | Yes | Required | App functionality, Account management | `profiles.first_name`, `profiles.last_name`; the app shows others only the "First L." form |
 | **Email address** | Yes | Required | App functionality, Account management | Auth, plus `contact_details.email` |
-| **Phone number** | Yes | Required | App functionality | WhatsApp number is required at signup |
+| **Phone number** | Yes | Required | App functionality | Personal phone number is required at signup |
 | **User IDs** | Yes | Required | App functionality, Account management | `profiles.id` |
 | **Address** | **No** | — | — | See judgement call below |
 | **Race and ethnicity** | No | — | — | Not collected |

@@ -28,7 +28,7 @@ update public.profiles set status = 'approved'
 -- Dieter (4444) stays pending.
 
 update public.contact_details
-  set phone = '+49 170 1234567', preferred_channel = 'whatsapp'
+  set phone = '+491701234567', preferred_channel = 'phone'
   where profile_id = '22222222-2222-2222-2222-222222222222';
 
 -- ── before any grant ───────────────────────────────────────────────────────
@@ -69,7 +69,7 @@ set local request.jwt.claims to
 select is(
   (select phone from public.contact_details
     where profile_id = '22222222-2222-2222-2222-222222222222'),
-  '+49 170 1234567',
+  '+491701234567',
   'after acceptance the host''s phone number becomes readable'
 );
 

@@ -289,7 +289,7 @@ function HostCard({
         One tap, no form. Asking is the action this product needs to happen
         most often, and putting a message box in the way turns it into a small
         piece of writing that people put off. The host can be told more later,
-        on WhatsApp, once there is something to arrange.
+        by phone, once there is something to arrange.
       */}
       {asked ? (
         <View style={styles.action}>

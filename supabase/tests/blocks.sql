@@ -25,7 +25,7 @@ insert into auth.users (id, email, raw_user_meta_data) values
 update public.profiles set status = 'approved';
 
 update public.contact_details
-  set phone = '+49 170 1234567', preferred_channel = 'phone'
+  set phone = '+491701234567', preferred_channel = 'phone'
   where profile_id = '22222222-2222-2222-2222-222222222222';
 
 -- Anna travels to Munich twice. Bruno hosts there and is free throughout.
@@ -108,7 +108,7 @@ select is(
 select is(
   (select phone from public.contact_details
     where profile_id = '22222222-2222-2222-2222-222222222222'),
-  '+49 170 1234567',
+  '+491701234567',
   'and the accepted stay has revealed contact details'
 );
 
@@ -342,7 +342,7 @@ select is(
 select is(
   (select phone from public.contact_details
     where profile_id = '22222222-2222-2222-2222-222222222222'),
-  '+49 170 1234567',
+  '+491701234567',
   'and the earlier stay''s contact grant works again'
 );
 

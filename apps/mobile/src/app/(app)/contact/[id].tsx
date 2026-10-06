@@ -1,4 +1,4 @@
-import { formatDateRange, nightCount, whatsAppLink } from '@gigaway/shared'
+import { formatDateRange, nightCount, telLink } from '@gigaway/shared'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { ActivityIndicator, Linking, Pressable, StyleSheet, Text, View } from 'react-native'
 
@@ -114,7 +114,7 @@ export default function ContactScreen() {
 }
 
 type Channel = {
-  kind: 'whatsapp' | 'phone' | 'email'
+  kind: 'phone' | 'email'
   label: string
   value: string
   action: string
@@ -125,27 +125,15 @@ type Channel = {
 /**
  * Preferred channel first, then the rest.
  *
- * Someone who says "WhatsApp" and gets a phone call at 8am has been let down
- * by the interface, not by the caller.
+ * Someone who says they prefer email and gets a phone call at 8am has been let
+ * down by the interface, not by the caller.
  */
 function orderChannels(details: {
-  whatsapp: string | null
   phone: string | null
   email: string | null
   preferred_channel: string | null
 }): Channel[] {
   const channels: Channel[] = []
-
-  if (details.whatsapp) {
-    channels.push({
-      kind: 'whatsapp',
-      label: 'WhatsApp',
-      value: details.whatsapp,
-      action: 'Open WhatsApp',
-      url: whatsAppLink(details.whatsapp),
-      preferred: details.preferred_channel === 'whatsapp',
-    })
-  }
 
   if (details.phone) {
     channels.push({
@@ -153,7 +141,7 @@ function orderChannels(details: {
       label: 'Phone',
       value: details.phone,
       action: 'Call',
-      url: `tel:${details.phone.replace(/\s/g, '')}`,
+      url: telLink(details.phone),
       preferred: details.preferred_channel === 'phone',
     })
   }

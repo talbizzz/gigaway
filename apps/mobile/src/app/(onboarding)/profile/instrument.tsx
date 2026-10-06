@@ -1,3 +1,4 @@
+import { disciplineExample, disciplineLabel } from '@gigaway/shared'
 import { useRouter } from 'expo-router'
 import { useState } from 'react'
 
@@ -17,19 +18,23 @@ export default function ProfileInstrumentStep() {
     <WizardStep
       step={4}
       total={PROFILE_STEPS}
-      title="Your instrument or voice"
-      hint="Optional. Leave it empty if it doesn't fit."
+      title="Your field of work"
+      hint={`You chose the category "${disciplineLabel(profile?.discipline)}". Do you want to specify your profession?`}
       canContinue
       onContinue={() => {
         setProfile({ instrument })
         router.push('/(onboarding)/profile/about')
       }}
+      onSkip={() => {
+        setProfile({ instrument: '' })
+        router.push('/(onboarding)/profile/about')
+      }}
     >
       <TextField
-        label="Instrument or voice type (optional)"
+        label="Your profession (optional)"
         value={instrument}
         onChangeText={setInstrument}
-        placeholder="Mezzo-soprano"
+        placeholder={disciplineExample(profile?.discipline)}
       />
     </WizardStep>
   )

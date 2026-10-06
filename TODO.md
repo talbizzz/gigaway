@@ -222,9 +222,10 @@ Progress checklist. Detail lives in the `Milestone-N-*.md` files.
 - [x] Save disabled until something actually changes
 - [x] Home city could never be changed — one `null` meant both "untouched" and
       "cleared", so the picker always fell back to the stored city
-- [x] WhatsApp number collected and required, stored E.164, revealed with the
-      email on acceptance _(there was no screen to enter one, so the reveal
-      screen's WhatsApp row could never show anything)_
+- [x] Personal phone number collected and required, stored E.164, revealed with
+      the email on acceptance _(first built as a WhatsApp number; replaced by the
+      one phone number once it was clear most people use an ordinary number or
+      other messengers)_
 - [x] Profiles readable from every match card before asking or offering, with
       the ask / offer action carried onto the profile
 - [x] Initials placeholder where a member has no photo _(the empty circle was

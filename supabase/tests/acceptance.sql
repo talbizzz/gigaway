@@ -30,9 +30,9 @@ insert into auth.users (id, email, raw_user_meta_data) values
 update public.profiles set status = 'approved';
 
 update public.contact_details
-  -- whatsapp is E.164 only (whatsapp_is_e164); phone carries no such rule.
-  set phone = '+49 170 1234567', whatsapp = '+491701234567',
-      preferred_channel = 'whatsapp'
+  -- phone is E.164 only (phone_is_e164).
+  set phone = '+491701234567',
+      preferred_channel = 'phone'
   where profile_id = '22222222-2222-2222-2222-222222222222';
 
 insert into public.trips (id, profile_id, city_id, start_date, end_date, needs)
@@ -159,10 +159,10 @@ set local request.jwt.claims to
   '{"sub":"11111111-1111-1111-1111-111111111111","role":"authenticated"}';
 
 select is(
-  (select whatsapp from public.contact_details
+  (select phone from public.contact_details
     where profile_id = '22222222-2222-2222-2222-222222222222'),
   '+491701234567',
-  'the traveller can now read the host''s WhatsApp number'
+  'the traveller can now read the host''s phone number'
 );
 
 set local role postgres;

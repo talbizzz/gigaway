@@ -1,4 +1,9 @@
-import { isValidWhatsAppNumber, normalisePhoneNumber } from '@gigaway/shared'
+import {
+  BIO_MAX_LENGTH,
+  disciplineExample,
+  isValidPhoneNumber,
+  normalisePhoneNumber,
+} from '@gigaway/shared'
 import { Stack, useRouter } from 'expo-router'
 import { Image } from 'expo-image'
 import { useState } from 'react'
@@ -8,6 +13,7 @@ import { Button } from '@/components/button'
 import { Callout } from '@/components/callout'
 import { CityPicker, type City } from '@/components/city-picker'
 import { OptionChips } from '@/components/option-chips'
+import { PhoneField } from '@/components/phone-field'
 import { Screen } from '@/components/screen'
 import { TextField } from '@/components/text-field'
 import { useCity } from '@/features/cities/use-city'
@@ -77,7 +83,7 @@ function ProfileForm({
   const [district, setDistrict] = useState(profile.home_district ?? '')
   const [bio, setBio] = useState(profile.bio ?? '')
   const [website, setWebsite] = useState(initialLinks[0]?.url ?? '')
-  const [whatsapp, setWhatsapp] = useState(contact?.whatsapp ?? '')
+  const [phone, setPhone] = useState(contact?.phone ?? '')
   // `undefined` means untouched — fall back to the stored city. `null` means
   // the member cleared it to search for another, which is what the picker's
   // tap-to-change sends. Collapsing the two into one null would make the
@@ -108,7 +114,7 @@ function ProfileForm({
 
   // Compared normalised, so retyping the same number with different spacing is
   // not a change.
-  const whatsappChanged = normalisePhoneNumber(whatsapp) !== (contact?.whatsapp ?? '')
+  const phoneChanged = normalisePhoneNumber(phone) !== (contact?.phone ?? '')
 
   // A member from before the split may have no family name yet. They can save
   // everything else without one, but cannot clear one they already have.
@@ -122,7 +128,7 @@ function ProfileForm({
     : firstName.trim()
 
   const changed =
-    whatsappChanged ||
+    phoneChanged ||
     draft.first_name !== (profile.first_name ?? '') ||
     draft.last_name !== (profile.last_name ?? null) ||
     draft.discipline !== profile.discipline ||
@@ -136,8 +142,8 @@ function ProfileForm({
     // The number first, and only when it actually changed: it is the required
     // half, so a failure here must not be preceded by a successful profile
     // write that makes the form look saved.
-    if (whatsappChanged) {
-      await updateContact.mutateAsync({ whatsapp: normalisePhoneNumber(whatsapp) })
+    if (phoneChanged) {
+      await updateContact.mutateAsync({ phone: normalisePhoneNumber(phone) })
     }
     await update.mutateAsync(draft)
     // Back to the read view, which re-reads the invalidated profile. The
@@ -153,7 +159,7 @@ function ProfileForm({
           label="Save changes"
           onPress={save}
           loading={update.isPending || updateContact.isPending}
-          disabled={!changed || !nameValid || !isValidWhatsAppNumber(whatsapp)}
+          disabled={!changed || !nameValid || !isValidPhoneNumber(phone)}
         />
       }
     >
@@ -214,25 +220,21 @@ function ProfileForm({
       />
 
       <TextField
-        label="Instrument or voice type"
+        label="Your profession (optional)"
         value={specialisation}
         onChangeText={setSpecialisation}
-        placeholder="Mezzo-soprano"
+        placeholder={disciplineExample(discipline)}
       />
 
       <CityPicker label="Home city" value={selectedCity} onChange={setCity} />
 
-      <TextField
-        label="WhatsApp number"
-        value={whatsapp}
-        onChangeText={setWhatsapp}
-        keyboardType="phone-pad"
-        autoCapitalize="none"
-        autoCorrect={false}
-        placeholder="+49 170 1234567"
+      <PhoneField
+        label="Phone number"
+        value={phone}
+        onChange={setPhone}
         error={
-          whatsapp.length > 0 && !isValidWhatsAppNumber(whatsapp)
-            ? 'Include the country code, like +49 170 1234567.'
+          phone.length > 0 && !isValidPhoneNumber(phone)
+            ? 'That number doesn’t look right. Enter it without the country code.'
             : undefined
         }
         hint="Shared with the other person only once an offer is accepted, together with your email."
@@ -252,7 +254,8 @@ function ProfileForm({
         onChangeText={setBio}
         multiline
         numberOfLines={4}
-        maxLength={600}
+        maxLength={BIO_MAX_LENGTH}
+        hint={`${bio.length}/${BIO_MAX_LENGTH}`}
         style={styles.bio}
       />
 

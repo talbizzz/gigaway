@@ -36,7 +36,7 @@ import { useMyApplication } from "@/features/verification/use-verification";
  * read it as an ordinary sign-in and carry the user straight into the app
  * before they have set a new password. See session-store.ts.
  *
- * "Complete" spans two tables: the profile row, and the WhatsApp number in
+ * "Complete" spans two tables: the profile row, and the phone number in
  * contact_details. Both are what another member needs before they can decide
  * to host someone and then actually reach them, so both hold a member in
  * onboarding.

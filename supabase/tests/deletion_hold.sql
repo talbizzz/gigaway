@@ -221,7 +221,10 @@ update public.deletion_holds set held_until = now() - interval '1 day'
   where profile_id = '22222222-2222-2222-2222-222222222222';
 
 select is(
-  (select array_agg(profile_id) from public.claim_expired_deletion_holds()),
+  (select array_agg(profile_id) from public.claim_expired_deletion_holds(1000)
+    where profile_id in ('11111111-1111-1111-1111-111111111111',
+                         '22222222-2222-2222-2222-222222222222',
+                         '33333333-3333-3333-3333-333333333333')),
   array['22222222-2222-2222-2222-222222222222']::uuid[],
   'only the expired hold is claimed for purging'
 );
@@ -230,7 +233,10 @@ select public.finish_deletion_hold('22222222-2222-2222-2222-222222222222');
 select public.finish_deletion_hold('11111111-1111-1111-1111-111111111111');
 
 select is(
-  (select array_agg(profile_id order by profile_id) from public.deletion_holds),
+  (select array_agg(profile_id order by profile_id) from public.deletion_holds
+    where profile_id in ('11111111-1111-1111-1111-111111111111',
+                         '22222222-2222-2222-2222-222222222222',
+                         '33333333-3333-3333-3333-333333333333')),
   array['11111111-1111-1111-1111-111111111111',
         '33333333-3333-3333-3333-333333333333']::uuid[],
   'finishing removes an expired hold and leaves one that has not expired'

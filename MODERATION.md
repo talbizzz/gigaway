@@ -207,7 +207,7 @@ free-text field cleared. Their name appears nowhere in anybody else's app.
 
 Erasing a member also erases the only thing tying a retained report or stay to a
 real person. So `delete_account` first copies their identity — email, names,
-legal name, phone and WhatsApp, links, and the paths of the selfie and CV, which
+legal name, phone, links, and the paths of the selfie and CV, which
 stay in Storage — into `deletion_holds`. It is kept for **30 days**, or **12
 months** if any report against them is open, under review or actioned. A report
 made against them afterwards extends it to 12 months. When it runs out the

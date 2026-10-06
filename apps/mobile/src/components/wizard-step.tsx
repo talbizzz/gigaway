@@ -2,7 +2,7 @@ import { useRouter } from 'expo-router'
 import type { ReactNode } from 'react'
 import { StyleSheet, Text, View } from 'react-native'
 
-import { Button, TextLink } from '@/components/button'
+import { Button } from '@/components/button'
 import { Callout } from '@/components/callout'
 import { Screen } from '@/components/screen'
 import { spacing, typography } from '@/theme/tokens'
@@ -13,8 +13,14 @@ import { useTheme } from '@/theme/use-theme'
  * forward. Each section of a form gets one of these, so a member only ever has
  * one thing to answer at a time.
  *
- * "Back" only appears when there is somewhere to go back to, so a screen
- * reached directly (by the auth gate, say) does not offer a dead button.
+ * Back is an arrow in the top-left corner, and only appears when there is
+ * somewhere to go back to, so a screen reached directly (by the auth gate, say)
+ * does not offer a dead button.
+ *
+ * `onSkip` is for a step whose answer is optional. It shows a Skip button, so a
+ * member can see they are allowed to leave it empty rather than having to work
+ * that out from "(optional)" in a label. Skipping moves on WITHOUT keeping
+ * anything typed; Continue is what keeps it.
  */
 type WizardStepProps = {
   step: number
@@ -24,6 +30,8 @@ type WizardStepProps = {
   children: ReactNode
   canContinue: boolean
   onContinue: () => void
+  /** Present only on optional steps. */
+  onSkip?: () => void
   continueLabel?: string
   loading?: boolean
   error?: string | null
@@ -39,6 +47,7 @@ export function WizardStep({
   children,
   canContinue,
   onContinue,
+  onSkip,
   continueLabel = 'Continue',
   loading = false,
   error,
@@ -49,6 +58,7 @@ export function WizardStep({
 
   return (
     <Screen
+      onBack={router.canGoBack() ? () => router.back() : undefined}
       footer={
         <>
           <Button
@@ -57,7 +67,9 @@ export function WizardStep({
             disabled={!canContinue}
             loading={loading}
           />
-          {router.canGoBack() ? <TextLink label="Back" onPress={() => router.back()} /> : null}
+          {onSkip ? (
+            <Button label="Skip" variant="secondary" onPress={onSkip} disabled={loading} />
+          ) : null}
           {footerExtra}
         </>
       }

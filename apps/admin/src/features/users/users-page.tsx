@@ -1,3 +1,4 @@
+import { disciplineLabel } from '@gigaway/shared'
 import { useQuery } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
@@ -67,7 +68,7 @@ export function UsersPage() {
                 <td>
                   <StatusPill status={profile.status} />
                 </td>
-                <td>{profile.discipline}</td>
+                <td>{disciplineLabel(profile.discipline)}</td>
                 <td>{profile.home_city ?? '—'}</td>
                 <td>{profile.email ?? '—'}</td>
                 <td>{formatDate(profile.joined_at)}</td>

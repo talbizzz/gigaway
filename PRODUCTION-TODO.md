@@ -432,6 +432,42 @@ The periods are `deletion_hold_days` and `deletion_hold_reported_days` in
 - A fingerprint of a guessable email can be confirmed by guessing it. It keeps
   the readable details out of the table; it is not a secret.
 
+## Phone number replaces WhatsApp (added 2026-10-06)
+
+The profile gate now asks for one personal phone number instead of a WhatsApp
+number, and the reveal screen offers Call and Email. One migration,
+`20260921160000_phone_replaces_whatsapp`: it moves each member's WhatsApp number
+into `contact_details.phone`, drops `whatsapp`, makes `phone` E.164-only,
+removes 'whatsapp' as a preferred channel, and rebuilds the three functions that
+read the old column (admin user detail, the identity hold, `delete_account`).
+Applied to dev and tested there.
+
+### Before merging to `main`
+
+- [ ] **The migration drops a column.** The dry run's review will flag it. It is
+      safe only because the numbers are copied into `phone` first; check on prod
+      afterwards that `select count(*) from contact_details where phone is null`
+      is no larger than before
+- [ ] **Backend first.** An old app build on the new backend reads a column that
+      no longer exists: its profile edit and contact reveal would fail until the
+      member updates. The auth gate in the old build reads `whatsapp` too, so a
+      member who is already complete would be sent back to the profile setup.
+      Ship the new build promptly after the backend, and say so in the release
+      notes
+- [ ] The privacy policy, account-deletion page, community guidelines and Play
+      data-safety copy now say "phone number" rather than "WhatsApp number"
+
+### Smoke test on dev
+
+- [ ] A member who had a WhatsApp number is still complete and goes straight into
+      the app, with the same number shown under Profile → "Phone"
+- [ ] A new member is asked for "Your phone number" (not WhatsApp), with the country
+      code chosen in its own box (starting from the device's region) and the number
+      typed separately; a leading 0 is dropped, pasting a whole +49 … number sets
+      the country, and an existing member's number shows split correctly in Edit
+      profile
+- [ ] After an accepted offer the reveal shows Phone (Call) and Email
+
 ## Carried over from Milestone 5 (already tracked in `TODO.md`, listed here only because prod is where they land)
 
 - [ ] Upgrade Supabase to Pro

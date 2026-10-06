@@ -1,34 +1,39 @@
-import { Image } from 'expo-image'
-import { useRouter } from 'expo-router'
-import type { ReactNode } from 'react'
-import { StyleSheet, Text, View } from 'react-native'
+import { Image } from "expo-image";
+import { useRouter } from "expo-router";
+import type { ReactNode } from "react";
+import { StyleSheet, Text, View } from "react-native";
 
-import { TextLink } from '@/components/button'
-import { WizardStep } from '@/components/wizard-step'
-import { useOnboardingDraft, VERIFICATION_STEPS } from '@/features/onboarding/draft-store'
-import { useSubmitVerification } from '@/features/verification/use-verification'
-import { ApiCallError } from '@/lib/functions'
-import { radius, spacing, typography } from '@/theme/tokens'
-import { useTheme } from '@/theme/use-theme'
+import { TextLink } from "@/components/button";
+import { WizardStep } from "@/components/wizard-step";
+import {
+  useOnboardingDraft,
+  VERIFICATION_STEPS,
+} from "@/features/onboarding/draft-store";
+import { useSubmitVerification } from "@/features/verification/use-verification";
+import { ApiCallError } from "@/lib/functions";
+import { radius, spacing, typography } from "@/theme/tokens";
+import { useTheme } from "@/theme/use-theme";
 
 /**
  * The last screen: everything the applicant entered, each with an Edit link back
  * to its question, and the only place the application is sent.
  */
 export default function VerifyReviewStep() {
-  const theme = useTheme()
-  const router = useRouter()
-  const draft = useOnboardingDraft((state) => state.verification)
-  const resetVerification = useOnboardingDraft((state) => state.resetVerification)
-  const submit = useSubmitVerification()
+  const theme = useTheme();
+  const router = useRouter();
+  const draft = useOnboardingDraft((state) => state.verification);
+  const resetVerification = useOnboardingDraft(
+    (state) => state.resetVerification,
+  );
+  const submit = useSubmitVerification();
 
   const canSubmit =
     draft.fullLegalName.trim().length >= 2 &&
     Boolean(draft.selfieUri) &&
-    (Boolean(draft.cv) || draft.links.length > 0)
+    (Boolean(draft.cv) || draft.links.length > 0);
 
   const onSubmit = () => {
-    if (!draft.selfieUri || !canSubmit) return
+    if (!draft.selfieUri || !canSubmit) return;
     submit.mutate(
       {
         fullLegalName: draft.fullLegalName.trim(),
@@ -44,50 +49,72 @@ export default function VerifyReviewStep() {
         // land. Navigating from here as well put two replaces in flight at once,
         // and when the second won the member was left on the waiting screen.
         onSuccess: () => {
-          resetVerification()
+          resetVerification();
         },
       },
-    )
-  }
+    );
+  };
 
   const error = submit.isError
     ? submit.error instanceof ApiCallError
       ? submit.error.message
-      : 'Something went wrong. Please try again.'
-    : null
+      : "Something went wrong. Please try again."
+    : null;
 
   return (
     <WizardStep
       step={5}
       total={VERIFICATION_STEPS}
       title="Check and send"
-      hint="A human reads this. Nothing is sent until you press the button below."
+      hint="This will be reviewed by a member of our staff. Nothing is sent until you press the button below."
       canContinue={canSubmit}
       continueLabel="Submit application"
       onContinue={onSubmit}
       loading={submit.isPending}
       error={error}
     >
-      <Row label="Full legal name" onEdit={() => router.push('/(onboarding)/verify/name')}>
-        <Text style={[typography.body, { color: theme.text }]}>{draft.fullLegalName || '—'}</Text>
+      <Row
+        label="Full legal name"
+        onEdit={() => router.push("/(onboarding)/verify/name")}
+      >
+        <Text style={[typography.body, { color: theme.text }]}>
+          {draft.fullLegalName || "—"}
+        </Text>
       </Row>
 
-      <Row label="Selfie with ID" onEdit={() => router.push('/(onboarding)/verify/selfie')}>
+      <Row
+        label="Selfie with ID"
+        onEdit={() => router.push("/(onboarding)/verify/selfie")}
+      >
         {draft.selfieUri ? (
-          <Image source={{ uri: draft.selfieUri }} style={styles.thumb} contentFit="cover" />
+          <Image
+            source={{ uri: draft.selfieUri }}
+            style={styles.thumb}
+            contentFit="cover"
+          />
         ) : (
           <Text style={[typography.body, { color: theme.text }]}>—</Text>
         )}
       </Row>
 
-      <Row label="Proof" onEdit={() => router.push('/(onboarding)/verify/proof')}>
+      <Row
+        label="Proof"
+        onEdit={() => router.push("/(onboarding)/verify/proof")}
+      >
         {draft.cv ? (
-          <Text style={[typography.body, { color: theme.text }]} numberOfLines={1}>
+          <Text
+            style={[typography.body, { color: theme.text }]}
+            numberOfLines={1}
+          >
             CV: {draft.cv.name}
           </Text>
         ) : null}
         {draft.links.map((link) => (
-          <Text key={link} style={[typography.body, { color: theme.text }]} numberOfLines={1}>
+          <Text
+            key={link}
+            style={[typography.body, { color: theme.text }]}
+            numberOfLines={1}
+          >
             {link}
           </Text>
         ))}
@@ -96,11 +123,13 @@ export default function VerifyReviewStep() {
         ) : null}
       </Row>
 
-      <Row label="Note" onEdit={() => router.push('/(onboarding)/verify/note')}>
-        <Text style={[typography.body, { color: theme.text }]}>{draft.note || 'None'}</Text>
+      <Row label="Note" onEdit={() => router.push("/(onboarding)/verify/note")}>
+        <Text style={[typography.body, { color: theme.text }]}>
+          {draft.note || "None"}
+        </Text>
       </Row>
     </WizardStep>
-  )
+  );
 }
 
 function Row({
@@ -108,21 +137,23 @@ function Row({
   onEdit,
   children,
 }: {
-  label: string
-  onEdit: () => void
-  children: ReactNode
+  label: string;
+  onEdit: () => void;
+  children: ReactNode;
 }) {
-  const theme = useTheme()
+  const theme = useTheme();
 
   return (
     <View style={[styles.row, { borderColor: theme.border }]}>
       <View style={styles.rowHeader}>
-        <Text style={[typography.captionStrong, { color: theme.textMuted }]}>{label.toUpperCase()}</Text>
+        <Text style={[typography.captionStrong, { color: theme.textMuted }]}>
+          {label.toUpperCase()}
+        </Text>
         <TextLink label="Edit" onPress={onEdit} />
       </View>
       {children}
     </View>
-  )
+  );
 }
 
 const styles = StyleSheet.create({
@@ -132,6 +163,10 @@ const styles = StyleSheet.create({
     borderRadius: radius.md,
     borderWidth: StyleSheet.hairlineWidth,
   },
-  rowHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  rowHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
   thumb: { width: 96, height: 96, borderRadius: radius.md },
-})
+});

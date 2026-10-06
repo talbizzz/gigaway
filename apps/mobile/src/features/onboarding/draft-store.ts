@@ -20,7 +20,7 @@ export const VERIFICATION_STEPS = 5
 
 export type ProfileDraft = {
   city: City | null
-  whatsapp: string
+  phone: string
   neighbourhood: string
   instrument: string
   about: string
@@ -47,7 +47,7 @@ type DraftState = {
 
 const emptyProfile = (): ProfileDraft => ({
   city: null,
-  whatsapp: '',
+  phone: '',
   neighbourhood: '',
   instrument: '',
   about: '',

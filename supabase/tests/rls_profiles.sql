@@ -58,8 +58,8 @@ select is(
 select is(
   (select discipline from public.profiles
     where id = '22222222-2222-2222-2222-222222222222'),
-  'strings',
-  'discipline is carried through from sign-up metadata'
+  'instrumentalist',
+  'a previous-list discipline from sign-up metadata is translated to the new list'
 );
 
 select is(

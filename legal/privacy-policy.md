@@ -58,7 +58,7 @@ stores your street address.**
 
 ### 3.2 Contact details
 
-Email address, phone number and WhatsApp number, plus which of those you prefer.
+Email address and phone number (your personal number, entered once during profile setup), plus which of those you prefer.
 
 These are held separately from your profile and are **not visible to other
 members by default.** They are disclosed to one other member only when a stay is
@@ -175,7 +175,7 @@ infrastructure operated by Supabase.
 This is the one moment GigAway discloses your contact details to another member.
 
 When an offer is accepted, or a co-accommodation request is agreed, the two
-members involved are granted access to each other's email address and WhatsApp
+members involved are granted access to each other's email address and phone
 number. Both sides see each other's — the exchange is symmetrical.
 
 Nothing is revealed before that point. Browsing a profile, sending a request, or
@@ -245,7 +245,7 @@ reason would be silently re-exposed to you if you rejoined.
 **Your identity, for a limited time.** Retained reports and stays would be
 useless if, the moment you deleted your account, nothing could say who you were.
 So when you delete your account we keep a copy of your email address, your
-names, your legal name, your phone and WhatsApp numbers, your links and your
+names, your legal name, your phone number, your links and your
 verification selfie, ID photo and CV for **30 days**, or for **12 months** if a
 report has been made about you (including one made during those 30 days, which
 extends it). Only our moderators can see it; it is never shown to other members,
@@ -280,7 +280,7 @@ and trips that never led to a stay. Your details are also removed from the app
 and from every other member's view.
 
 **Kept for a limited time, visible only to our moderators:** your email address,
-names, legal name, phone and WhatsApp numbers, professional links, and your
+names, legal name, phone number, professional links, and your
 verification selfie, ID photo and CV. This is 30 days, or 12 months if a report
 was made about you, and then it is erased automatically, files included. If a
 report about you was acted on, a one-way fingerprint of your email and legal

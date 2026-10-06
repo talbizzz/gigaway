@@ -1,3 +1,4 @@
+import { disciplineLabel } from '@gigaway/shared'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
@@ -74,7 +75,7 @@ export function VerificationsPage() {
                 }}
               >
                 <div style={{ flex: 1 }}>
-                  <strong>{app.display_name}</strong> — {app.discipline}
+                  <strong>{app.display_name}</strong> — {disciplineLabel(app.discipline)}
                   {app.specialisation ? ` (${app.specialisation})` : ''}
                   {app.matches_removed_member && (
                     <span

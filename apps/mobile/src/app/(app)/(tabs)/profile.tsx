@@ -86,7 +86,7 @@ export default function ProfileScreen() {
         </Text>
 
         <View style={[styles.contact, { backgroundColor: theme.bgSubtle, borderColor: theme.border }]}>
-          <ContactLine label="WhatsApp" value={contact.data?.whatsapp} />
+          <ContactLine label="Phone" value={contact.data?.phone} />
           <ContactLine label="Email" value={contact.data?.email} />
         </View>
       </View>

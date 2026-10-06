@@ -22,6 +22,10 @@ export default function ProfileNeighbourhoodStep() {
         setProfile({ neighbourhood })
         router.push('/(onboarding)/profile/instrument')
       }}
+      onSkip={() => {
+        setProfile({ neighbourhood: '' })
+        router.push('/(onboarding)/profile/instrument')
+      }}
     >
       <TextField
         label="Neighbourhood (optional)"
