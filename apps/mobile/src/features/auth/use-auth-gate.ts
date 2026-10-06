@@ -99,9 +99,11 @@ export function useAuthGate(): { ready: boolean } {
     }
 
     if (!isProfileComplete(profile) || !isContactComplete(contact)) {
-      // Addressed through the group, because /profile alone is ambiguous —
-      // there is a profile screen in onboarding and another in the tab bar.
-      if (screen !== "profile") router.replace("/(onboarding)/profile");
+      // The profile setup is a folder of screens, so "inside it" is checked by
+      // the folder segment. Checking the leaf screen name would send each step
+      // back to the first one.
+      const inProfileSetup = inOnboarding && path[1] === "profile";
+      if (!inProfileSetup) router.replace("/(onboarding)/profile");
       return;
     }
 

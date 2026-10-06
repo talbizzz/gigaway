@@ -1,6 +1,7 @@
 import type { Session } from '@supabase/supabase-js'
 import { create } from 'zustand'
 
+import { useOnboardingDraft } from '@/features/onboarding/draft-store'
 import { supabase } from '@/lib/supabase'
 
 /**
@@ -57,6 +58,12 @@ export function initialiseSessionListener(): () => void {
     // Fired specifically when the deep-link handler exchanges a recovery
     // code — distinct from the SIGNED_IN a confirmation link produces.
     if (event === 'PASSWORD_RECOVERY') useSessionStore.getState().setRecovering(true)
+    // Half-finished answers belong to the person who typed them. Clear them when
+    // the session ends, so the next person on a shared phone starts from nothing.
+    if (!session) {
+      useOnboardingDraft.getState().resetProfile()
+      useOnboardingDraft.getState().resetVerification()
+    }
     useSessionStore.getState().setSession(session)
   })
 
