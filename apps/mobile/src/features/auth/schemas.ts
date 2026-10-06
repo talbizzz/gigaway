@@ -11,20 +11,26 @@ export const SignInSchema = z.object({
 
 export type SignInValues = z.infer<typeof SignInSchema>
 
-export const SignUpSchema = z.object({
-  displayName: z
-    .string()
-    .trim()
-    .min(2, 'Please enter your name as colleagues would know it.')
-    .max(80, 'That name is too long.'),
-  discipline: z.enum(disciplineValues, {
-    errorMap: () => ({ message: 'Choose the closest match.' }),
-  }),
-  email: z.string().trim().toLowerCase().email('Enter a valid email address.'),
-  // Supabase enforces a minimum of 6; 10 is a reasonable floor for an app that
-  // reveals home addresses.
-  password: z.string().min(10, 'Use at least 10 characters.'),
-})
+export const SignUpSchema = z
+  .object({
+    displayName: z
+      .string()
+      .trim()
+      .min(2, 'Please enter your name as colleagues would know it.')
+      .max(80, 'That name is too long.'),
+    discipline: z.enum(disciplineValues, {
+      errorMap: () => ({ message: 'Choose the closest match.' }),
+    }),
+    email: z.string().trim().toLowerCase().email('Enter a valid email address.'),
+    // Supabase enforces a minimum of 6; 10 is a reasonable floor for an app that
+    // reveals home addresses.
+    password: z.string().min(10, 'Use at least 10 characters.'),
+    confirmPassword: z.string(),
+  })
+  .refine((v) => v.password === v.confirmPassword, {
+    message: "Passwords don't match.",
+    path: ['confirmPassword'],
+  })
 
 export type SignUpValues = z.infer<typeof SignUpSchema>
 
@@ -34,10 +40,16 @@ export const ForgotPasswordSchema = z.object({
 
 export type ForgotPasswordValues = z.infer<typeof ForgotPasswordSchema>
 
-export const SetNewPasswordSchema = z.object({
-  // Same floor as sign-up — an app that reveals home addresses deserves more
-  // than Supabase's own minimum of 6.
-  password: z.string().min(10, 'Use at least 10 characters.'),
-})
+export const SetNewPasswordSchema = z
+  .object({
+    // Same floor as sign-up — an app that reveals home addresses deserves more
+    // than Supabase's own minimum of 6.
+    password: z.string().min(10, 'Use at least 10 characters.'),
+    confirmPassword: z.string(),
+  })
+  .refine((v) => v.password === v.confirmPassword, {
+    message: "Passwords don't match.",
+    path: ['confirmPassword'],
+  })
 
 export type SetNewPasswordValues = z.infer<typeof SetNewPasswordSchema>

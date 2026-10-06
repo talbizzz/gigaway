@@ -143,6 +143,8 @@ function callbackPage({ supabaseUrl, supabaseAnonKey }) {
     <form id="form">
       <label for="password">New password</label>
       <input id="password" type="password" autocomplete="new-password" minlength="10" required />
+      <label for="confirm-password">Confirm new password</label>
+      <input id="confirm-password" type="password" autocomplete="new-password" minlength="10" required />
       <button type="submit">Set new password</button>
       <p id="form-error" class="error hidden"></p>
     </form>
@@ -205,9 +207,15 @@ function callbackPage({ supabaseUrl, supabaseAnonKey }) {
     errorEl.classList.add('hidden')
     button.disabled = true
 
-    const { error } = await supabase.auth.updateUser({
-      password: document.getElementById('password').value,
-    })
+    const password = document.getElementById('password').value
+    if (password !== document.getElementById('confirm-password').value) {
+      errorEl.textContent = "Passwords don't match."
+      errorEl.classList.remove('hidden')
+      button.disabled = false
+      return
+    }
+
+    const { error } = await supabase.auth.updateUser({ password })
 
     if (error) {
       errorEl.textContent = error.message

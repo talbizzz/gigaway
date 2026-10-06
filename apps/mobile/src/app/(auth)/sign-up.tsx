@@ -23,7 +23,7 @@ export default function SignUpScreen() {
 
   const form = useForm<SignUpValues>({
     resolver: zodResolver(SignUpSchema),
-    defaultValues: { displayName: '', email: '', password: '' },
+    defaultValues: { displayName: '', email: '', password: '', confirmPassword: '' },
   })
 
   const onSubmit = form.handleSubmit(async (values) => {
@@ -148,6 +148,26 @@ export default function SignUpScreen() {
             textContentType="newPassword"
             secureTextEntry
             hint="At least 10 characters."
+            error={fieldState.error?.message}
+          />
+        )}
+      />
+
+      <Controller
+        control={form.control}
+        name="confirmPassword"
+        render={({ field, fieldState }) => (
+          <TextField
+            label="Confirm password"
+            value={field.value}
+            onChangeText={field.onChange}
+            onBlur={field.onBlur}
+            autoCapitalize="none"
+            autoComplete="new-password"
+            textContentType="newPassword"
+            secureTextEntry
+            onSubmitEditing={onSubmit}
+            returnKeyType="go"
             error={fieldState.error?.message}
           />
         )}
