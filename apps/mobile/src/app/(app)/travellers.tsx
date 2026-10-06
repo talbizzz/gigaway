@@ -7,6 +7,7 @@ import { Button } from '@/components/button'
 import { Callout } from '@/components/callout'
 import { PersonRow } from '@/components/person'
 import { Screen } from '@/components/screen'
+import { VerifiedOnly } from '@/components/verified-only'
 import { useMyAvailability } from '@/features/availability/use-availability'
 import { useOpenTrips, useSentOffers, type OpenTrip } from '@/features/offers/use-offers'
 import { radius, spacing, typography } from '@/theme/tokens'
@@ -161,13 +162,15 @@ function OpenTripCard({
           />
         ) : null
       ) : (
-        <Button
-          label="Offer nights"
-          onPress={() =>
-            router.push({ pathname: '/offer/new', params: { tripId: trip.trip_id } })
-          }
-          style={styles.action}
-        />
+        <VerifiedOnly>
+          <Button
+            label="Offer nights"
+            onPress={() =>
+              router.push({ pathname: '/offer/new', params: { tripId: trip.trip_id } })
+            }
+            style={styles.action}
+          />
+        </VerifiedOnly>
       )}
     </View>
   )

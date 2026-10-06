@@ -39,11 +39,12 @@ export default function VerifyReviewStep() {
         note: draft.note,
       },
       {
-        // Runs after the application has been refetched, so the index shows the
-        // waiting screen rather than the first question again.
+        // No navigation here. Submitting moves the member into the app, and the
+        // auth gate does that as soon as the refreshed application and profile
+        // land. Navigating from here as well put two replaces in flight at once,
+        // and when the second won the member was left on the waiting screen.
         onSuccess: () => {
           resetVerification()
-          router.replace('/(onboarding)/verify')
         },
       },
     )

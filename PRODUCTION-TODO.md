@@ -326,6 +326,54 @@ backup.
 - [ ] Run `pnpm db:types` against prod only once prod has caught up with dev;
       until then the committed `database.types.ts` is generated from dev
 
+## Members in review can use the app (added 2026-10-06)
+
+A member who has **submitted** a verification now gets into the app while it is
+reviewed: they can browse (feed, matches, trips, availability, profiles,
+reviews) and post their own trips and availability. They cannot request a stay,
+offer one, review, or block; nobody else sees them or their trips until they are
+approved. Rejection sends them back to the verification screens to apply again,
+and reapplying puts them back in. No new status: it is `profiles.status =
+'pending'` plus a `pending` application, and 'rejected' / 'suspended' work as
+before. One migration, `20260921120000_members_in_review_can_browse` — policy
+and helper-function changes only, nothing dropped, applied to dev and tested
+there (`members_in_review.sql`).
+
+### Before merging to `main`
+
+- [ ] **Backend first.** Approve **Deploy backend** before any app build with
+      this change reaches users. A new build on an old backend lets an in-review
+      member into the app where every read comes back empty. Old builds on the
+      new backend are fine: they still send every non-approved member to the
+      verify screens.
+- [ ] The dry run is policy changes only (six policies replaced, two functions
+      added) — nothing destructive — but read it with the other pending
+      migrations
+
+### Smoke test on dev, with a build pointed at dev
+
+- [ ] New account: submit verification → profile setup → lands in the app with
+      the "in review" banner on Home
+- [ ] Can browse the feed, matches, a verified member's profile and reviews;
+      can post a trip and availability
+- [ ] "Ask about these nights", "Offer nights", "Block" show "Available once
+      your verification is approved" instead of a button
+- [ ] A second, approved account does **not** see the in-review member or the
+      trip they posted
+- [ ] Approve them in the admin site: within about 15 seconds the banner goes,
+      the buttons appear, matches refill, and the second account now sees their
+      trip
+- [ ] Reject a different in-review account: it drops back to the verification
+      screens with the rejection reason, and their trip disappears for others
+- [ ] That rejected account reapplies and is back in the app, in review
+
+### Before telling members
+
+- [ ] The privacy policy and guidelines should say that people awaiting
+      verification can look at verified members' profiles (name, photo, bio,
+      neighbourhood, reviews). Until now nobody saw any of it before approval.
+      Contact details are still only revealed after an accepted stay.
+
 ## Carried over from Milestone 5 (already tracked in `TODO.md`, listed here only because prod is where they land)
 
 - [ ] Upgrade Supabase to Pro

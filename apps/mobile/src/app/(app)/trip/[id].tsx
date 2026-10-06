@@ -8,6 +8,7 @@ import { Button, TextLink } from '@/components/button'
 import { Callout } from '@/components/callout'
 import { PersonRow, personFrom } from '@/components/person'
 import { Screen } from '@/components/screen'
+import { VerifiedOnly } from '@/components/verified-only'
 import {
   isCompletelyEmpty,
   useMatches,
@@ -298,18 +299,20 @@ function HostCard({
           </Text>
         </View>
       ) : (
-        <Button
-          label="Ask about these nights"
-          onPress={() =>
-            sendRequest.mutate({
-              kind: 'host_stay',
-              tripId,
-              toProfile: host.profile.id,
-            })
-          }
-          loading={sendRequest.isPending}
-          style={styles.actionButton}
-        />
+        <VerifiedOnly>
+          <Button
+            label="Ask about these nights"
+            onPress={() =>
+              sendRequest.mutate({
+                kind: 'host_stay',
+                tripId,
+                toProfile: host.profile.id,
+              })
+            }
+            loading={sendRequest.isPending}
+            style={styles.actionButton}
+          />
+        </VerifiedOnly>
       )}
     </View>
   )
@@ -363,19 +366,21 @@ function TravellerCard({
           <Badge label="Asked" tone="accent" />
         </View>
       ) : (
-        <Button
-          label="Ask about splitting a place"
-          variant="secondary"
-          onPress={() =>
-            sendRequest.mutate({
-              kind: 'co_accommodation',
-              tripId,
-              toProfile: traveller.profile.id,
-            })
-          }
-          loading={sendRequest.isPending}
-          style={styles.actionButton}
-        />
+        <VerifiedOnly>
+          <Button
+            label="Ask about splitting a place"
+            variant="secondary"
+            onPress={() =>
+              sendRequest.mutate({
+                kind: 'co_accommodation',
+                tripId,
+                toProfile: traveller.profile.id,
+              })
+            }
+            loading={sendRequest.isPending}
+            style={styles.actionButton}
+          />
+        </VerifiedOnly>
       )}
     </View>
   )

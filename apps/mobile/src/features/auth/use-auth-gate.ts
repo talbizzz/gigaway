@@ -1,5 +1,6 @@
 import { useRouter, useSegments } from "expo-router";
-import { useEffect } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { useEffect, useRef } from "react";
 
 import { useSessionStore } from "@/features/auth/session-store";
 import { supabase } from "@/lib/supabase";
@@ -11,6 +12,8 @@ import {
   isProfileComplete,
   useMyProfile,
 } from "@/features/profile/use-profile";
+import { memberAccessOf } from "@/features/verification/use-member-access";
+import { useMyApplication } from "@/features/verification/use-verification";
 
 /**
  * Decides which part of the app a user may be in, based on session and
@@ -18,9 +21,15 @@ import {
  *
  *   recovering (see below)        → (auth)/set-new-password
  *   no session                    → (auth)/welcome
- *   session, status ≠ approved    → (onboarding)/verify
- *   approved, profile incomplete  → (onboarding)/profile
- *   approved, profile complete    → (app)
+ *   no application yet, or rejected → (onboarding)/verify
+ *   verification in review, or approved:
+ *     profile incomplete          → (onboarding)/profile
+ *     profile complete            → (app)
+ *
+ * A member whose verification is in review gets the app too, with less in it:
+ * see use-member-access.ts for exactly what, and the database for the real
+ * enforcement. Rejection sends them back to the verify screens, where they can
+ * apply again.
  *
  * "Recovering" is its own state, checked first, because a password-recovery
  * deep link produces a real session — without this the branches below would
@@ -45,12 +54,29 @@ export function useAuthGate(): { ready: boolean } {
   const isRecovering = useSessionStore((state) => state.isRecovering);
   const { data: profile, isPending: profilePending } = useMyProfile();
   const { data: contact, isPending: contactPending } = useMyContactDetails();
+  const { data: application, isPending: applicationPending } =
+    useMyApplication();
+  const queryClient = useQueryClient();
 
   // Wait for the persisted session to load, and for the profile of a signed-in
   // user, before redirecting. Navigating early causes a visible flash through
   // the sign-in screen on every cold start.
   const ready =
-    initialised && (!session || (!profilePending && !contactPending));
+    initialised &&
+    (!session || (!profilePending && !contactPending && !applicationPending));
+
+  // Approval arrives while the member is inside the app. Everything the
+  // database held back from them while they were in review — matches, the feed,
+  // other members' trips — is cached as empty, so refetch it all the moment the
+  // status flips rather than leaving them looking at stale nothing.
+  const previousStatus = useRef(profile?.status);
+  useEffect(() => {
+    const was = previousStatus.current;
+    previousStatus.current = profile?.status;
+    if (was && was !== "approved" && profile?.status === "approved") {
+      void queryClient.invalidateQueries();
+    }
+  }, [profile?.status, queryClient]);
 
   useEffect(() => {
     if (!ready) return;
@@ -93,8 +119,13 @@ export function useAuthGate(): { ready: boolean } {
       return;
     }
 
-    if (profile.status !== "approved") {
-      if (!inOnboarding) router.replace("/verify");
+    const access = memberAccessOf(profile, application);
+
+    if (access === "gated") {
+      // Inside the verify screens, specifically: a member rejected while they
+      // were in the profile setup must not be left there.
+      const inVerify = inOnboarding && path[1] === "verify";
+      if (!inVerify) router.replace("/verify");
       return;
     }
 
@@ -108,7 +139,7 @@ export function useAuthGate(): { ready: boolean } {
     }
 
     if (!inApp) router.replace("/");
-  }, [ready, isRecovering, session, profile, contact, segments, router]);
+  }, [ready, isRecovering, session, profile, contact, application, segments, router]);
 
   return { ready };
 }

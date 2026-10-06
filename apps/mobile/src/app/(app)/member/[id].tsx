@@ -6,6 +6,7 @@ import { Button, TextLink } from '@/components/button'
 import { Callout } from '@/components/callout'
 import { PersonRow } from '@/components/person'
 import { Screen } from '@/components/screen'
+import { VerifiedOnly } from '@/components/verified-only'
 import { useBlockMember, useHasBlocked, useUnblockMember } from '@/features/blocks/use-blocks'
 import { useMemberProfile } from '@/features/profile/use-profile'
 import {
@@ -154,12 +155,14 @@ export default function MemberProfileScreen() {
             loading={unblock.isPending}
           />
         ) : (
-          <Button
-            label="Block"
-            variant="secondary"
-            onPress={confirmBlock}
-            loading={block.isPending}
-          />
+          <VerifiedOnly>
+            <Button
+              label="Block"
+              variant="secondary"
+              onPress={confirmBlock}
+              loading={block.isPending}
+            />
+          </VerifiedOnly>
         )}
         <TextLink
           label="Report a concern"
@@ -200,10 +203,12 @@ function MatchActionSection({
   if (action === 'offer') {
     return (
       <View style={styles.section}>
-        <Button
-          label="Offer nights"
-          onPress={() => router.push({ pathname: '/offer/new', params: { tripId } })}
-        />
+        <VerifiedOnly>
+          <Button
+            label="Offer nights"
+            onPress={() => router.push({ pathname: '/offer/new', params: { tripId } })}
+          />
+        </VerifiedOnly>
       </View>
     )
   }
@@ -227,18 +232,20 @@ function MatchActionSection({
 
   return (
     <View style={styles.section}>
-      <Button
-        label={action === 'ask_co' ? 'Ask about splitting a place' : 'Ask about these nights'}
-        variant={action === 'ask_co' ? 'secondary' : 'primary'}
-        onPress={() =>
-          sendRequest.mutate({
-            kind: action === 'ask_co' ? 'co_accommodation' : 'host_stay',
-            tripId,
-            toProfile: profileId,
-          })
-        }
-        loading={sendRequest.isPending}
-      />
+      <VerifiedOnly>
+        <Button
+          label={action === 'ask_co' ? 'Ask about splitting a place' : 'Ask about these nights'}
+          variant={action === 'ask_co' ? 'secondary' : 'primary'}
+          onPress={() =>
+            sendRequest.mutate({
+              kind: action === 'ask_co' ? 'co_accommodation' : 'host_stay',
+              tripId,
+              toProfile: profileId,
+            })
+          }
+          loading={sendRequest.isPending}
+        />
+      </VerifiedOnly>
     </View>
   )
 }

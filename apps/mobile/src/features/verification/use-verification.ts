@@ -145,6 +145,11 @@ export function useSubmitVerification() {
     onSuccess: async () => {
       track('verification_submitted')
       await queryClient.invalidateQueries({ queryKey: verificationKeys.mine })
+      // A rejected member who reapplies is moved back to 'pending' by the
+      // database, and that is what lets them into the app while they wait. The
+      // gate reads both, so refresh the profile too rather than waiting for its
+      // next poll.
+      await queryClient.invalidateQueries({ queryKey: ['profile', 'me'] })
     },
     onError: (error, input) => {
       reportError(error, { feature: 'verification_submission', hasCv: String(Boolean(input.cv)) })

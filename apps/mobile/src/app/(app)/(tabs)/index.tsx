@@ -10,6 +10,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native'
 import { Button, TextLink } from '@/components/button'
 import { Callout } from '@/components/callout'
 import { PersonRow, personFrom } from '@/components/person'
+import { ReviewBanner } from '@/components/review-banner'
 import { Screen } from '@/components/screen'
 import { useDismissRequest, useDismissedRequests } from '@/features/feed/use-dismissed-requests'
 import {
@@ -83,6 +84,8 @@ export default function HomeScreen() {
       <Text style={[typography.title, { color: theme.text }]}>
         Hello, {profile?.display_name?.split(' ')[0] ?? 'there'}
       </Text>
+
+      <ReviewBanner />
 
       {/*
         Waiting on you. Requests first: a colleague who asked and heard nothing
