@@ -287,6 +287,30 @@ export type Database = {
         }
         Relationships: []
       }
+      conduct_bans: {
+        Row: {
+          created_at: string
+          email_hash: string | null
+          id: string
+          name_hash: string | null
+          source_profile_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          email_hash?: string | null
+          id?: string
+          name_hash?: string | null
+          source_profile_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          email_hash?: string | null
+          id?: string
+          name_hash?: string | null
+          source_profile_id?: string | null
+        }
+        Relationships: []
+      }
       contact_details: {
         Row: {
           email: string | null
@@ -441,6 +465,76 @@ export type Database = {
             foreignKeyName: "data_exports_profile_id_fkey"
             columns: ["profile_id"]
             isOneToOne: false
+            referencedRelation: "v_user_summary"
+            referencedColumns: ["profile_id"]
+          },
+        ]
+      }
+      deletion_holds: {
+        Row: {
+          created_at: string
+          cv_path: string | null
+          email: string | null
+          first_name: string | null
+          full_legal_name: string | null
+          held_until: string
+          last_name: string | null
+          links: Json | null
+          phone: string | null
+          profile_id: string
+          selfie_path: string | null
+          tier: string
+          whatsapp: string | null
+        }
+        Insert: {
+          created_at?: string
+          cv_path?: string | null
+          email?: string | null
+          first_name?: string | null
+          full_legal_name?: string | null
+          held_until: string
+          last_name?: string | null
+          links?: Json | null
+          phone?: string | null
+          profile_id: string
+          selfie_path?: string | null
+          tier: string
+          whatsapp?: string | null
+        }
+        Update: {
+          created_at?: string
+          cv_path?: string | null
+          email?: string | null
+          first_name?: string | null
+          full_legal_name?: string | null
+          held_until?: string
+          last_name?: string | null
+          links?: Json | null
+          phone?: string | null
+          profile_id?: string
+          selfie_path?: string | null
+          tier?: string
+          whatsapp?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "deletion_holds_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "deletion_holds_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: true
+            referencedRelation: "v_recent_signups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "deletion_holds_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: true
             referencedRelation: "v_user_summary"
             referencedColumns: ["profile_id"]
           },
@@ -1348,6 +1442,7 @@ export type Database = {
           email: string | null
           full_legal_name: string | null
           links: Json | null
+          matches_removed_member: boolean | null
           note: string | null
           profile_id: string | null
           selfie_path: string | null
@@ -1496,6 +1591,28 @@ export type Database = {
         Returns: undefined
       }
       admin_delete_trip: { Args: { p_trip_id: string }; Returns: undefined }
+      admin_extend_deletion_hold: {
+        Args: { p_profile_id: string }
+        Returns: string
+      }
+      admin_get_deletion_hold: {
+        Args: { p_profile_id: string }
+        Returns: {
+          created_at: string
+          cv_path: string
+          email: string
+          first_name: string
+          full_legal_name: string
+          held_until: string
+          last_name: string
+          links: Json
+          phone: string
+          profile_id: string
+          selfie_path: string
+          tier: string
+          whatsapp: string
+        }[]
+      }
       admin_get_trip_detail: {
         Args: { p_trip_id: string }
         Returns: {
@@ -1579,6 +1696,7 @@ export type Database = {
           email: string | null
           full_legal_name: string | null
           links: Json | null
+          matches_removed_member: boolean | null
           note: string | null
           profile_id: string | null
           selfie_path: string | null
@@ -1667,6 +1785,15 @@ export type Database = {
         Args: { fn_name: string; payload?: Json }
         Returns: number
       }
+      can_browse: { Args: never; Returns: boolean }
+      claim_expired_deletion_holds: {
+        Args: { p_limit?: number }
+        Returns: {
+          cv_path: string
+          profile_id: string
+          selfie_path: string
+        }[]
+      }
       claim_notification_emails: {
         Args: { p_limit?: number }
         Returns: {
@@ -1743,6 +1870,11 @@ export type Database = {
       }
       expire_stale_requests_and_offers: { Args: never; Returns: number }
       export_user_data: { Args: { p_user: string }; Returns: Json }
+      fingerprint: { Args: { p_value: string }; Returns: string }
+      finish_deletion_hold: {
+        Args: { p_profile_id: string }
+        Returns: undefined
+      }
       format_public_name: {
         Args: { p_first: string; p_last: string }
         Returns: string
@@ -1752,6 +1884,7 @@ export type Database = {
       is_admin: { Args: never; Returns: boolean }
       is_approved: { Args: never; Returns: boolean }
       is_blocked: { Args: { other: string }; Returns: boolean }
+      is_in_review: { Args: never; Returns: boolean }
       log_admin_action: {
         Args: {
           p_action: string
@@ -1760,6 +1893,14 @@ export type Database = {
           p_target_table: string
         }
         Returns: undefined
+      }
+      matches_conduct_ban: {
+        Args: { p_email: string; p_name: string }
+        Returns: boolean
+      }
+      member_full_name: {
+        Args: { p_fallback: string; p_first: string; p_last: string }
+        Returns: string
       }
       notification_stay_payload: { Args: { p_stay_id: string }; Returns: Json }
       notification_trip_payload: { Args: { p_trip_id: string }; Returns: Json }

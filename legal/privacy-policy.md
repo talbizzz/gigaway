@@ -72,7 +72,7 @@ Every account is reviewed by a human before it can see anyone else's content.
 To apply, you submit:
 
 - A **selfie of you holding photo ID**, taken against a pose we specify at the
-  time (which hand holds the ID, a gesture with the other), so the photo
+  time (where the ID is held, and a sign made with the same hand that holds it), so the photo
   cannot be an old one reused for a later application
 - The **full legal name** as it appears on that ID
 - Evidence of professional standing — a CV, and/or links to your portfolio,
@@ -90,8 +90,9 @@ asked for, which links you provided, and the eventual decision.
   no automated face- or ID-matching — the check is a person looking at the
   photo.
 - The selfie and CV are **retained for as long as your account exists**, and
-  deleted when you delete your account (section 8) — not on a decision, and
-  not on a fixed schedule. We keep them because a decision may need
+  after you delete your account for a further limited time (30 days, or 12
+  months if a report was made about you; sections 7 and 8) — not on a decision,
+  and not on any other schedule. We keep them because a decision may need
   revisiting, and because the record that a real human was checked is part of
   what the whole network's trust rests on.
 - A rejected application may be submitted again.
@@ -212,9 +213,11 @@ advertising in GigAway.
 | Data | Retention |
 |---|---|
 | Profile and posts | Until you delete your account |
-| Contact details | Until you delete your account |
-| Verification application metadata (legal name given, links, decision) | Until you delete your account |
-| Verification selfie, ID photo and CV | Until you delete your account — not deleted on a decision, and not on a fixed schedule |
+| Contact details | Until you delete your account, then held for a limited time (see below) |
+| Verification application metadata (legal name given, links, decision) | Until you delete your account, then held for a limited time (see below) |
+| Verification selfie, ID photo and CV | Until you delete your account, then held for a limited time (see below) — not deleted on a decision, and not on a fixed schedule |
+| Your identity, held after deletion (email, names, legal name, phone numbers, links, verification files) | **30 days** after deletion, or **12 months** if a report was made about you, then erased |
+| One-way fingerprints of your email and legal name | Kept **without a time limit**, only if a report about you was acted on |
 | Trips, availability, requests, offers | Until deleted, or until the account is deleted |
 | Stays | **Retained** after deletion — they are the other person's record |
 | Reviews you wrote, published | **Retained**, shown as written by "Deleted member" |
@@ -226,7 +229,7 @@ advertising in GigAway.
 
 ### Why some things survive deletion
 
-Three retentions are deliberate, and we want to be direct about them.
+Four retentions are deliberate, and we want to be direct about them.
 
 **Reports.** If deleting an account erased the reports made about it, anyone
 could clear their safety record by deleting and rejoining. Reports are kept, and
@@ -239,10 +242,29 @@ member".
 **Blocks made against you.** If these were removed, someone who blocked you for a
 reason would be silently re-exposed to you if you rejoined.
 
-**Legal basis for all three:** our legitimate interest, and the legitimate
+**Your identity, for a limited time.** Retained reports and stays would be
+useless if, the moment you deleted your account, nothing could say who you were.
+So when you delete your account we keep a copy of your email address, your
+names, your legal name, your phone and WhatsApp numbers, your links and your
+verification selfie, ID photo and CV for **30 days**, or for **12 months** if a
+report has been made about you (including one made during those 30 days, which
+extends it). Only our moderators can see it; it is never shown to other members,
+and it is erased automatically, files included, when the period ends. It is kept
+so that a safety concern raised soon after you leave can still be looked into,
+and so that we can respond to legal claims.
+
+**If a report about you was acted on.** We then also keep, without a time limit,
+a one-way fingerprint of your email address and legal name. It is not readable
+as a name or an address. If someone later applies with a matching email or name,
+a moderator is shown a warning and decides for themselves; nothing is blocked
+automatically, and a name can match by coincidence.
+
+**Legal basis for all four:** our legitimate interest, and the legitimate
 interests of other members, in a community where safety records and reputation
-cannot be erased by leaving and returning. You may object under Article 21 GDPR
-(section 9).
+cannot be erased by leaving and returning, and our interest in establishing or
+defending legal claims. You may object under Article 21 GDPR (section 9). If you
+want your held details erased earlier, you can ask; we will do so unless a
+report or a legal claim means we need them.
 
 ---
 
@@ -250,13 +272,19 @@ cannot be erased by leaving and returning. You may object under Article 21 GDPR
 
 Deleting your account is **irreversible**. When you do:
 
-**Permanently erased:** your login and password, email address, phone and
-WhatsApp numbers, profile photo, biography, specialisation, home city and
-district, professional links, your verification application record — including
-your verification selfie, ID photo and CV, which exist only until this point —
-push tokens, notification history, contact-sharing grants, blocks you created,
-reviews written about you, unpublished reviews you wrote, pending requests and
-offers, your availability, and trips that never led to a stay.
+**Erased immediately:** your login and password, profile photo, biography,
+specialisation, home city and district, push tokens, notification history,
+contact-sharing grants, blocks you created, reviews written about you,
+unpublished reviews you wrote, pending requests and offers, your availability,
+and trips that never led to a stay. Your details are also removed from the app
+and from every other member's view.
+
+**Kept for a limited time, visible only to our moderators:** your email address,
+names, legal name, phone and WhatsApp numbers, professional links, and your
+verification selfie, ID photo and CV. This is 30 days, or 12 months if a report
+was made about you, and then it is erased automatically, files included. If a
+report about you was acted on, a one-way fingerprint of your email and legal
+name is kept beyond that. See section 7.
 
 **Retained, no longer linked to you:** your profile becomes an anonymised record
 showing "Deleted member". Stays you took part in, published reviews you wrote,

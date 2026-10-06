@@ -120,7 +120,26 @@ Deno.serve(async (request) => {
     return errorResponse('internal_error', 'Something went wrong. Please try again.', 500)
   }
 
-  await notifyModerator(auth.userId, profile.display_name, profile.discipline, body.data)
+  // A moderator is told when this applicant's email or legal name matches
+  // someone removed after an actioned report. It is a prompt to look closely,
+  // never a refusal: a name can match by coincidence, and no decision about a
+  // person is made by a machine.
+  let possibleRepeat = false
+  const { data: authUser } = await supabase.auth.admin.getUserById(auth.userId)
+  const { data: matched, error: matchError } = await supabase.rpc('matches_conduct_ban', {
+    p_email: authUser.user?.email ?? null,
+    p_name: body.data.fullLegalName,
+  })
+  if (matchError) console.error('submit-verification: ban match check failed', matchError)
+  else possibleRepeat = matched === true
+
+  await notifyModerator(
+    auth.userId,
+    profile.display_name,
+    profile.discipline,
+    body.data,
+    possibleRepeat,
+  )
 
   return jsonResponse({ ok: true })
 })
@@ -130,6 +149,7 @@ async function notifyModerator(
   displayName: string,
   discipline: string,
   fields: { fullLegalName: string; selfiePrompt: string; links: string[]; note?: string },
+  possibleRepeat: boolean,
 ): Promise<void> {
   const apiKey = Deno.env.get('RESEND_API_KEY')
   const to = Deno.env.get('VERIFICATION_EMAIL')
@@ -155,9 +175,13 @@ async function notifyModerator(
       body: JSON.stringify({
         from,
         to,
-        subject: `GigAway verification — ${displayName} (${profileId})`,
+        subject: `${possibleRepeat ? '[POSSIBLE REPEAT] ' : ''}GigAway verification — ${displayName} (${profileId})`,
         text:
           `A new verification application is waiting.\n\n` +
+          (possibleRepeat
+            ? `⚠ The email or legal name here matches someone removed after an actioned ` +
+              `report. Look closely before deciding; a name can match by coincidence.\n\n`
+            : '') +
           `user id: ${profileId}\n` +
           `name on file: ${displayName}\n` +
           `discipline: ${discipline}\n` +

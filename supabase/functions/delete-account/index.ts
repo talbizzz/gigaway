@@ -29,6 +29,12 @@ import {
  * The profile row deliberately survives as "Deleted member" so that the stays
  * and published reviews belonging to other people stay intact.
  *
+ * What it does NOT do any more is delete the verification selfie and CV.
+ * delete_account first copies the member's identity into deletion_holds, and
+ * the files wait there with it until purge-deletion-holds removes them when the
+ * hold expires (30 days, or 12 months if the member was reported). Removing
+ * them here would defeat the hold.
+ *
  * NOTE: imports from `_shared/gen/` are copies produced by `pnpm sync:shared`.
  * Edit the originals under packages/shared/src/.
  */
@@ -90,12 +96,7 @@ Deno.serve(async (request) => {
     return errorResponse('internal_error', 'Something went wrong. Please try again.', 500)
   }
 
-  const result = data as {
-    ok: true
-    photoPath: string | null
-    selfiePath: string | null
-    cvPath: string | null
-  }
+  const result = data as { ok: true; photoPath: string | null }
 
   // ── 3. storage objects, which SQL cannot delete ──────────────────────────
   if (result.photoPath) {
@@ -106,18 +107,6 @@ Deno.serve(async (request) => {
     // orphaned rather than exposed, and a failure here must not leave the
     // account half-deleted.
     if (removeError) console.error('avatar removal failed', removeError)
-  }
-
-  const verificationPaths = [result.selfiePath, result.cvPath].filter(
-    (path): path is string => Boolean(path),
-  )
-  if (verificationPaths.length > 0) {
-    const { error: removeError } = await supabase.storage
-      .from('verification-docs')
-      .remove(verificationPaths)
-    // Same as above: the row referencing these paths is already gone, so a
-    // failure here orphans the object rather than exposing it.
-    if (removeError) console.error('verification evidence removal failed', removeError)
   }
 
   // ── 4. the auth user, last ───────────────────────────────────────────────

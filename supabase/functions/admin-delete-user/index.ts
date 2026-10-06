@@ -9,7 +9,7 @@ import {
 } from '../_shared/http.ts'
 
 /**
- * Consolidates the three manual steps MODERATION.md's "Deleting someone"
+ * Consolidates the manual steps MODERATION.md's "Deleting someone"
  * section used to list separately for a founder working the Supabase
  * dashboard: delete_account (the SQL tombstone), the avatar/verification
  * objects in Storage, and the auth.users row via the Auth Admin API. None
@@ -76,12 +76,7 @@ Deno.serve(async (request) => {
     return errorResponse('internal_error', 'Something went wrong. Please try again.', 500)
   }
 
-  const result = deleteResult as {
-    ok: true
-    photoPath: string | null
-    selfiePath: string | null
-    cvPath: string | null
-  }
+  const result = deleteResult as { ok: true; photoPath: string | null }
 
   // ── 2. storage objects, which SQL cannot delete ──────────────────────────
   let avatarRemoved = true
@@ -93,17 +88,8 @@ Deno.serve(async (request) => {
     }
   }
 
-  let verificationEvidenceRemoved = true
-  const verificationPaths = [result.selfiePath, result.cvPath].filter(
-    (path): path is string => Boolean(path),
-  )
-  if (verificationPaths.length > 0) {
-    const { error } = await supabase.storage.from('verification-docs').remove(verificationPaths)
-    if (error) {
-      console.error('verification evidence removal failed', error)
-      verificationEvidenceRemoved = false
-    }
-  }
+  // The selfie and CV are not removed here: delete_account moved them into
+  // deletion_holds, and purge-deletion-holds removes them when the hold ends.
 
   // ── 3. the auth user, last ───────────────────────────────────────────────
   const { error: authDeleteError } = await supabase.auth.admin.deleteUser(profileId)
@@ -120,7 +106,6 @@ Deno.serve(async (request) => {
       displayName: target.display_name,
       email: target.email,
       avatarRemoved,
-      verificationEvidenceRemoved,
       authUserDeleted,
     },
   })
@@ -131,6 +116,5 @@ Deno.serve(async (request) => {
     accountDeleted: true,
     authUserDeleted,
     avatarRemoved,
-    verificationEvidenceRemoved,
   })
 })

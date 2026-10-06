@@ -76,6 +76,20 @@ export function VerificationsPage() {
                 <div style={{ flex: 1 }}>
                   <strong>{app.display_name}</strong> — {app.discipline}
                   {app.specialisation ? ` (${app.specialisation})` : ''}
+                  {app.matches_removed_member && (
+                    <span
+                      style={{
+                        marginLeft: 'var(--space-sm)',
+                        padding: '2px 8px',
+                        borderRadius: 999,
+                        fontSize: 12,
+                        background: 'var(--warning-subtle)',
+                        color: 'var(--warning)',
+                      }}
+                    >
+                      Possible repeat
+                    </span>
+                  )}
                 </div>
                 <span style={{ color: 'var(--text-muted)', fontSize: 13 }}>
                   waiting {app.days_waiting} {app.days_waiting === 1 ? 'day' : 'days'}
@@ -84,6 +98,20 @@ export function VerificationsPage() {
 
               {isOpen && (
                 <div style={{ marginTop: 'var(--space-lg)' }}>
+                  {app.matches_removed_member && (
+                    <p
+                      style={{
+                        padding: 'var(--space-md)',
+                        borderRadius: 'var(--radius-md)',
+                        background: 'var(--warning-subtle)',
+                        color: 'var(--warning)',
+                        marginBottom: 'var(--space-lg)',
+                      }}
+                    >
+                      This email or legal name matches someone removed after an actioned report.
+                      Look closely before deciding. A name can match by coincidence.
+                    </p>
+                  )}
                   <dl className="detail-grid" style={{ marginBottom: 'var(--space-lg)' }}>
                     <div className="detail-item">
                       <dt>Legal name</dt>

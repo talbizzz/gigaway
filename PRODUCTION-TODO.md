@@ -374,6 +374,64 @@ there (`members_in_review.sql`).
       neighbourhood, reviews). Until now nobody saw any of it before approval.
       Contact details are still only revealed after an accepted stay.
 
+## Identity hold after account deletion (added 2026-10-06)
+
+Deleting an account used to erase everything that said who the member was, so a
+report against someone who then deleted and rejoined led nowhere. Now
+`delete_account` first copies their identity (email, names, legal name, phone,
+links, and the paths of the selfie and CV, which stay in Storage) into
+`deletion_holds`: **30 days**, or **12 months** if a report against them is
+open, in review or actioned, extended to 12 months by any later report. A daily
+job, `purge-deletion-holds`, erases expired holds and their files. Members
+removed after an **actioned** report leave one-way fingerprints of email and
+legal name in `conduct_bans`, which flag a matching application as "Possible
+repeat" for a human moderator; nothing is blocked automatically.
+
+One migration, `20260921130000_deletion_hold`, plus a new Edge Function
+(`purge-deletion-holds`) and changes to `delete-account`, `admin-delete-user`
+and `submit-verification`. Applied to dev and tested there (`deletion_hold.sql`).
+The periods are `deletion_hold_days` and `deletion_hold_reported_days` in
+`app_config`.
+
+### Before merging to `main`
+
+- [ ] **A lawyer reads the privacy-policy and `account-deletion.md` changes.**
+      Keeping identity data after deletion is a legitimate-interest decision and
+      has to be stated accurately before this reaches prod. The wording is a
+      draft written from what the code does, not legal advice.
+- [ ] Decide the periods are right (30 days / 12 months). They are settings, not
+      code, so they can change later without a deploy
+- [ ] **Approve the backend deploy** so the migration and the three changed
+      functions go together, and `purge-deletion-holds` is deployed for the cron
+      job to call. The cron job and Edge Function use the existing vault secrets
+      (`edge_function_base_url`, `edge_function_service_key`); check they are
+      set on prod, as the notification dispatcher already relies on them
+- [ ] Update `legal/play-data-safety.md` answers in the Play Console if the
+      deletion or retention answers there should match the repo copy
+
+### Smoke test on dev
+
+- [ ] Delete a test account that has a verification application: its row appears
+      under **Identity held after deletion** on the admin page, with the 30-day
+      date, and the selfie file is **still** in the `verification-docs` bucket
+- [ ] Report a test member, then delete them: the hold is 12 months
+- [ ] On a held account, **Keep for 12 months** extends it and writes an audit
+      row
+- [ ] Set a hold's `held_until` into the past, run the function by hand (or wait
+      for 03:30 UTC): the row and the files are gone
+- [ ] A new application with the same legal name as a removed, actioned member
+      shows **Possible repeat** in Verifications and in the moderator email
+
+### Known limits
+
+- Accounts deleted **before** this ships have nothing held, and never will.
+- Members who deleted their account cannot be reported from the app's profile
+  screens (the profile no longer loads); a report can still be made against a
+  held account through the report flow if the app has the id, and a moderator
+  can extend a hold by hand from the admin page.
+- A fingerprint of a guessable email can be confirmed by guessing it. It keeps
+  the readable details out of the table; it is not a secret.
+
 ## Carried over from Milestone 5 (already tracked in `TODO.md`, listed here only because prod is where they land)
 
 - [ ] Upgrade Supabase to Pro
