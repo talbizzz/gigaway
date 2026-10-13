@@ -43,7 +43,7 @@ for advertising and sells nothing. Processors that merely host data are not
 | **Name** | Yes | Required | App functionality, Account management | `profiles.first_name`, `profiles.last_name`; the app shows others only the "First L." form |
 | **Email address** | Yes | Required | App functionality, Account management | Auth, plus `contact_details.email` |
 | **Phone number** | Yes | Required | App functionality | Personal phone number is required at signup |
-| **User IDs** | Yes | Required | App functionality, Account management | `profiles.id` |
+| **User IDs** | Yes | Required | App functionality, Account management | `profiles.id`, and a public username (`profiles.username`) other members search for; connections are stored in `friendships` |
 | **Address** | **No** | — | — | See judgement call below |
 | **Race and ethnicity** | No | — | — | Not collected |
 | **Political or religious beliefs** | No | — | — | Not collected |

@@ -18,8 +18,14 @@ export default function NewTripScreen() {
         submitLabel="See who's there"
         submitting={createTrip.isPending}
         error={createTrip.isError ? (createTrip.error as Error).message : undefined}
-        onSubmit={async ({ city, range, needs, note }) => {
-          const trip = await createTrip.mutateAsync({ cityId: city.id, range, needs, note })
+        onSubmit={async ({ city, range, needs, note, visibility }) => {
+          const trip = await createTrip.mutateAsync({
+            cityId: city.id,
+            range,
+            needs,
+            note,
+            visibility,
+          })
           track('trip_created', { nights: nightCount(range), needs: needs.length })
           // The first meaningful action, and therefore the moment to ask about
           // notifications: the user has just said they want to hear from a

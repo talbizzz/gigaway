@@ -48,17 +48,19 @@ export default function EditTripScreen() {
           range: { start: trip.start_date, end: trip.end_date },
           needs: trip.needs as TripNeed[],
           note: trip.note ?? '',
+          visibility: trip.visibility,
         }}
         submitLabel="Save changes"
         submitting={update.isPending}
         error={update.isError ? (update.error as Error).message : undefined}
-        onSubmit={async ({ city: nextCity, range, needs, note }) => {
+        onSubmit={async ({ city: nextCity, range, needs, note, visibility }) => {
           await update.mutateAsync({
             tripId: trip.id,
             cityId: nextCity.id,
             range,
             needs,
             note,
+            visibility,
           })
           router.replace(`/trip/${trip.id}`)
         }}

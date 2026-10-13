@@ -12,6 +12,7 @@ import { Callout } from '@/components/callout'
 import { PersonRow, personFrom } from '@/components/person'
 import { ReviewBanner } from '@/components/review-banner'
 import { Screen } from '@/components/screen'
+import { useIncomingConnectionRequestCount } from '@/features/connections/use-connections'
 import { useDismissRequest, useDismissedRequests } from '@/features/feed/use-dismissed-requests'
 import {
   useHomeFeed,
@@ -68,6 +69,8 @@ export default function HomeScreen() {
   const inYourCity = feed.data?.inYourCity ?? []
   const comingToYourCity = feed.data?.comingToYourCity ?? []
   const destinations = feed.data?.destinations ?? []
+  const connectionTrips = feed.data?.connections ?? []
+  const connectionRequests = useIncomingConnectionRequestCount()
   const cityName = feed.data?.homeCityName
 
   const nothingAtAll =
@@ -77,6 +80,7 @@ export default function HomeScreen() {
     activeTrips.length === 0 &&
     inYourCity.length === 0 &&
     comingToYourCity.length === 0 &&
+    connectionTrips.length === 0 &&
     destinations.length === 0
 
   return (
@@ -86,6 +90,34 @@ export default function HomeScreen() {
       </Text>
 
       <ReviewBanner />
+
+      {/* Connections: asked of you, and a way to find more. */}
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={
+          connectionRequests > 0
+            ? `Connections, ${connectionRequests} request${connectionRequests === 1 ? '' : 's'} waiting`
+            : 'Connections'
+        }
+        onPress={() => router.push('/connections')}
+        style={({ pressed }) => [
+          styles.connectionsRow,
+          { backgroundColor: theme.bgSubtle, borderColor: theme.border },
+          pressed && styles.pressed,
+        ]}
+      >
+        <View style={styles.connectionsText}>
+          <Text style={[typography.bodyStrong, { color: theme.text }]}>
+            {connectionRequests > 0
+              ? `${connectionRequests} connection request${connectionRequests === 1 ? '' : 's'} waiting`
+              : 'Connections'}
+          </Text>
+          <Text style={[typography.caption, { color: theme.textMuted }]}>
+            Find colleagues by username or name.
+          </Text>
+        </View>
+        <Text style={[typography.body, { color: theme.accent }]}>›</Text>
+      </Pressable>
 
       {/*
         Waiting on you. Requests first: a colleague who asked and heard nothing
@@ -193,6 +225,19 @@ export default function HomeScreen() {
         </View>
       ) : null}
 
+      {/* ── What connections are doing ──────────────────────────────────────── */}
+      {connectionTrips.length > 0 ? (
+        <View style={styles.section}>
+          <Text style={[typography.heading, { color: theme.text }]}>Your connections</Text>
+          <Text style={[typography.caption, { color: theme.textMuted }]}>
+            Where they are going next.
+          </Text>
+          {connectionTrips.map((trip) => (
+            <VisitorRow key={trip.tripId} visitor={trip} place={trip.cityName} />
+          ))}
+        </View>
+      ) : null}
+
       {/* ── Who will be where you are going ─────────────────────────────── */}
       {destinations.map((destination) => (
         <DestinationSection key={destination.tripId} destination={destination} />
@@ -273,15 +318,15 @@ function FeedCard({
 }
 
 /** Somebody whose own trip brings them here. */
-function VisitorRow({ visitor }: { visitor: FeedVisitor }) {
+function VisitorRow({ visitor, place }: { visitor: FeedVisitor; place?: string }) {
   const router = useRouter()
 
   return (
     <PersonRow
       person={personFrom(visitor.profile)}
       size={36}
-      trailing={formatDateRange(visitor.start, visitor.end)}
-      onPress={() => router.push(`/member/${visitor.profile.id}`)}
+      trailing={[place, formatDateRange(visitor.start, visitor.end)].filter(Boolean).join(' · ')}
+      onPress={() => router.push(`/trip-view/${visitor.tripId}`)}
     />
   )
 }
@@ -308,7 +353,7 @@ function DestinationSection({ destination }: { destination: FeedDestination }) {
 
       {destination.people.length === 0 ? (
         <Callout>
-          Nobody yet. The list fills as colleagues post trips and free nights, so it is
+          Nobody yet. The list fills as colleagues post trips and services, so it is
           worth looking again closer to the date.
         </Callout>
       ) : (
@@ -412,4 +457,14 @@ const styles = StyleSheet.create({
   rowText: { flex: 1, gap: 2 },
   rowActions: { gap: spacing.sm, alignItems: 'flex-end' },
   pressed: { opacity: 0.7 },
+  connectionsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: spacing.md,
+    padding: spacing.md,
+    borderRadius: radius.md,
+    borderWidth: 1,
+  },
+  connectionsText: { flex: 1, minWidth: 0, gap: 2 },
 })

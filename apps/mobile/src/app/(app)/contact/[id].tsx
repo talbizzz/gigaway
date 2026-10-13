@@ -81,10 +81,10 @@ export default function ContactScreen() {
       ) : (
         <View style={[styles.agreed, { backgroundColor: theme.accentSubtle }]}>
           <Text style={[typography.bodyStrong, { color: theme.text }]}>
-            You are splitting a place
+            You are in touch
           </Text>
           <Text style={[typography.body, { color: theme.textMuted }]}>
-            Sort out the booking between you.
+            Arrange it between you, whether that is a place, a coffee or a few tips.
           </Text>
         </View>
       )}

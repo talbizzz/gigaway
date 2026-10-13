@@ -9,6 +9,7 @@ import { supabase } from '@/lib/supabase'
 export type ProfileLink = { label: string; url: string }
 
 export type ProfileUpdate = {
+  username?: string
   first_name?: string
   last_name?: string | null
   discipline?: string

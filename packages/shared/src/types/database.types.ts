@@ -7,11 +7,6 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instantiate createClient with right options
-  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
-  __InternalSupabase: {
-    PostgrestVersion: "14.5"
-  }
   graphql_public: {
     Tables: {
       [_ in never]: never
@@ -115,44 +110,47 @@ export type Database = {
       }
       availability: {
         Row: {
+          always_available: boolean
           city_id: string
           constraints: string[]
           created_at: string
-          end_date: string
+          end_date: string | null
           id: string
           max_nights: number | null
           note: string | null
           offers: string[]
           profile_id: string
-          start_date: string
+          start_date: string | null
           status: Database["public"]["Enums"]["availability_status"]
           updated_at: string
         }
         Insert: {
+          always_available?: boolean
           city_id: string
           constraints?: string[]
           created_at?: string
-          end_date: string
+          end_date?: string | null
           id?: string
           max_nights?: number | null
           note?: string | null
           offers?: string[]
           profile_id: string
-          start_date: string
+          start_date?: string | null
           status?: Database["public"]["Enums"]["availability_status"]
           updated_at?: string
         }
         Update: {
+          always_available?: boolean
           city_id?: string
           constraints?: string[]
           created_at?: string
-          end_date?: string
+          end_date?: string | null
           id?: string
           max_nights?: number | null
           note?: string | null
           offers?: string[]
           profile_id?: string
-          start_date?: string
+          start_date?: string | null
           status?: Database["public"]["Enums"]["availability_status"]
           updated_at?: string
         }
@@ -310,6 +308,76 @@ export type Database = {
           source_profile_id?: string | null
         }
         Relationships: []
+      }
+      connections: {
+        Row: {
+          addressee_id: string
+          created_at: string
+          id: string
+          requester_id: string
+          responded_at: string | null
+          status: Database["public"]["Enums"]["connection_status"]
+        }
+        Insert: {
+          addressee_id: string
+          created_at?: string
+          id?: string
+          requester_id: string
+          responded_at?: string | null
+          status?: Database["public"]["Enums"]["connection_status"]
+        }
+        Update: {
+          addressee_id?: string
+          created_at?: string
+          id?: string
+          requester_id?: string
+          responded_at?: string | null
+          status?: Database["public"]["Enums"]["connection_status"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "connections_addressee_id_fkey"
+            columns: ["addressee_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "connections_addressee_id_fkey"
+            columns: ["addressee_id"]
+            isOneToOne: false
+            referencedRelation: "v_recent_signups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "connections_addressee_id_fkey"
+            columns: ["addressee_id"]
+            isOneToOne: false
+            referencedRelation: "v_user_summary"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "connections_requester_id_fkey"
+            columns: ["requester_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "connections_requester_id_fkey"
+            columns: ["requester_id"]
+            isOneToOne: false
+            referencedRelation: "v_recent_signups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "connections_requester_id_fkey"
+            columns: ["requester_id"]
+            isOneToOne: false
+            referencedRelation: "v_user_summary"
+            referencedColumns: ["profile_id"]
+          },
+        ]
       }
       contact_details: {
         Row: {
@@ -736,6 +804,8 @@ export type Database = {
           status: Database["public"]["Enums"]["profile_status"]
           suspended_at: string | null
           updated_at: string
+          username: string | null
+          username_changed_at: string | null
           verified_at: string | null
         }
         Insert: {
@@ -754,6 +824,8 @@ export type Database = {
           status?: Database["public"]["Enums"]["profile_status"]
           suspended_at?: string | null
           updated_at?: string
+          username?: string | null
+          username_changed_at?: string | null
           verified_at?: string | null
         }
         Update: {
@@ -772,6 +844,8 @@ export type Database = {
           status?: Database["public"]["Enums"]["profile_status"]
           suspended_at?: string | null
           updated_at?: string
+          username?: string | null
+          username_changed_at?: string | null
           verified_at?: string | null
         }
         Relationships: [
@@ -1090,6 +1164,92 @@ export type Database = {
           },
         ]
       }
+      service_offers: {
+        Row: {
+          created_at: string
+          from_profile: string
+          id: string
+          kind: string
+          message: string | null
+          responded_at: string | null
+          status: string
+          to_profile: string
+          trip_id: string
+        }
+        Insert: {
+          created_at?: string
+          from_profile: string
+          id?: string
+          kind: string
+          message?: string | null
+          responded_at?: string | null
+          status?: string
+          to_profile: string
+          trip_id: string
+        }
+        Update: {
+          created_at?: string
+          from_profile?: string
+          id?: string
+          kind?: string
+          message?: string | null
+          responded_at?: string | null
+          status?: string
+          to_profile?: string
+          trip_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "service_offers_from_profile_fkey"
+            columns: ["from_profile"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "service_offers_from_profile_fkey"
+            columns: ["from_profile"]
+            isOneToOne: false
+            referencedRelation: "v_recent_signups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "service_offers_from_profile_fkey"
+            columns: ["from_profile"]
+            isOneToOne: false
+            referencedRelation: "v_user_summary"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "service_offers_to_profile_fkey"
+            columns: ["to_profile"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "service_offers_to_profile_fkey"
+            columns: ["to_profile"]
+            isOneToOne: false
+            referencedRelation: "v_recent_signups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "service_offers_to_profile_fkey"
+            columns: ["to_profile"]
+            isOneToOne: false
+            referencedRelation: "v_user_summary"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "service_offers_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: false
+            referencedRelation: "trips"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       stays: {
         Row: {
           city_id: string
@@ -1201,6 +1361,7 @@ export type Database = {
           start_date: string
           status: Database["public"]["Enums"]["trip_status"]
           updated_at: string
+          visibility: string
         }
         Insert: {
           city_id: string
@@ -1213,6 +1374,7 @@ export type Database = {
           start_date: string
           status?: Database["public"]["Enums"]["trip_status"]
           updated_at?: string
+          visibility?: string
         }
         Update: {
           city_id?: string
@@ -1225,6 +1387,7 @@ export type Database = {
           start_date?: string
           status?: Database["public"]["Enums"]["trip_status"]
           updated_at?: string
+          visibility?: string
         }
         Relationships: [
           {
@@ -1549,6 +1712,7 @@ export type Database = {
         Args: { p_offer_id: string; p_user: string }
         Returns: Json
       }
+      accept_service_offer: { Args: { p_offer_id: string }; Returns: Json }
       admin_audit_log: {
         Args: { p_before?: string; p_limit?: number }
         Returns: {
@@ -1773,11 +1937,15 @@ export type Database = {
         }
       }
       are_blocked: { Args: { a: string; b: string }; Returns: boolean }
+      are_connected: { Args: { a: string; b: string }; Returns: boolean }
       call_edge_function: {
         Args: { fn_name: string; payload?: Json }
         Returns: number
       }
       can_browse: { Args: never; Returns: boolean }
+      can_see_member: { Args: { p_profile: string }; Returns: boolean }
+      can_see_member_details: { Args: { p_profile: string }; Returns: boolean }
+      check_username: { Args: { p_username: string }; Returns: string }
       claim_expired_deletion_holds: {
         Args: { p_limit?: number }
         Returns: {
@@ -1845,6 +2013,17 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      completed_services: {
+        Args: { p_profile: string }
+        Returns: {
+          city_name: string
+          completed_on: string
+          kind: string
+          recipient_id: string
+          trip_id: string
+          trip_is_private: boolean
+        }[]
+      }
       config_int: { Args: { config_key: string }; Returns: number }
       current_status: {
         Args: never
@@ -1871,12 +2050,20 @@ export type Database = {
         Args: { p_first: string; p_last: string }
         Returns: string
       }
+      generate_username: { Args: { p_first: string }; Returns: string }
       has_contact_grant: { Args: { other: string }; Returns: boolean }
       home_feed: { Args: never; Returns: Json }
+      in_city_during: {
+        Args: { p_city: string; p_end: string; p_start: string }
+        Returns: boolean
+      }
       is_admin: { Args: never; Returns: boolean }
       is_approved: { Args: never; Returns: boolean }
       is_blocked: { Args: { other: string }; Returns: boolean }
+      is_connected: { Args: { other: string }; Returns: boolean }
       is_in_review: { Args: never; Returns: boolean }
+      is_party_to_trip: { Args: { p_trip: string }; Returns: boolean }
+      is_valid_username: { Args: { p_value: string }; Returns: boolean }
       log_admin_action: {
         Args: {
           p_action: string
@@ -1890,10 +2077,57 @@ export type Database = {
         Args: { p_email: string; p_name: string }
         Returns: boolean
       }
+      member_connections: {
+        Args: { p_profile: string }
+        Returns: {
+          discipline: string
+          display_name: string
+          photo_path: string
+          profile_id: string
+          relationship: string
+          specialisation: string
+          username: string
+        }[]
+      }
       member_full_name: {
         Args: { p_fallback: string; p_first: string; p_last: string }
         Returns: string
       }
+      member_services: {
+        Args: { p_profile: string }
+        Returns: {
+          city_name: string
+          completed_on: string
+          discipline: string
+          kind: string
+          photo_path: string
+          recipient_id: string
+          recipient_name: string
+          username: string
+        }[]
+      }
+      member_stats: {
+        Args: { p_profile: string }
+        Returns: {
+          connections: number
+          services: number
+          trips: number
+        }[]
+      }
+      member_trips: {
+        Args: { p_profile: string }
+        Returns: {
+          city_id: string
+          city_name: string
+          end_date: string
+          id: string
+          needs: string[]
+          note: string
+          start_date: string
+          visibility: string
+        }[]
+      }
+      normalise_username: { Args: { p_value: string }; Returns: string }
       normalize_discipline: { Args: { p_value: string }; Returns: string }
       notification_stay_payload: { Args: { p_stay_id: string }; Returns: Json }
       notification_trip_payload: { Args: { p_trip_id: string }; Returns: Json }
@@ -1945,6 +2179,19 @@ export type Database = {
         }[]
       }
       search_matches: { Args: { p_trip_id: string }; Returns: Json }
+      search_members: {
+        Args: { p_limit?: number; p_query: string }
+        Returns: {
+          discipline: string
+          display_name: string
+          home_city: string
+          photo_path: string
+          profile_id: string
+          relationship: string
+          specialisation: string
+          username: string
+        }[]
+      }
       search_open_trips: {
         Args: never
         Returns: {
@@ -1968,6 +2215,8 @@ export type Database = {
           trip_start: string
         }[]
       }
+      send_connection_request: { Args: { p_user: string }; Returns: Json }
+      service_offer_count: { Args: { p_trip_id: string }; Returns: number }
       submit_report: {
         Args: {
           p_also_block?: boolean
@@ -1984,6 +2233,7 @@ export type Database = {
     }
     Enums: {
       availability_status: "active" | "cancelled"
+      connection_status: "pending" | "accepted"
       offer_status:
         | "pending"
         | "accepted"
@@ -1997,7 +2247,7 @@ export type Database = {
         | "suspended"
         | "deleted"
       report_status: "open" | "reviewing" | "actioned" | "dismissed"
-      request_kind: "host_stay" | "co_accommodation"
+      request_kind: "host_stay" | "co_accommodation" | "tips" | "coffee"
       request_status:
         | "pending"
         | "accepted"
@@ -2021,12 +2271,12 @@ export type Tables<
   DefaultSchemaTableNameOrOptions extends
     | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends (DefaultSchemaTableNameOrOptions extends {
+  TableName extends DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
         DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
-    : never) = never,
+    : never = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -2050,11 +2300,11 @@ export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends (DefaultSchemaTableNameOrOptions extends {
+  TableName extends DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never) = never,
+    : never = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -2075,11 +2325,11 @@ export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends (DefaultSchemaTableNameOrOptions extends {
+  TableName extends DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never) = never,
+    : never = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -2100,11 +2350,11 @@ export type Enums<
   DefaultSchemaEnumNameOrOptions extends
     | keyof DefaultSchema["Enums"]
     | { schema: keyof DatabaseWithoutInternals },
-  EnumName extends (DefaultSchemaEnumNameOrOptions extends {
+  EnumName extends DefaultSchemaEnumNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
-    : never) = never,
+    : never = never,
 > = DefaultSchemaEnumNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -2117,11 +2367,11 @@ export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
     | keyof DefaultSchema["CompositeTypes"]
     | { schema: keyof DatabaseWithoutInternals },
-  CompositeTypeName extends (PublicCompositeTypeNameOrOptions extends {
+  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
-    : never) = never,
+    : never = never,
 > = PublicCompositeTypeNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -2137,6 +2387,7 @@ export const Constants = {
   public: {
     Enums: {
       availability_status: ["active", "cancelled"],
+      connection_status: ["pending", "accepted"],
       offer_status: ["pending", "accepted", "declined", "withdrawn", "expired"],
       profile_status: [
         "pending",
@@ -2146,7 +2397,7 @@ export const Constants = {
         "deleted",
       ],
       report_status: ["open", "reviewing", "actioned", "dismissed"],
-      request_kind: ["host_stay", "co_accommodation"],
+      request_kind: ["host_stay", "co_accommodation", "tips", "coffee"],
       request_status: [
         "pending",
         "accepted",
@@ -2159,3 +2410,4 @@ export const Constants = {
     },
   },
 } as const
+

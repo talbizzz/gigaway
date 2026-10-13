@@ -468,6 +468,158 @@ Applied to dev and tested there.
       profile
 - [ ] After an accepted offer the reveal shows Phone (Call) and Email
 
+## Usernames, connections and trip visibility (Milestone 7, added 2026-10-06)
+
+Members get a unique username, can connect with each other, and choose per trip who
+sees it (public / connections only / private). Tips and coffee join stays as things
+a traveller can ask for. Home gains a connections band. Plan and decisions:
+`Milestone-7-Friends-and-Visibility.md`. Seven migrations, applied to dev and
+tested there: `20260921170000_usernames`, `180000_friendships`,
+`190000_trip_visibility`, `200000_request_kinds`, `210000_tips_and_coffee_requests`,
+`220000_home_feed_friends`, and `230000_friends_become_connections`, which renames
+"friends" to "connections" throughout (table, helpers, the stored visibility
+value, notification types, the setting). Prod runs the earlier ones and then this
+rename in the same push.
+
+### Before merging to `main`
+
+- [ ] **This changes who can see what, for everyone.** Every existing trip becomes
+      public, which is **much narrower than today** (every approved member saw
+      every active trip). After this, a trip is visible only to the owner's
+      connections, people living in the destination, people there on overlapping
+      dates, and people the owner asked. Tell members before it ships
+- [ ] **Backend first.** The new app build expects usernames, `friendships`,
+      `trips.visibility` and the new request kinds. Old builds on the new backend
+      keep working (a sign-up with no username gets a generated one; a trip with
+      no visibility is public) but will show a tips or coffee request as if it
+      were a stay request, and cannot use connections
+- [ ] **Existing members get an automatic username** such as `aziz_4821`. They can
+      change it once, immediately, in Edit profile. Say so in the release notes
+- [ ] Read the dry run: `20260921200000` adds enum values (it must be its own
+      migration, and is), and `20260921190000` replaces the trips viewing policy
+- [ ] **Privacy policy / terms.** The privacy policy and account-deletion page now
+      describe usernames, connections and trip visibility. Have them read before
+      release: connections see a full name, bio and links that other members do not
+- [ ] **Known limit:** bio, links and the family name are hidden from non-connections
+      in the app only. Any approved member can still read them through the API
+      (the family name already could be). Hiding them in the database means moving
+      columns out of `profiles`, a later hardening
+
+### Profile numbers (`20260921240000_member_stats`)
+
+- [ ] Every profile shows Connections, Trips and Services offered. A stranger
+      pressing a number does nothing; a connection pressing one sees the list
+- [ ] Trips: a connection sees only trips that are not private; the count leaves
+      private ones out (your own count includes them)
+- [ ] Services: a stay counts once its last night has passed, tips and coffee once
+      the trip they were for has ended; a pending or declined one never counts
+- [ ] A service for someone's private trip shows the person but not the city
+- [ ] Privacy policy now has a section on these numbers (3.1b): have it read
+
+### Smoke test on dev, with builds pointed at dev (two accounts, then three)
+
+- [ ] Sign up with a username; a taken one says so as you type; an existing
+      account shows its generated `@username` on the Profile tab and can change it
+- [ ] Search the other account by username and by name; tap Connect; the other
+      sees it on Home and under Connections, and gets a notification
+- [ ] Accept: both appear under Connections and the count beside each profile
+      picture goes up; the connection's page now shows their full name, bio and
+      links; a stranger's page does not
+- [ ] Post a trip as Public, Connections only and Private, and check from a third,
+      unrelated account that only the right one is visible; send a request about
+      the private trip and check the person asked can now see it
+- [ ] A host who lists "tips" and "coffee" shows "Ask for local tips" and "Invite
+      for a coffee" on a trip's matches; accepting shares contact both ways
+- [ ] Home shows a connection's upcoming trip under "Your connections"
+- [ ] Block a connection: it disappears for both, silently
+- [ ] Delete a test account: its connections and username go
+
+## Services: one per post, and "always available" (added 2026-10-07)
+
+The Couch tab is now **Services**. Each post offers ONE service (couch, spare room,
+coffee or local tips), chosen first on its own screen, and can be **always
+available**: no dates, open until switched off, so requests keep arriving. Two
+migrations, applied to dev and tested there (`always_available.sql`):
+`20260921250000_services_always_available`, `20260921260000_group_services_in_matching`.
+
+What they do: availability dates become optional (an unbounded range, which
+matching already reads as "free on any dates"); existing posts that bundled several
+services are **split into one row per service**; matching lists a host once with
+every service they offer; and **only a couch or a spare room can be used to offer
+nights**, which was not enforced before (a host with only tips posted could be
+matched with, and offer nights to, a traveller).
+
+### Before merging to `main`
+
+- [ ] **Backend first.** Old builds on the new backend still work, with two visible
+      differences: a post they make with several services is accepted but listed as
+      before (only an always-available post is limited to one), and a host who has
+      posted only coffee or tips no longer appears in "Coming your way" or can offer
+      nights. Say so in the release notes
+- [ ] Look at the dry run: it **splits existing rows** (an insert, then an update).
+      Dev had no bundled posts, so the split ran only against a synthetic row in a
+      rolled-back transaction. Check the count on prod first:
+      `select count(*) from availability where array_length(offers,1) > 1;`
+- [ ] Hosting conditions (women only, no pets, ...) and the maximum nights **stay
+      with the couch or room** when a post is split, and are dropped from a coffee or
+      tips post. That is a judgement call: confirm it is what you want
+
+### Smoke test on dev
+
+- [ ] The Couch tab is now Services; the centre button says "Offer a service" and
+      opens a chooser of the four; each leads to its own form
+- [ ] Couch and spare room ask for nights, house rules and a maximum stay; coffee
+      and tips ask for neither
+- [ ] The "Always available" switch removes the dates; the post shows an "Always
+      available" badge and can be switched off from the list
+- [ ] A traveller whose trip is months away finds the always-available host, with
+      "N of your N nights"; a host who offers a couch and a coffee appears **once**
+- [ ] A host who offers only a coffee shows no nights and no stay button, only
+      "Ask for ... / Invite for a coffee"
+- [ ] An existing multi-service post now shows as separate posts in the list
+
+## Offering a service without being asked (added 2026-10-07)
+
+A member can now open somebody's trip (from Home, or from a connection's list of
+trips) and offer them one of their own posted services, unprompted. A couch or a
+room goes through the existing nights offer; a **coffee or local tips** use a new
+table, `service_offers`: the owner accepts (and both get each other's contact
+details) or declines. One migration, `20260921270000_service_offers`, applied to dev
+and tested there (`service_offers.sql`).
+
+Rules: only a trip the giver can already see (the trip visibility rule, enforced
+through RLS, so a private trip can never be offered on); the giver must have posted
+that service in the trip's city on overlapping dates or always available; one offer
+of each service per person per trip; an accepted one counts toward the giver's
+"services offered" once the trip has ended.
+
+### Before merging to `main`
+
+- [ ] **Backend first.** Old builds on the new backend simply do not show these
+      offers. A coffee or tips offer made to a member on an old build produces a
+      notification they can read but cannot answer in the app until they update.
+      Say so in the release notes
+- [ ] The migration **changes `delete_account`**: a trip now survives its owner's
+      deletion (stripped of its text) if an accepted service offer or an accepted
+      tips or coffee request rests on it, as a trip with a stay already did. Read
+      that part of the dry run
+- [ ] Privacy policy and account-deletion page now say accepted coffee or tips are
+      retained after deletion (who, the city and the month): have them read
+
+### Smoke test on dev (two accounts)
+
+- [ ] Account A has posted coffee and local tips in a city; account B has a public
+      trip there. From A, open B's trip from Home: both services appear, and
+      offering one is a single tap
+- [ ] B sees it under "Waiting on you" on Requests, with the header badge raised,
+      and accepts: both land on the contact screen, and a notification arrives
+- [ ] A's couch or spare room shows "Offer nights" on the same screen and opens the
+      nights form
+- [ ] B declines another: A is told. A withdraws a third before it is answered
+- [ ] A private trip cannot be reached, and a service you have not posted in that
+      city is not listed
+- [ ] After the trip ends, the accepted coffee adds one to A's "Services offered"
+
 ## Carried over from Milestone 5 (already tracked in `TODO.md`, listed here only because prod is where they land)
 
 - [ ] Upgrade Supabase to Pro

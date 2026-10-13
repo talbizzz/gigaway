@@ -47,6 +47,7 @@ the database returns no member content to you at all.
 | Data | Why | Lawful basis |
 |---|---|---|
 | First name and family name | So colleagues know who they are talking to. The app shows other members only your first name and the first letter of your family name (for example “Anna W.”) | Contract |
+| Username | A unique name other members can search for to find you and send a connection request. Visible to other members; you can change it once every 30 days | Contract |
 | Discipline and specialisation | Matching, and establishing professional standing | Contract |
 | Home city and district | Showing you people in your city, and you to them | Contract |
 | Short biography | Letting others decide whether to host or stay with you | Contract |
@@ -55,6 +56,41 @@ the database returns no member content to you at all.
 
 The district is free text and deliberately coarse. **GigAway never asks for or
 stores your street address.**
+
+### 3.1a Connections and who sees your trips
+
+You can connect with other members. A connection request only becomes a
+connection when the other person accepts it; either of you can end it at any
+time, and blocking someone ends it. We store who is connected with whom (and
+any request still waiting), which is visible to the two people involved and to
+nobody else. Connections see a little more of each other: the full name, biography and links on a
+profile, and the trips shared with connections.
+
+Each trip you post has a visibility that you choose:
+
+- **Public**: your connections, members who live in the city you are going to, and
+  members who will be in that city on overlapping dates
+- **Connections only**: only your connections
+- **Private**: only the people you send a request to (for a place to stay, local
+  tips or a coffee)
+
+This is enforced by the service, not only by the app.
+
+### 3.1b The numbers on your profile
+
+Every member's profile shows three numbers to other members: how many
+connections they have, how many trips they have posted (not counting private or
+cancelled ones), and how many services they have offered. A service is a couch
+you hosted, or tips or a coffee you gave, and counts only once it was accepted on
+both sides and has taken place.
+
+Only your connections can open those numbers. A connection sees who you are
+connected with, the trips you posted that are not private, and what you offered
+and to whom (the person you helped, and the month, with the city left out where
+their trip was private). A private trip is not counted and never listed. Someone
+you have blocked sees none of it. The district, and a
+member's other profile details shown to members you are not connected with, are described in section
+3.1 above.
 
 ### 3.2 Contact details
 
@@ -220,9 +256,12 @@ advertising in GigAway.
 | One-way fingerprints of your email and legal name | Kept **without a time limit**, only if a report about you was acted on |
 | Trips, availability, requests, offers | Until deleted, or until the account is deleted |
 | Stays | **Retained** after deletion — they are the other person's record |
+| A coffee or local tips offered or asked for | Unanswered ones deleted with the account; **accepted ones are retained** (the person, the city and the month), because they are part of the other member's record and of what you have given |
 | Reviews you wrote, published | **Retained**, shown as written by "Deleted member" |
 | Reviews about you | Deleted with your account |
 | Reports | **Retained** after deletion, in both directions |
+| Connections and connection requests | Until you or the other person removes them, or until the account is deleted |
+| Username | Until you change it, or until the account is deleted (it is then released for others) |
 | Blocks you created | Deleted with your account |
 | Blocks against you | **Retained** |
 | Push tokens, notifications | Deleted with your account |

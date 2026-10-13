@@ -4,7 +4,7 @@ import { Pressable, StyleSheet, View } from 'react-native'
 
 import { AppHeader } from '@/components/app-header'
 import { ComposeSheet } from '@/components/compose-sheet'
-import { CouchIcon, HomeIcon, PlusIcon, ProfileIcon, SettingsIcon } from '@/components/tab-icon'
+import { HomeIcon, PlusIcon, ProfileIcon, ServicesIcon, SettingsIcon } from '@/components/tab-icon'
 import { radius, typography } from '@/theme/tokens'
 import { useTheme } from '@/theme/use-theme'
 
@@ -13,7 +13,7 @@ import { useTheme } from '@/theme/use-theme'
  * whoever they are looking at — is pushed onto the stack above these, so the
  * bar stays out of the way once you are deep in a flow.
  *
- * The centre slot is not a tab. Posting a trip and posting free nights are the
+ * The centre slot is not a tab. Adding a trip and offering a service are the
  * two things a member creates, and both used to be buttons partway down the
  * home screen; here they are one press from anywhere.
  *
@@ -53,11 +53,11 @@ export default function TabsLayout() {
           }}
         />
         <Tabs.Screen
-          name="couch"
+          name="services"
           options={{
-            title: 'Your couch',
-            tabBarLabel: 'Couch',
-            tabBarIcon: ({ color, focused }) => <CouchIcon color={color} focused={focused} />,
+            title: 'Your services',
+            tabBarLabel: 'Services',
+            tabBarIcon: ({ color, focused }) => <ServicesIcon color={color} focused={focused} />,
           }}
         />
         <Tabs.Screen
@@ -71,7 +71,7 @@ export default function TabsLayout() {
             tabBarButton: (props) => (
               <Pressable
                 accessibilityRole="button"
-                accessibilityLabel="Post a trip or free nights"
+                accessibilityLabel="Add a trip or offer a service"
                 testID={props.testID}
                 onPress={() => setComposing(true)}
                 style={({ pressed }) => [styles.compose, pressed && styles.pressed]}
@@ -119,11 +119,11 @@ export default function TabsLayout() {
             },
           },
           {
-            label: 'Offer a couch',
-            detail: 'Nights you are free to host at home',
+            label: 'Offer a service',
+            detail: 'A couch, a spare room, a coffee or local tips',
             onPress: () => {
               setComposing(false)
-              router.push('/availability/new')
+              router.push('/availability/choose')
             },
           },
         ]}

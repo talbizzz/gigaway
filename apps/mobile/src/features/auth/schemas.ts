@@ -1,5 +1,7 @@
 import { z } from 'zod'
 
+import { normaliseUsername, usernameProblemMessage } from '@gigaway/shared'
+
 import { DISCIPLINES } from '@/features/profile/use-profile'
 
 const disciplineValues = DISCIPLINES.map((d) => d.value) as [string, ...string[]]
@@ -23,6 +25,13 @@ export const SignUpSchema = z
       .trim()
       .min(1, 'Enter your family name.')
       .max(40, 'That name is too long.'),
+    username: z
+      .string()
+      .transform(normaliseUsername)
+      .superRefine((value, ctx) => {
+        const message = usernameProblemMessage(value)
+        if (message) ctx.addIssue({ code: z.ZodIssueCode.custom, message })
+      }),
     discipline: z.enum(disciplineValues, {
       errorMap: () => ({ message: 'Choose the closest match.' }),
     }),

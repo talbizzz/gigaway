@@ -1,4 +1,10 @@
-import { formatDateRange, nightCount } from '@gigaway/shared'
+import {
+  formatDateRange,
+  nightCount,
+  offersAStay,
+  TRIP_VISIBILITY_LABELS,
+  tripVisibilityDescription,
+} from '@gigaway/shared'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useEffect } from 'react'
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native'
@@ -21,7 +27,11 @@ import {
   useOffersForTrip,
   type Offer,
 } from '@/features/offers/use-offers'
-import { useRequestsForTrip, useSendRequest } from '@/features/requests/use-requests'
+import {
+  useRequestsForTrip,
+  useSendRequest,
+  type RequestKind,
+} from '@/features/requests/use-requests'
 import { useTrip } from '@/features/trips/use-trips'
 import { track } from '@/lib/analytics'
 import { radius, spacing, typography } from '@/theme/tokens'
@@ -60,11 +70,15 @@ export default function TripMatchesScreen() {
 
   // Who has already been asked, so a host's button reads "Asked" rather than
   // letting the user tap into a unique-constraint violation.
-  const askedProfiles = new Set(
-    (sentRequests.data ?? [])
-      .filter((request) => request.status !== 'withdrawn')
-      .map((request) => request.to_profile),
-  )
+  const askedKinds = new Map<string, Set<RequestKind>>()
+  for (const request of sentRequests.data ?? []) {
+    if (request.status === 'withdrawn') continue
+    const kinds = askedKinds.get(request.to_profile) ?? new Set<RequestKind>()
+    kinds.add(request.kind)
+    askedKinds.set(request.to_profile, kinds)
+  }
+  const askedOf = (profileId: string): ReadonlySet<RequestKind> =>
+    askedKinds.get(profileId) ?? new Set<RequestKind>()
   const pendingOffers = (offers.data ?? []).filter((offer) => offer.status === 'pending')
   const acceptedOffer = (offers.data ?? []).find((offer) => offer.status === 'accepted')
 
@@ -104,6 +118,12 @@ export default function TripMatchesScreen() {
         <Text style={[typography.body, { color: theme.textMuted }]}>
           {formatRange(trip.start_date, trip.end_date)} · {tripNights} night
           {tripNights === 1 ? '' : 's'}
+        </Text>
+        {/* Who can see this trip, so the choice made when posting it is never a
+            mystery afterwards. */}
+        <Text style={[typography.caption, { color: theme.textMuted }]}>
+          {TRIP_VISIBILITY_LABELS[trip.visibility]}:{' '}
+          {tripVisibilityDescription(trip.visibility, trip.cities?.name)}
         </Text>
       </View>
 
@@ -154,7 +174,7 @@ export default function TripMatchesScreen() {
               host={host}
               tripNights={tripNights}
               tripId={id}
-              asked={askedProfiles.has(host.profile.id)}
+              askedKinds={askedOf(host.profile.id)}
             />
           ))}
         </View>
@@ -172,7 +192,7 @@ export default function TripMatchesScreen() {
               key={traveller.tripId}
               traveller={traveller}
               tripId={id}
-              asked={askedProfiles.has(traveller.profile.id)}
+              asked={askedOf(traveller.profile.id).has('co_accommodation')}
             />
           ))}
         </View>
@@ -193,7 +213,7 @@ export default function TripMatchesScreen() {
               host={host}
               tripNights={tripNights}
               tripId={id}
-              asked={askedProfiles.has(host.profile.id)}
+              askedKinds={askedOf(host.profile.id)}
             />
           ))}
         </View>
@@ -225,21 +245,35 @@ export default function TripMatchesScreen() {
   )
 }
 
+/** What else a host can be asked for, beside the nights, and the offer that names it. */
+const EXTRA_ASKS: {
+  kind: RequestKind
+  offer: string
+  label: string
+  asked: string
+}[] = [
+  { kind: 'tips', offer: 'tips', label: 'Ask for local tips', asked: 'Tips asked' },
+  { kind: 'coffee', offer: 'coffee', label: 'Invite for a coffee', asked: 'Coffee asked' },
+]
+
 function HostCard({
   host,
   tripNights,
   tripId,
-  asked,
+  askedKinds,
 }: {
   host: HostMatch
   tripNights: number
   tripId: string
-  asked: boolean
+  askedKinds: ReadonlySet<RequestKind>
 }) {
   const theme = useTheme()
   const router = useRouter()
   const sendRequest = useSendRequest()
   const partial = host.overlapNights < tripNights
+  // A host who offers only a coffee or tips has no nights to count and no stay to
+  // ask about; what they offer is shown as tags, and asked for below.
+  const stay = offersAStay(host.offers)
 
   return (
     <View style={[styles.card, { backgroundColor: theme.bgSubtle, borderColor: theme.border }]}>
@@ -263,14 +297,18 @@ function HostCard({
         product working, not falling short — three nights not paid for is three
         nights not paid for.
       */}
-      <Text style={[typography.bodyStrong, { color: theme.accent }]}>
-        {host.overlapNights} of your {tripNights} night{tripNights === 1 ? '' : 's'}
-        {partial ? '' : ' — the whole trip'}
-      </Text>
-      <Text style={[typography.caption, { color: theme.textMuted }]}>
-        {formatRange(host.overlap.start, host.overlap.end)}
-        {host.maxNights ? ` · up to ${host.maxNights} nights` : ''}
-      </Text>
+      {stay ? (
+        <>
+          <Text style={[typography.bodyStrong, { color: theme.accent }]}>
+            {host.overlapNights} of your {tripNights} night{tripNights === 1 ? '' : 's'}
+            {partial ? '' : ' — the whole trip'}
+          </Text>
+          <Text style={[typography.caption, { color: theme.textMuted }]}>
+            {formatRange(host.overlap.start, host.overlap.end)}
+            {host.maxNights ? ` · up to ${host.maxNights} nights` : ''}
+          </Text>
+        </>
+      ) : null}
 
       <View style={styles.tags}>
         {host.offers.map((offer) => (
@@ -291,29 +329,49 @@ function HostCard({
         piece of writing that people put off. The host can be told more later,
         by phone, once there is something to arrange.
       */}
-      {asked ? (
-        <View style={styles.action}>
-          <Badge label="Asked" tone="accent" />
-          <Text style={[typography.caption, { color: theme.textMuted }]}>
-            They will see it next time they open the app.
-          </Text>
+      <VerifiedOnly>
+        <View style={styles.actions}>
+          {!stay ? null : askedKinds.has('host_stay') ? (
+            <View style={styles.action}>
+              <Badge label="Asked" tone="accent" />
+              <Text style={[typography.caption, { color: theme.textMuted }]}>
+                They will see it next time they open the app.
+              </Text>
+            </View>
+          ) : (
+            <Button
+              label="Ask about these nights"
+              onPress={() =>
+                sendRequest.mutate({
+                  kind: 'host_stay',
+                  tripId,
+                  toProfile: host.profile.id,
+                })
+              }
+              loading={sendRequest.isPending}
+              style={styles.actionButton}
+            />
+          )}
+
+          {/* The other two things a host can offer, asked for the same way. */}
+          {EXTRA_ASKS.filter((ask) => host.offers.includes(ask.offer)).map((ask) =>
+            askedKinds.has(ask.kind) ? (
+              <Badge key={ask.kind} label={ask.asked} tone="accent" />
+            ) : (
+              <Button
+                key={ask.kind}
+                label={ask.label}
+                variant="secondary"
+                onPress={() =>
+                  sendRequest.mutate({ kind: ask.kind, tripId, toProfile: host.profile.id })
+                }
+                loading={sendRequest.isPending}
+                style={styles.actionButton}
+              />
+            ),
+          )}
         </View>
-      ) : (
-        <VerifiedOnly>
-          <Button
-            label="Ask about these nights"
-            onPress={() =>
-              sendRequest.mutate({
-                kind: 'host_stay',
-                tripId,
-                toProfile: host.profile.id,
-              })
-            }
-            loading={sendRequest.isPending}
-            style={styles.actionButton}
-          />
-        </VerifiedOnly>
-      )}
+      </VerifiedOnly>
     </View>
   )
 }
@@ -481,6 +539,7 @@ const styles = StyleSheet.create({
   cardHeader: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, marginBottom: spacing.xs },
   tags: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, marginTop: spacing.sm },
   action: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginTop: spacing.md },
+  actions: { gap: spacing.sm },
   actionButton: { marginTop: spacing.md },
   tag: {
     paddingHorizontal: spacing.sm,

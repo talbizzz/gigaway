@@ -28,6 +28,7 @@ export type AnalyticsEvent =
   | 'matches_viewed'
   | 'request_sent'
   | 'offer_sent'
+  | 'service_offer_sent'
   | 'offer_revised'
   | 'offer_accepted'
   | 'contact_revealed'

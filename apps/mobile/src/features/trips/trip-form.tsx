@@ -1,4 +1,12 @@
-import { nightCount, type DateRange } from '@gigaway/shared'
+import {
+  DEFAULT_TRIP_VISIBILITY,
+  nightCount,
+  TRIP_VISIBILITIES,
+  TRIP_VISIBILITY_LABELS,
+  tripVisibilityDescription,
+  type DateRange,
+  type TripVisibility,
+} from '@gigaway/shared'
 import { useState } from 'react'
 import { Pressable, StyleSheet, Text, View } from 'react-native'
 
@@ -17,6 +25,7 @@ export type TripFormValues = {
   range: DateRange
   needs: TripNeed[]
   note: string
+  visibility: TripVisibility
 }
 
 /**
@@ -43,6 +52,9 @@ export function TripForm({
   const [range, setRange] = useState<DateRange | null>(initial?.range ?? null)
   const [needs, setNeeds] = useState<TripNeed[]>(initial?.needs ?? ['couch'])
   const [note, setNote] = useState(initial?.note ?? '')
+  const [visibility, setVisibility] = useState<TripVisibility>(
+    initial?.visibility ?? DEFAULT_TRIP_VISIBILITY,
+  )
 
   const toggleNeed = (need: TripNeed) =>
     setNeeds((current) =>
@@ -57,7 +69,7 @@ export function TripForm({
       footer={
         <Button
           label={submitLabel}
-          onPress={() => city && range && onSubmit({ city, range, needs, note })}
+          onPress={() => city && range && onSubmit({ city, range, needs, note, visibility })}
           loading={submitting}
           disabled={!ready}
         />
@@ -105,6 +117,36 @@ export function TripForm({
         ) : null}
       </View>
 
+      <View style={styles.section}>
+        <Text style={[typography.captionStrong, { color: theme.textMuted }]}>WHO CAN SEE THIS TRIP?</Text>
+        {TRIP_VISIBILITIES.map((level) => {
+          const selected = visibility === level
+          return (
+            <Pressable
+              key={level}
+              accessibilityRole="radio"
+              accessibilityState={{ selected }}
+              onPress={() => setVisibility(level)}
+              style={({ pressed }) => [
+                styles.option,
+                {
+                  backgroundColor: selected ? theme.accentSubtle : theme.bgSubtle,
+                  borderColor: selected ? theme.accent : theme.border,
+                },
+                pressed && styles.pressed,
+              ]}
+            >
+              <Text style={[typography.bodyStrong, { color: theme.text }]}>
+                {TRIP_VISIBILITY_LABELS[level]}
+              </Text>
+              <Text style={[typography.caption, { color: theme.textMuted }]}>
+                {tripVisibilityDescription(level, city?.name)}
+              </Text>
+            </Pressable>
+          )
+        })}
+      </View>
+
       <TextField
         label="Anything to add? (optional)"
         value={note}
@@ -138,4 +180,5 @@ const styles = StyleSheet.create({
   },
   pressed: { opacity: 0.7 },
   note: { minHeight: 90, textAlignVertical: 'top' },
+  option: { padding: spacing.md, borderRadius: radius.md, borderWidth: 1, gap: 2 },
 })

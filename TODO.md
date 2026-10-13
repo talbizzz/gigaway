@@ -738,6 +738,38 @@ application bug, but both would have looked like one.
 - [x] Icon/favicon for the admin website's browser tab — environment-specific, dev and prod differ _(done 2026-10-04)_
       Vite icon.
 
+## Milestone 7: Usernames, Friends and Trip Visibility
+
+_Plan and decisions: `Milestone-7-Friends-and-Visibility.md`. Started 2026-10-06._
+
+- [x] Phase 1 — usernames: unique, lower case, once-a-month change, auto-assigned
+      to existing members, chosen at sign-up with a live availability check,
+      editable in Edit profile _(`20260921170000`)_
+- [x] Phase 2 — connections (first built as "friends", renamed by
+      `20260921230000`): request / accept / decline / unfriend, blocking and
+      account deletion remove a friendship, member search by username or name,
+      Friends screen, notifications _(`20260921180000`)_
+- [x] Phase 3 — trip visibility (public / friends / private) in row-level
+      security; selector in the trip form _(`20260921190000`)_
+- [x] Phase 4 — tips and coffee requests, sent to hosts who offer them, accepted
+      like a co-accommodation request (contact is shared) _(`20260921200000`,
+      `20260921210000`)_
+- [x] Phase 5 — home feed gains a friends band; friend requests surfaced on Home
+      _(`20260921220000`)_
+- [x] Profile numbers: connections, trips and services offered on every profile;
+      details (trips that are not private, connections, services and to whom)
+      open for connections only _(`20260921240000`)_
+- [x] Services (2026-10-07): the Couch tab became Services; one service per post
+      chosen on its own screen first; "Always available" toggle with no dates;
+      matching groups a host's services and only a couch or room can offer nights
+      _(`20260921250000`, `20260921260000`)_
+- [x] Offer a service without being asked (2026-10-07): open any trip you can see,
+      offer a coffee or tips in one tap, or nights through the existing form;
+      the owner accepts (contact is shared) or declines _(`20260921270000`)_
+- [ ] Not done, on purpose: bio, links and family name are hidden from
+      non-friends **in the app only**, not in the database (see the milestone doc)
+- [ ] Not done: admin does not show or search by username yet
+
 ## In progress, on other branches (not detailed here)
 
 - `feature/artist-verification-gate` — superseded, not just parked: its ideas

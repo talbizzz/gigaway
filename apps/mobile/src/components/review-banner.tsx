@@ -12,7 +12,7 @@ export function ReviewBanner() {
 
   return (
     <Callout tone="warning" title="Your verification is in review">
-      Look around and post your trips and availability. Asking someone for a stay, or offering
+      Look around and post your trips and services. Asking someone for a stay, or offering
       one, opens up once you're approved, and nobody else sees your profile or trips until then.
     </Callout>
   )

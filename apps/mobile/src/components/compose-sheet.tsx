@@ -13,7 +13,7 @@ type Choice = {
 /**
  * What the centre button in the tab bar opens.
  *
- * A member posts two things — a trip and free nights — and which one they mean
+ * A member posts two things, a trip and a service, and which one they mean
  * is a decision, not a mode. Putting both behind one button keeps the tab bar at
  * five slots and makes the pair legible as two halves of the same act, which is
  * the thing a new member most often misunderstands about this product.

@@ -109,7 +109,7 @@ export default function ProfileAboutStep() {
         label="About you (optional)"
         value={about}
         onChangeText={setAbout}
-        placeholder="Where you studied, what you're working on."
+        placeholder="Where you studied, what you're working on, or what your hobbies are."
         multiline
         numberOfLines={4}
         maxLength={BIO_MAX_LENGTH}

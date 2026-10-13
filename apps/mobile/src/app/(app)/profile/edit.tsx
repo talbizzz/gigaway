@@ -3,6 +3,7 @@ import {
   disciplineExample,
   isValidPhoneNumber,
   normalisePhoneNumber,
+  normaliseUsername,
 } from '@gigaway/shared'
 import { Stack, useRouter } from 'expo-router'
 import { Image } from 'expo-image'
@@ -14,6 +15,7 @@ import { Callout } from '@/components/callout'
 import { CityPicker, type City } from '@/components/city-picker'
 import { OptionChips } from '@/components/option-chips'
 import { PhoneField } from '@/components/phone-field'
+import { UsernameField } from '@/components/username-field'
 import { Screen } from '@/components/screen'
 import { TextField } from '@/components/text-field'
 import { useCity } from '@/features/cities/use-city'
@@ -29,6 +31,7 @@ import {
   type Profile,
 } from '@/features/profile/use-profile'
 import { avatarUrl, useUpdateProfile, useUploadAvatar } from '@/features/profile/use-update-profile'
+import { usernameBlocksSubmit, useUsernameStatus } from '@/features/profile/use-username-status'
 import { radius, spacing, typography } from '@/theme/tokens'
 import { useTheme } from '@/theme/use-theme'
 
@@ -76,6 +79,7 @@ function ProfileForm({
 
   const [firstName, setFirstName] = useState(profile.first_name ?? '')
   const [lastName, setLastName] = useState(profile.last_name ?? '')
+  const [username, setUsername] = useState(profile.username ?? '')
   const [discipline, setDiscipline] = useState<DisciplineValue>(
     profile.discipline as DisciplineValue,
   )
@@ -98,6 +102,7 @@ function ProfileForm({
   // the update itself cannot drift apart — the button is only live when this
   // differs from what is already stored.
   const draft = {
+    username: normaliseUsername(username),
     first_name: firstName.trim(),
     last_name: lastName.trim() || null,
     discipline,
@@ -118,6 +123,11 @@ function ProfileForm({
 
   // A member from before the split may have no family name yet. They can save
   // everything else without one, but cannot clear one they already have.
+  const usernameStatus = useUsernameStatus(username, profile.username)
+  // The name can stay as it is; a changed one has to be free and well formed.
+  const usernameBlocked =
+    usernameStatus.state !== 'unchanged' && usernameBlocksSubmit(usernameStatus)
+
   const nameValid =
     firstName.trim().length > 0 && (lastName.trim().length > 0 || !profile.last_name)
 
@@ -129,6 +139,7 @@ function ProfileForm({
 
   const changed =
     phoneChanged ||
+    draft.username !== (profile.username ?? '') ||
     draft.first_name !== (profile.first_name ?? '') ||
     draft.last_name !== (profile.last_name ?? null) ||
     draft.discipline !== profile.discipline ||
@@ -159,7 +170,7 @@ function ProfileForm({
           label="Save changes"
           onPress={save}
           loading={update.isPending || updateContact.isPending}
-          disabled={!changed || !nameValid || !isValidPhoneNumber(phone)}
+          disabled={!changed || !nameValid || usernameBlocked || !isValidPhoneNumber(phone)}
         />
       }
     >
@@ -210,6 +221,13 @@ function ProfileForm({
         autoComplete="family-name"
         textContentType="familyName"
         hint={`Other members see you as “${previewName}”.`}
+      />
+
+      <UsernameField
+        value={username}
+        onChangeText={setUsername}
+        status={usernameStatus}
+        hint="How colleagues find you. You can change it once every 30 days."
       />
 
       <OptionChips<DisciplineValue>

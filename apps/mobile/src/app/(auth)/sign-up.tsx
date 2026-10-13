@@ -1,16 +1,18 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useRouter } from 'expo-router'
 import { useState } from 'react'
-import { Controller, useForm } from 'react-hook-form'
+import { Controller, useForm, useWatch } from 'react-hook-form'
 import { StyleSheet, Text, View } from 'react-native'
 
 import { Button, TextLink } from '@/components/button'
 import { Callout } from '@/components/callout'
 import { OptionChips } from '@/components/option-chips'
 import { Screen } from '@/components/screen'
+import { UsernameField } from '@/components/username-field'
 import { TextField } from '@/components/text-field'
 import { SignUpSchema, type SignUpValues } from '@/features/auth/schemas'
 import { DISCIPLINES, type DisciplineValue } from '@/features/profile/use-profile'
+import { useUsernameStatus } from '@/features/profile/use-username-status'
 import { track } from '@/lib/analytics'
 import { supabase } from '@/lib/supabase'
 import { spacing, typography } from '@/theme/tokens'
@@ -23,11 +25,28 @@ export default function SignUpScreen() {
 
   const form = useForm<SignUpValues>({
     resolver: zodResolver(SignUpSchema),
-    defaultValues: { firstName: '', lastName: '', email: '', password: '', confirmPassword: '' },
+    defaultValues: {
+      firstName: '',
+      lastName: '',
+      username: '',
+      email: '',
+      password: '',
+      confirmPassword: '',
+    },
   })
+
+  // Whether the chosen username is free, checked as it is typed. Submitting
+  // waits on it; the database still refuses a taken name, and falls back to a
+  // generated one if two people pick the same at the same instant.
+  const usernameStatus = useUsernameStatus(useWatch({ control: form.control, name: 'username' }))
 
   const onSubmit = form.handleSubmit(async (values) => {
     setSubmitError(null)
+
+    if (usernameStatus.state === 'taken') {
+      form.setError('username', { message: 'That username is already taken.' })
+      return
+    }
 
     // The names and discipline travel as auth metadata so the database
     // trigger can build a complete profile row at sign-up. Other members only
@@ -39,6 +58,7 @@ export default function SignUpScreen() {
         data: {
           first_name: values.firstName,
           last_name: values.lastName,
+          username: values.username,
           discipline: values.discipline,
         },
       },
@@ -116,6 +136,20 @@ export default function SignUpScreen() {
             textContentType="familyName"
             placeholder="Weber"
             hint="Other members only see the first letter, like “Anna W.”."
+            error={fieldState.error?.message}
+          />
+        )}
+      />
+
+      <Controller
+        control={form.control}
+        name="username"
+        render={({ field, fieldState }) => (
+          <UsernameField
+            value={field.value}
+            onChangeText={field.onChange}
+            status={usernameStatus}
+            hint="How colleagues find you. Letters, digits, dots and underscores."
             error={fieldState.error?.message}
           />
         )}

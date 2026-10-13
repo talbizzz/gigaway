@@ -81,14 +81,15 @@ export default function NewOfferScreen() {
     return (
       <Screen>
         <Stack.Screen options={{ title: 'Offer nights' }} />
-        <Callout title="No availability covering these dates">
-          You can only offer nights you have already posted. Add availability for{' '}
-          {trip.data?.cities?.name} that overlaps {formatDateRange(trip.data?.start_date, trip.data?.end_date)},
-          then come back.
+        <Callout title="No couch or room covering these dates">
+          You can only offer nights from a couch or a spare room you have already posted.
+          Offer one in {trip.data?.cities?.name} that covers{' '}
+          {formatDateRange(trip.data?.start_date, trip.data?.end_date)}, or switch it to always
+          available, then come back.
         </Callout>
         <Button
-          label="Post availability"
-          onPress={() => router.push('/availability/new')}
+          label="Offer a couch or room"
+          onPress={() => router.push('/availability/choose')}
         />
       </Screen>
     )

@@ -30,6 +30,13 @@ update public.profiles set status = 'approved'
   where id in ('11111111-1111-1111-1111-111111111111',
                '55555555-5555-5555-5555-555555555555');
 
+-- Eva lives in Munich, which is where Bruno's trip goes: trips are public to the
+-- people who live at the destination, so this is what lets her see it once he
+-- is approved (see trip_visibility.sql).
+update public.profiles
+   set home_city_id = (select id from public.cities where name = 'Munich' limit 1)
+ where id = '55555555-5555-5555-5555-555555555555';
+
 insert into public.verification_applications
   (profile_id, full_legal_name, selfie_prompt, selfie_path, links)
 select p.id, 'Legal Name', 'two fingers', p.id || '/selfie.jpg', '["https://x.example"]'::jsonb

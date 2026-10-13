@@ -40,6 +40,7 @@ limited time" below.
 - Push notification tokens and your notification history
 - Contact-sharing grants, so nobody keeps access to your details
 - Blocks you created
+- Your connections and any connection requests, in both directions, and your username (which then becomes available to others)
 - Reviews other people wrote **about** you
 - Reviews you wrote that had not yet been published
 - Pending requests and offers
@@ -76,6 +77,7 @@ claim means we need them. See the Privacy Policy, sections 7 and 8.
 Your profile becomes an anonymised record showing **"Deleted member"**. The
 following survive and point at that record rather than at you:
 
+- **A coffee or local tips you gave or received**, once accepted: who it was with, the city and when. The same reasoning as stays
 - **Stays you took part in** — dates and city. This is the other person's record
   of where they hosted, or were hosted
 - **Published reviews you wrote about other people**, shown as written by

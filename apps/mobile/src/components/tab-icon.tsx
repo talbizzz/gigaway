@@ -62,15 +62,15 @@ export function ProfileIcon({ color, focused }: IconProps) {
   )
 }
 
-export function CouchIcon({ color, focused }: IconProps) {
+/** Services: a wrapped gift, which is what offering a couch or a coffee is. */
+export function ServicesIcon({ color, focused }: IconProps) {
   const fill = focused ? { backgroundColor: color, borderColor: color } : { borderColor: color }
 
   return (
     <View style={styles.box}>
-      <View style={[styles.couchBack, fill]} />
-      <View style={[styles.couchSeat, fill]} />
-      <View style={[styles.couchLeg, styles.couchLegLeft, { backgroundColor: color }]} />
-      <View style={[styles.couchLeg, styles.couchLegRight, { backgroundColor: color }]} />
+      <View style={[styles.giftBody, fill]} />
+      <View style={[styles.giftLid, fill]} />
+      <View style={[styles.giftRibbon, { backgroundColor: focused ? 'transparent' : color }]} />
     </View>
   )
 }
@@ -122,6 +122,9 @@ function Slider({
 }
 
 const styles = StyleSheet.create({
+  giftBody: { position: 'absolute', left: 3, top: 12, width: 18, height: 10, borderWidth: 2, borderRadius: 2 },
+  giftLid: { position: 'absolute', left: 2, top: 7, width: 20, height: 5, borderWidth: 2, borderRadius: 2 },
+  giftRibbon: { position: 'absolute', left: 11, top: 7, width: 2, height: 15 },
   box: { width: SIZE, height: SIZE },
 
   roof: {
@@ -169,29 +172,6 @@ const styles = StyleSheet.create({
     borderBottomWidth: 0,
   },
 
-  couchBack: {
-    position: 'absolute',
-    top: 5,
-    left: 3,
-    width: 18,
-    height: 8,
-    borderWidth: 2,
-    borderBottomWidth: 0,
-    borderTopLeftRadius: 4,
-    borderTopRightRadius: 4,
-  },
-  couchSeat: {
-    position: 'absolute',
-    top: 11,
-    left: 1,
-    width: 22,
-    height: 7,
-    borderWidth: 2,
-    borderRadius: 3,
-  },
-  couchLeg: { position: 'absolute', top: 18, width: 2, height: 3 },
-  couchLegLeft: { left: 4 },
-  couchLegRight: { right: 4 },
 
   plusBar: { position: 'absolute', borderRadius: 1.5 },
   plusAcross: { top: 11, left: 3, width: 18, height: 3 },

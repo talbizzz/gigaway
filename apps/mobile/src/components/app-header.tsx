@@ -6,6 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { CountBadge } from '@/components/badge'
 import { useUnreadCount } from '@/features/notifications/use-notifications'
 import { useIncomingRequests } from '@/features/requests/use-requests'
+import { useReceivedServiceOffers } from '@/features/service-offers/use-service-offers'
 import { spacing, typography } from '@/theme/tokens'
 import { useTheme } from '@/theme/use-theme'
 
@@ -25,7 +26,10 @@ export function AppHeader({ title }: { title?: string }) {
 
   const unread = useUnreadCount()
   const incoming = useIncomingRequests()
-  const waitingOnYou = (incoming.data ?? []).filter((row) => row.status === 'pending').length
+  const serviceOffers = useReceivedServiceOffers()
+  const waitingOnYou =
+    (incoming.data ?? []).filter((row) => row.status === 'pending').length +
+    (serviceOffers.data ?? []).filter((row) => row.status === 'pending').length
 
   return (
     <View style={[styles.header, { backgroundColor: theme.bg, paddingTop: insets.top }]}>

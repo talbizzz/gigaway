@@ -26,6 +26,8 @@ export default function VerifyNameStep() {
 
   const valid = fullLegalName.trim().length >= 2;
 
+  console.log(application);
+
   return (
     <WizardStep
       step={1}
@@ -42,11 +44,15 @@ export default function VerifyNameStep() {
       }
     >
       {application?.status === "rejected" ? (
-        <Callout tone="warning" title="Your last application wasn't approved">
-          {application.decision_reason ??
-            "We weren't able to confirm your professional background from what was submitted."}{" "}
-          You can apply again below.
-        </Callout>
+        <>
+          <Callout tone="warning" title="Your last application wasn't approved">
+            You can apply again below
+          </Callout>
+          <Callout tone="warning" title="Reasons for rejection">
+            {application.decision_reason ??
+              "We weren't able to confirm your professional background from what was submitted."}
+          </Callout>
+        </>
       ) : null}
 
       <TextField
