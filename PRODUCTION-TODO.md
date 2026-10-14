@@ -588,9 +588,9 @@ details) or declines. One migration, `20260921270000_service_offers`, applied to
 and tested there (`service_offers.sql`).
 
 Rules: only a trip the giver can already see (the trip visibility rule, enforced
-through RLS, so a private trip can never be offered on); the giver must have posted
-that service in the trip's city on overlapping dates or always available; one offer
-of each service per person per trip; an accepted one counts toward the giver's
+through RLS, so a private trip can never be offered on); one offer of each service per
+person per trip (**the giver no longer has to have posted the service first** — see
+"Direct offers and navigation rework" below, which supersedes that rule); an accepted one counts toward the giver's
 "services offered" once the trip has ended.
 
 ### Before merging to `main`
@@ -616,9 +616,106 @@ of each service per person per trip; an accepted one counts toward the giver's
 - [ ] A's couch or spare room shows "Offer nights" on the same screen and opens the
       nights form
 - [ ] B declines another: A is told. A withdraws a third before it is answered
-- [ ] A private trip cannot be reached, and a service you have not posted in that
-      city is not listed
+- [ ] A private trip cannot be reached. (A service you have not posted *is* now
+      offered: see the next section.)
 - [ ] After the trip ends, the accepted coffee adds one to A's "Services offered"
+
+## Direct offers, navigation rework and admin names (added 2026-10-14)
+
+Everything below is on `develop`, applied to dev and tested there. **Four
+migrations**, all after `20260921270000`, so prod's `db push` will list them last:
+
+| Migration | What it does | Destructive? |
+|---|---|---|
+| `20260921280000_block_clears_notifications` | Blocking deletes the pair's notifications, both ways (incl. unsent pushes); a **one-off backfill** clears those left by earlier blocks | **Yes** — deletes `notifications` rows |
+| `20260921290000_service_offers_without_a_post` | A coffee or tips offer no longer needs a posted service: replaces `enforce_service_offer` | No (function replace) |
+| `20260921300000_offer_nights_without_a_post` | Nights can be offered with no posted couch: replaces `enforce_offer_range`, falling back to the trip's city | No (function replace) |
+| `20260921310000_admin_shows_held_names` | Admin shows a deleted member's held name, hides them once the hold ends: two helper functions, three views and `admin_search_profiles` replaced | No (views keep their columns) |
+
+### Before merging to `main`
+
+- [ ] **Look at what the backfill in `20260921280000` will delete, on prod, first.**
+      It removes notifications where one person has blocked the other. There are no
+      backups. Run in prod's SQL editor and decide the count is acceptable:
+      ```sql
+      select count(*) from public.notifications n
+       join public.blocks b
+         on (n.profile_id = b.blocker_id and b.blocked_id::text in
+               (n.payload ->> 'fromProfileId', n.payload ->> 'withProfileId', n.payload ->> 'toProfileId'))
+         or (n.profile_id = b.blocked_id and b.blocker_id::text in
+               (n.payload ->> 'fromProfileId', n.payload ->> 'withProfileId', n.payload ->> 'toProfileId'));
+      ```
+- [ ] **Backend first**, as with every release. Old builds on the new backend are
+      fine for the three database changes (they only loosen rules or hide rows). One
+      visible effect: an old build's edit screen for a direct offer of nights still
+      says "No availability covers these nights any more"; new builds do not.
+- [ ] **A new native build is required, not just a JavaScript update.** Icons now
+      come from `@expo/vector-icons` (Ionicons), whose font is a native asset; a
+      build without it shows blank icons. Check the production build profile
+      includes it (`pnpm install` in `apps/mobile`, then a fresh EAS build)
+- [ ] The dry run is function and view replacements plus the one notifications
+      delete above. Read it together with every other pending migration: prod is
+      many behind, and `db push` applies them all
+- [ ] Release notes: the navigation changed (see below), and **offering a coffee,
+      tips or nights to one person no longer needs a posted service**
+
+### What changed for members
+
+- **Navigation.** Bottom bar is a floating island: Home, Trips, Services,
+  Connections, Profile, with a sliding glass pill on the current tab and no centre
+  "+" button (Add a trip is on Trips, offering a service on Services). Requests and
+  activity share **one bell** at the top left (count = unread + requests and offers
+  waiting on you); **Settings** is a gear at the top right, no longer a tab. Home
+  lost its Connections row and "Hello, name".
+- **What is waiting on you** on Home is now floating banners, stacked when there are
+  several, with "N waiting" opening the whole pile.
+- **Direct offers.** From someone's trip: a place to stay, a coffee or local tips, each
+  sent to that person alone with no need to have posted anything. Nights can be edited
+  afterwards. A posted couch or room still decides where the stay happens, if one
+  covers the nights; otherwise it is in the trip's city. **This loosens the rule for
+  everyone**: a host can now offer nights outside their own posted dates, and a
+  coffee-only host can offer nights directly. They still must fall inside the trip.
+- **Errors** on Edit profile show as a banner at the top, and an always-available
+  clash reads in plain words instead of naming a database index.
+- **Fixes.** Signing out and into another account no longer shows the first account's
+  data until a refresh (the query cache is emptied when the member changes). Blocking
+  someone no longer leaves their earlier request notification behind to open onto
+  nothing.
+- **Admin.** A deleted member shows by name in the user search, user detail, recent
+  sign-ups and the report queue **while their identity is held** (30 days, or 12
+  months if reported), then drops out of the search and sign-ups. A direct link still
+  opens, as "Deleted member".
+
+### Smoke test on dev
+
+- [ ] Account A offers a **coffee** and **local tips** to B's trip having posted
+      neither: both go through; B sees them under Waiting on you and can accept
+- [ ] A offers **nights** to B's trip with no couch posted; A taps Edit offer: the
+      date picker is there, bounded by the trip, and saving works
+- [ ] Nights outside the trip's dates are still refused
+- [ ] A asks B about a stay, B's banner shows on Home; A blocks B: B's banner and
+      Activity row are gone on the next refresh, and A's too
+- [ ] Sign out of one account and into another: no data from the first appears
+- [ ] Several things waiting: Home shows a stack with "N waiting"; dismissing the
+      front one reveals the next; "N waiting" opens the list and "Show less" closes it
+- [ ] Edit profile, trigger an error (e.g. a username changed twice within 30 days):
+      the message is the real one and appears at the top
+- [ ] Admin: delete a test account, it is listed **by name**; set its hold into the
+      past: it disappears from the search and sign-ups
+- [ ] Android: the tab bar's shadow and the banner shadows look right (the bar clips
+      its sliding pill, which can cost the shadow there)
+
+### Known limits
+
+- **Accepting a stay with no posted couch behind it** (stay, contact reveal, reviews)
+  was checked by reading the accept function, which never looks at availability, not
+  by running one end to end. Do that once on dev.
+- The tab bar and banners fake glass with a tint and a rim; there is no real blur
+  (it would need `expo-blur`, a native module).
+- Dev's real data trips three tests that count whole tables, none caused by this
+  work: `acceptance` 8, `expiry` 3 and 4 (a real stay exists) and `notifications`
+  19, 21 and 25 (real unsent notifications are due). CI runs on an empty database,
+  where they pass; they are the same kind of noise as the six listed in `CLAUDE.md`.
 
 ## Carried over from Milestone 5 (already tracked in `TODO.md`, listed here only because prod is where they land)
 
