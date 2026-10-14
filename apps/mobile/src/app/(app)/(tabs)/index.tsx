@@ -5,10 +5,12 @@ import {
   notificationRoute,
 } from '@gigaway/shared'
 import { useRouter } from 'expo-router'
-import { Pressable, StyleSheet, Text, View } from 'react-native'
+import { useState } from 'react'
+import { StyleSheet, Text, View } from 'react-native'
 
 import { Button, TextLink } from '@/components/button'
 import { Callout } from '@/components/callout'
+import { NotificationStack, type Banner } from '@/components/notification-stack'
 import { PersonRow, personFrom } from '@/components/person'
 import { ReviewBanner } from '@/components/review-banner'
 import { Screen } from '@/components/screen'
@@ -46,6 +48,7 @@ export default function HomeScreen() {
   const theme = useTheme()
   const router = useRouter()
 
+  const [stackHeight, setStackHeight] = useState(0)
   const trips = useMyTrips()
   const feed = useHomeFeed()
   const reviewable = useReviewableStays()
@@ -64,6 +67,33 @@ export default function HomeScreen() {
   const requestCards = pendingRequests.filter((row) => !dismissedIds.has(row.id))
   const activityCards = (notifications.data ?? []).filter((row) => row.read_at === null)
 
+  // Waiting on you, as floating banners. Requests first: a colleague who asked and
+  // heard nothing is the worst outcome this product has, and it stays until it is
+  // answered or swept aside. Sweeping a request is local — it has not been
+  // answered just because it was pushed out of the way — while sweeping an
+  // activity banner marks it read, which is exactly what it means.
+  const banners: Banner[] = [
+    ...requestCards.map((request) => ({
+      id: `request-${request.id}`,
+      ...requestCopy(request),
+      onPress: () => router.push('/requests'),
+      onDismiss: () =>
+        dismissRequest.mutate({
+          id: request.id,
+          liveIds: pendingRequests.map((row) => row.id),
+        }),
+    })),
+    ...activityCards.map((row) => {
+      const payload = row.payload ?? {}
+      return {
+        id: `activity-${row.id}`,
+        ...notificationCopy(row.type, payload),
+        onPress: () => router.push(notificationRoute(row.type, payload) as never),
+        onDismiss: () => markRead.mutate(row.id),
+      }
+    }),
+  ]
+
   const inYourCity = feed.data?.inYourCity ?? []
   const comingToYourCity = feed.data?.comingToYourCity ?? []
   const destinations = feed.data?.destinations ?? []
@@ -81,44 +111,11 @@ export default function HomeScreen() {
     destinations.length === 0
 
   return (
-    <Screen>
+    <Screen overlay={<NotificationStack banners={banners} onHeight={setStackHeight} />}>
+      {/* The banners float over the screen, so the feed starts below them. */}
+      {stackHeight > 0 ? <View style={{ height: stackHeight - spacing.lg }} /> : null}
+
       <ReviewBanner />
-
-      {/*
-        Waiting on you. Requests first: a colleague who asked and heard nothing
-        is the worst outcome this product has, and it stays on the card until
-        it is answered or swept aside. Sweeping a request is local — it has not
-        been answered just because it was pushed out of the way — while sweeping
-        an activity card marks it read, which is exactly what it means.
-      */}
-      {requestCards.map((request) => (
-        <RequestCard
-          key={request.id}
-          request={request}
-          onPress={() => router.push('/requests')}
-          onDismiss={() =>
-            dismissRequest.mutate({
-              id: request.id,
-              liveIds: pendingRequests.map((row) => row.id),
-            })
-          }
-        />
-      ))}
-
-      {activityCards.map((row) => {
-        const payload = row.payload ?? {}
-        const copy = notificationCopy(row.type, payload)
-
-        return (
-          <FeedCard
-            key={row.id}
-            title={copy.title}
-            body={copy.body}
-            onPress={() => router.push(notificationRoute(row.type, payload) as never)}
-            onDismiss={() => markRead.mutate(row.id)}
-          />
-        )
-      })}
 
       {/*
         Reviews owed. The only thing here with a deadline attached — the window
@@ -212,74 +209,22 @@ export default function HomeScreen() {
 }
 
 /**
- * A request, as the feed shows it: who asked and for what, with the answering
- * left to the Requests screen. Deciding is a screen's worth of context — dates,
- * how many nights, what else you have on — and none of that belongs on a card.
+ * A request, as a banner shows it: who asked and for what, with the answering left
+ * to the Requests screen. Deciding is a screen's worth of context — dates, how many
+ * nights, what else you have on — and none of that belongs on a banner.
  */
-function RequestCard({
-  request,
-  onPress,
-  onDismiss,
-}: {
-  request: StayRequest
-  onPress: () => void
-  onDismiss: () => void
-}) {
+function requestCopy(request: StayRequest): { title: string; body: string } {
   const name = request.sender?.display_name ?? 'A colleague'
   const city = request.trips?.cities?.name
   const dates = formatDateRange(request.trips?.start_date, request.trips?.end_date)
 
-  return (
-    <FeedCard
-      title={
-        request.kind === 'co_accommodation'
-          ? `${name} wants to split a place`
-          : `${name} asked about your couch`
-      }
-      body={[city, dates].filter(Boolean).join(', ')}
-      onPress={onPress}
-      onDismiss={onDismiss}
-    />
-  )
-}
-
-/** The card shape shared by requests and activity. */
-function FeedCard({
-  title,
-  body,
-  onPress,
-  onDismiss,
-}: {
-  title: string
-  body: string
-  onPress: () => void
-  onDismiss: () => void
-}) {
-  const theme = useTheme()
-
-  return (
-    <View style={[styles.card, { backgroundColor: theme.accentSubtle }]}>
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel={`${title}. ${body}`}
-        onPress={onPress}
-        style={({ pressed }) => [styles.cardBody, pressed && styles.pressed]}
-      >
-        <Text style={[typography.bodyStrong, { color: theme.text }]}>{title}</Text>
-        <Text style={[typography.caption, { color: theme.textMuted }]}>{body}</Text>
-      </Pressable>
-
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel="Dismiss"
-        onPress={onDismiss}
-        hitSlop={12}
-        style={({ pressed }) => [pressed && styles.pressed]}
-      >
-        <Text style={[styles.dismiss, { color: theme.textMuted }]}>×</Text>
-      </Pressable>
-    </View>
-  )
+  return {
+    title:
+      request.kind === 'co_accommodation'
+        ? `${name} wants to split a place`
+        : `${name} asked about your couch`,
+    body: [city, dates].filter(Boolean).join(', '),
+  }
 }
 
 /** Somebody whose own trip brings them here. */
@@ -369,14 +314,5 @@ function ReviewPromptCard({ stayId, city }: { stayId: string; city?: string }) {
 const styles = StyleSheet.create({
   section: { gap: spacing.md },
   prompt: { padding: spacing.lg, borderRadius: radius.md, gap: spacing.sm },
-  card: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: spacing.md,
-    padding: spacing.lg,
-    borderRadius: radius.md,
-  },
-  cardBody: { flex: 1, minWidth: 0, gap: 2 },
-  dismiss: { fontSize: 22, lineHeight: 24 },
   pressed: { opacity: 0.7 },
 })
