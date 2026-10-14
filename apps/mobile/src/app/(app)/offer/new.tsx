@@ -48,7 +48,24 @@ export default function NewOfferScreen() {
   // Derived, not stored in an effect. The default is the first window —
   // nearest, then earliest — offered in full, so the generous answer is the
   // one that costs no taps.
-  const windowList = windows.data ?? []
+  // With no couch or room posted, the nights can still be offered to this one
+  // person: the whole trip is the window, and the stay is in its own city.
+  const posted = windows.data ?? []
+  const direct = posted.length === 0
+  const windowList: OfferableWindow[] =
+    !direct || !trip.data
+      ? posted
+      : [
+          {
+            availability_id: 'direct',
+            city_id: '',
+            city_name: trip.data.cities?.name ?? '',
+            distance_km: 0,
+            window_start: trip.data.start_date,
+            window_end: trip.data.end_date,
+            max_nights: null,
+          },
+        ]
   const selectedWindow =
     windowList.find((option) => option.availability_id === pickedWindowId) ?? windowList[0] ?? null
   const range =
@@ -77,20 +94,11 @@ export default function NewOfferScreen() {
   const offeredNights = range ? nightCount(range) : 0
   const firstName = trip.data?.traveller?.display_name?.split(' ')[0] ?? 'They'
 
-  if (windowList.length === 0) {
+  if (!trip.data) {
     return (
       <Screen>
         <Stack.Screen options={{ title: 'Offer nights' }} />
-        <Callout title="No couch or room covering these dates">
-          You can only offer nights from a couch or a spare room you have already posted.
-          Offer one in {trip.data?.cities?.name} that covers{' '}
-          {formatDateRange(trip.data?.start_date, trip.data?.end_date)}, or switch it to always
-          available, then come back.
-        </Callout>
-        <Button
-          label="Offer a couch or room"
-          onPress={() => router.push('/availability/choose')}
-        />
+        <Callout title="Not available">This trip is no longer available to you.</Callout>
       </Screen>
     )
   }
@@ -200,7 +208,11 @@ export default function NewOfferScreen() {
           onChange={setPickedRange}
           windowStart={selectedWindow.window_start}
           windowEnd={selectedWindow.window_end}
-          hint={`You are free ${formatDateRange(selectedWindow.window_start, selectedWindow.window_end)}. Offer any part of it.`}
+          hint={
+            direct
+              ? `${firstName} is there ${formatDateRange(selectedWindow.window_start, selectedWindow.window_end)}. Offer any part of it.`
+              : `You are free ${formatDateRange(selectedWindow.window_start, selectedWindow.window_end)}. Offer any part of it.`
+          }
         />
       ) : null}
 

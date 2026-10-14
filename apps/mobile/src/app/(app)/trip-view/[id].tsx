@@ -26,10 +26,9 @@ import { useTheme } from '@/theme/use-theme'
  * Somebody else's trip, and what you can offer them for it.
  *
  * Reached by tapping a trip you can see: on Home, in a connection's list of trips,
- * or from someone's profile. You do not need to have been asked. A coffee or
- * local tips go straight to this person, without having to post them for
- * everybody first; nights still come from a couch or room you have posted, so
- * that form checks for one.
+ * or from someone's profile. You do not need to have been asked, and you do not
+ * need to have posted anything: a place to stay, a coffee or local tips each go
+ * straight to this person alone.
  *
  * THE SCREEN CHECKS NOTHING ABOUT WHO MAY SEE THE TRIP. The database returns it
  * only when it is visible to you, so a trip you may not see is just "not

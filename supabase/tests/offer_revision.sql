@@ -104,11 +104,11 @@ select is(
 );
 
 select throws_ok(
-  $$ update public.offers set end_date = '2027-03-10'
+  $$ update public.offers set end_date = '2027-03-12'
      where id = 'dddd0000-0000-0000-0000-000000000001' $$,
   '23514',
   null,
-  'but not past the availability they posted — the range trigger still runs'
+  'but not past the trip — the range trigger still runs'
 );
 
 -- now(), not clock_timestamp(): it is frozen to this transaction's start, so

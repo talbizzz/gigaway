@@ -149,12 +149,17 @@ select is(
     where trip_id = 'c1000000-0000-0000-0000-000000000001'),
   0, 'a host who offers only a coffee is not shown trips to offer nights on');
 
+-- A coffee is not a place to sleep, so it never lists trips to offer nights on.
+-- But nights can still be offered to one person directly, with no couch posted,
+-- so the insert is allowed. Done in a savepoint and rolled back.
 set local role postgres;
-select throws_ok(
+savepoint direct_nights;
+select lives_ok(
   $$ insert into public.offers (trip_id, from_profile, to_profile, start_date, end_date)
      values ('c1000000-0000-0000-0000-000000000001', '44444444-4444-4444-4444-444444444444',
              '33333333-3333-3333-3333-333333333333', '2028-06-02', '2028-06-04') $$,
-  '23514', null, 'and cannot offer nights, since a coffee is not a place to sleep');
+  'nights can still be offered directly to one person, with no couch posted');
+rollback to savepoint direct_nights;
 
 -- ── a member with no always-available service finds nothing extra ─────────
 select is(
