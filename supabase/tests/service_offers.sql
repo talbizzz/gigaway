@@ -75,13 +75,21 @@ select throws_ok(
              '11111111-1111-1111-1111-111111111111', '33333333-3333-3333-3333-333333333333') $$,
   '23514', null, 'and the offer must go to the trip''s owner');
 
--- ── the giver must have posted the service ────────────────────────────────
-set local request.jwt.claims to '{"sub":"33333333-3333-3333-3333-333333333333","role":"authenticated"}';
-select throws_ok(
+-- ── the giver need not have posted the service ────────────────────────────
+-- A coffee can go to one person without being published for everybody first.
+-- Done inside a savepoint, with Anna's posts removed, and rolled back so the
+-- fixtures the counts below rely on are untouched.
+savepoint no_post;
+set local role postgres;
+delete from public.availability where profile_id = '11111111-1111-1111-1111-111111111111';
+set local role authenticated;
+set local request.jwt.claims to '{"sub":"11111111-1111-1111-1111-111111111111","role":"authenticated"}';
+select lives_ok(
   $$ insert into public.service_offers (kind, trip_id, from_profile, to_profile)
-     values ('coffee', 'b1000000-0000-0000-0000-000000000001',
-             '33333333-3333-3333-3333-333333333333', '22222222-2222-2222-2222-222222222222') $$,
-  '23514', null, 'someone who has not offered that service in the city cannot');
+     values ('coffee', 'b3000000-0000-0000-0000-000000000003',
+             '11111111-1111-1111-1111-111111111111', '22222222-2222-2222-2222-222222222222') $$,
+  'someone who has not posted that service can still offer it to this person');
+rollback to savepoint no_post;
 
 set local request.jwt.claims to '{"sub":"44444444-4444-4444-4444-444444444444","role":"authenticated"}';
 select throws_ok(

@@ -1,10 +1,4 @@
-import {
-  formatDateRange,
-  isStayService,
-  nightCount,
-  serviceLabel,
-  type ServiceKind,
-} from '@gigaway/shared'
+import { formatDateRange, nightCount } from '@gigaway/shared'
 import { Redirect, Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native'
 
@@ -14,7 +8,6 @@ import { Callout } from '@/components/callout'
 import { PersonRow } from '@/components/person'
 import { Screen } from '@/components/screen'
 import { VerifiedOnly } from '@/components/verified-only'
-import { useMyAvailability, type Availability } from '@/features/availability/use-availability'
 import { useSentOffers } from '@/features/offers/use-offers'
 import { useMyProfile } from '@/features/profile/use-profile'
 import {
@@ -33,10 +26,10 @@ import { useTheme } from '@/theme/use-theme'
  * Somebody else's trip, and what you can offer them for it.
  *
  * Reached by tapping a trip you can see: on Home, in a connection's list of trips,
- * or from someone's profile. You do not need to have been asked. The services
- * offered are your own posts that fit the trip (the same city, and dates that
- * overlap or an always-available post), so nothing here can be offered that you
- * have not actually put up.
+ * or from someone's profile. You do not need to have been asked. A coffee or
+ * local tips go straight to this person, without having to post them for
+ * everybody first; nights still come from a couch or room you have posted, so
+ * that form checks for one.
  *
  * THE SCREEN CHECKS NOTHING ABOUT WHO MAY SEE THE TRIP. The database returns it
  * only when it is visible to you, so a trip you may not see is just "not
@@ -102,20 +95,18 @@ export default function TripViewScreen() {
 }
 
 /**
- * Your own services that fit this trip, each one tap away from being offered.
- * A couch or a room opens the nights form, because nights have to be chosen; a
- * coffee or local tips are offered straight away.
+ * What you can offer this person: somewhere to stay, a coffee, or local tips, each
+ * one tap from being sent to them and only them. A stay opens the nights form,
+ * because nights have to be chosen; a coffee or tips are sent straight away.
  */
 function OfferSection({ trip }: { trip: VisibleTrip }) {
   const theme = useTheme()
   const router = useRouter()
-  const mine = useMyAvailability()
   const sentOffers = useSentOffers()
   const sentServiceOffers = useSentServiceOffers()
   const send = useSendServiceOffer()
   const answer = useAnswerServiceOffer()
 
-  const fitting = fittingServices(mine.data ?? [], trip)
   const firstName = trip.traveller?.display_name.split(' ')[0] ?? 'them'
 
   // What you have already offered here, so a button reads "Offered" rather than
@@ -130,123 +121,86 @@ function OfferSection({ trip }: { trip: VisibleTrip }) {
     <View style={styles.section}>
       <Text style={[typography.heading, { color: theme.text }]}>Offer {firstName} something</Text>
 
-      {mine.isPending ? (
-        <ActivityIndicator color={theme.accent} style={styles.spinner} />
-      ) : fitting.length === 0 ? (
-        <>
-          <Callout>
-            You have not offered anything in {trip.cities?.name} that fits these dates. Offer a
-            service there first, or make one always available, and it will appear here.
-          </Callout>
-          <VerifiedOnly>
-            <Button
-              label="Offer a service"
-              variant="secondary"
-              onPress={() => router.push('/availability/choose')}
-            />
-          </VerifiedOnly>
-        </>
-      ) : (
-        <VerifiedOnly>
-          <View style={styles.list}>
-            {fitting.map((kind) => {
-              const stay = isStayService(kind)
-              const sent = sentForTrip.find((offer) => offer.kind === kind)
-              const live = sent && (sent.status === 'pending' || sent.status === 'accepted')
-
-              return (
-                <View
-                  key={kind}
-                  style={[
-                    styles.card,
-                    { backgroundColor: theme.bgSubtle, borderColor: theme.border },
-                  ]}
-                >
-                  <View style={styles.cardTop}>
-                    <Text style={[typography.bodyStrong, styles.grow, { color: theme.text }]}>
-                      {serviceLabel(kind)}
-                    </Text>
-                    {stay && nightsOffered ? <Badge label="Offered" tone="accent" /> : null}
-                    {!stay && live ? (
-                      <Badge
-                        label={sent.status === 'accepted' ? 'Accepted' : 'Offered'}
-                        tone={sent.status === 'accepted' ? 'success' : 'accent'}
-                      />
-                    ) : null}
-                  </View>
-
-                  {stay ? (
-                    nightsOffered ? null : (
-                      <Button
-                        label="Offer nights"
-                        onPress={() =>
-                          router.push({ pathname: '/offer/new', params: { tripId: trip.id } })
-                        }
-                      />
-                    )
-                  ) : live ? (
-                    sent.status === 'pending' ? (
-                      <TextLink
-                        label="Withdraw"
-                        onPress={() => answer.mutate({ id: sent.id, status: 'withdrawn' })}
-                      />
-                    ) : null
-                  ) : (
-                    <Button
-                      label={kind === 'coffee' ? 'Offer a coffee' : 'Offer local tips'}
-                      onPress={() =>
-                        send.mutate({
-                          kind: kind as ServiceOfferKind,
-                          tripId: trip.id,
-                          toProfile: trip.profile_id,
-                        })
-                      }
-                      loading={send.isPending && send.variables?.kind === kind}
-                    />
-                  )}
-                </View>
-              )
-            })}
-
-            {send.isError ? <Callout tone="danger">{(send.error as Error).message}</Callout> : null}
+      <VerifiedOnly>
+        <View style={styles.list}>
+          <View
+            style={[styles.card, { backgroundColor: theme.bgSubtle, borderColor: theme.border }]}
+          >
+            <View style={styles.cardTop}>
+              <Text style={[typography.bodyStrong, styles.grow, { color: theme.text }]}>
+                A place to stay
+              </Text>
+              {nightsOffered ? <Badge label="Offered" tone="accent" /> : null}
+            </View>
+            {nightsOffered ? null : (
+              <Button
+                label="Offer nights"
+                onPress={() => router.push({ pathname: '/offer/new', params: { tripId: trip.id } })}
+              />
+            )}
           </View>
-        </VerifiedOnly>
-      )}
+
+          {SENT_DIRECT.map(({ kind, title, action }) => {
+            const sent = sentForTrip.find((offer) => offer.kind === kind)
+            const live = sent && (sent.status === 'pending' || sent.status === 'accepted')
+
+            return (
+              <View
+                key={kind}
+                style={[
+                  styles.card,
+                  { backgroundColor: theme.bgSubtle, borderColor: theme.border },
+                ]}
+              >
+                <View style={styles.cardTop}>
+                  <Text style={[typography.bodyStrong, styles.grow, { color: theme.text }]}>
+                    {title}
+                  </Text>
+                  {live ? (
+                    <Badge
+                      label={sent.status === 'accepted' ? 'Accepted' : 'Offered'}
+                      tone={sent.status === 'accepted' ? 'success' : 'accent'}
+                    />
+                  ) : null}
+                </View>
+
+                {live ? (
+                  sent.status === 'pending' ? (
+                    <TextLink
+                      label="Withdraw"
+                      onPress={() => answer.mutate({ id: sent.id, status: 'withdrawn' })}
+                    />
+                  ) : null
+                ) : (
+                  <Button
+                    label={action}
+                    onPress={() =>
+                      send.mutate({ kind, tripId: trip.id, toProfile: trip.profile_id })
+                    }
+                    loading={send.isPending && send.variables?.kind === kind}
+                  />
+                )}
+              </View>
+            )
+          })}
+
+          {send.isError ? <Callout tone="danger">{(send.error as Error).message}</Callout> : null}
+        </View>
+      </VerifiedOnly>
     </View>
   )
 }
 
-/**
- * The services among the member's own posts that fit this trip: in the trip's
- * city, and either always available or overlapping its dates. One of each kind,
- * since two posts of the same service would offer the same thing twice.
- */
-export function fittingServices(posts: Availability[], trip: VisibleTrip): ServiceKind[] {
-  const kinds = new Set<ServiceKind>()
-
-  for (const post of posts) {
-    if (post.status !== 'active' || post.city_id !== trip.city_id) continue
-
-    const overlaps =
-      post.always_available ||
-      (post.start_date !== null &&
-        post.end_date !== null &&
-        post.start_date <= trip.end_date &&
-        post.end_date >= trip.start_date)
-    if (!overlaps) continue
-
-    for (const offer of post.offers) kinds.add(offer as ServiceKind)
-  }
-
-  return [...kinds]
-}
+const SENT_DIRECT: { kind: ServiceOfferKind; title: string; action: string }[] = [
+  { kind: 'coffee', title: 'Coffee', action: 'Offer a coffee' },
+  { kind: 'tips', title: 'Local tips', action: 'Offer local tips' },
+]
 
 const styles = StyleSheet.create({
   centre: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   header: { gap: spacing.xs },
   section: { gap: spacing.md },
   list: { gap: spacing.md },
-  spinner: { alignSelf: 'flex-start' },
   card: { padding: spacing.lg, borderRadius: radius.md, borderWidth: 1, gap: spacing.sm },
   cardTop: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   grow: { flex: 1 },
