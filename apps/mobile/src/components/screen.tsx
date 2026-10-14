@@ -21,6 +21,8 @@ type ScreenProps = {
   scroll?: boolean
   /** Pins content to the bottom of the available space, e.g. a primary action. */
   footer?: ReactNode
+  /** Drawn over everything else, e.g. an ErrorBanner. Pinned to the screen, not the scroll. */
+  overlay?: ReactNode
   contentStyle?: ViewStyle
   /**
    * Full-bleed artwork behind the content.
@@ -49,6 +51,7 @@ export function Screen({
   children,
   scroll = true,
   footer,
+  overlay,
   contentStyle,
   background,
   floatingHeader = false,
@@ -169,6 +172,7 @@ export function Screen({
           </View>
         </KeyboardStickyView>
       ) : null}
+      {overlay}
     </View>
   )
 }

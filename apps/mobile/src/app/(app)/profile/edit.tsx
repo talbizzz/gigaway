@@ -11,7 +11,7 @@ import { useState } from 'react'
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native'
 
 import { Button } from '@/components/button'
-import { Callout } from '@/components/callout'
+import { ErrorBanner, notice, type Notice } from '@/components/error-banner'
 import { CityPicker, type City } from '@/components/city-picker'
 import { OptionChips } from '@/components/option-chips'
 import { PhoneField } from '@/components/phone-field'
@@ -74,6 +74,7 @@ function ProfileForm({
   const update = useUpdateProfile()
   const updateContact = useUpdateContactDetails()
   const uploadAvatar = useUploadAvatar()
+  const [error, setError] = useState<Notice | null>(null)
 
   const initialLinks = (profile.links ?? []) as { label: string; url: string }[]
 
@@ -153,10 +154,17 @@ function ProfileForm({
     // The number first, and only when it actually changed: it is the required
     // half, so a failure here must not be preceded by a successful profile
     // write that makes the form look saved.
-    if (phoneChanged) {
-      await updateContact.mutateAsync({ phone: normalisePhoneNumber(phone) })
+    try {
+      if (phoneChanged) {
+        await updateContact.mutateAsync({ phone: normalisePhoneNumber(phone) })
+      }
+      await update.mutateAsync(draft)
+    } catch (e) {
+      // A banner over the top of the form: the reason would otherwise sit below
+      // the last field, off screen from the Save button the member just pressed.
+      setError(notice(e))
+      return
     }
-    await update.mutateAsync(draft)
     // Back to the read view, which re-reads the invalidated profile. The
     // confirmation is seeing the change, rather than a "Saved." notice on a
     // form the member then has to leave by hand.
@@ -165,6 +173,7 @@ function ProfileForm({
 
   return (
     <Screen
+      overlay={<ErrorBanner notice={error} />}
       footer={
         <Button
           label="Save changes"
@@ -180,7 +189,9 @@ function ProfileForm({
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Change profile photo"
-          onPress={() => uploadAvatar.mutate()}
+          onPress={() =>
+            uploadAvatar.mutate(undefined, { onError: (e) => setError(notice(e)) })
+          }
           style={[styles.avatar, { backgroundColor: theme.bgSubtle, borderColor: theme.border }]}
         >
           {photo ? (
@@ -199,10 +210,6 @@ function ProfileForm({
           </Text>
         </View>
       </View>
-
-      {uploadAvatar.isError ? (
-        <Callout tone="danger">{(uploadAvatar.error as Error).message}</Callout>
-      ) : null}
 
       <TextField
         label="First name"
@@ -285,12 +292,6 @@ function ProfileForm({
         keyboardType="url"
         placeholder="https://your-website.com"
       />
-
-      {update.isError || updateContact.isError ? (
-        <Callout tone="danger">
-          {((update.error ?? updateContact.error) as Error).message}
-        </Callout>
-      ) : null}
     </Screen>
   )
 }
