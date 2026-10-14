@@ -2,6 +2,7 @@ import type { Session } from '@supabase/supabase-js'
 import { create } from 'zustand'
 
 import { useOnboardingDraft } from '@/features/onboarding/draft-store'
+import { queryClient } from '@/lib/query'
 import { supabase } from '@/lib/supabase'
 
 /**
@@ -52,9 +53,23 @@ export function initialiseSessionListener(): () => void {
     useSessionStore.getState().setSession(data.session)
   })
 
+  // Whose data the query cache is holding. `undefined` until a session has been
+  // seen, so the first one restored from storage does not wipe a cache that is
+  // still empty anyway.
+  let cachedFor: string | null | undefined
+
   const {
     data: { subscription },
   } = supabase.auth.onAuthStateChange((event, session) => {
+    // Everything cached belongs to the person who fetched it. Left alone it is
+    // shown to whoever signs in next — and as fresh, for up to the stale time —
+    // until a refetch happens to replace it. So empty it whenever the person
+    // changes: on sign-out, and on a different account signing in. A token refresh
+    // keeps the same id and keeps the cache.
+    const userId = session?.user.id ?? null
+    if (cachedFor !== undefined && cachedFor !== userId) queryClient.clear()
+    cachedFor = userId
+
     // Fired specifically when the deep-link handler exchanges a recovery
     // code — distinct from the SIGNED_IN a confirmation link produces.
     if (event === 'PASSWORD_RECOVERY') useSessionStore.getState().setRecovering(true)
