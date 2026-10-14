@@ -9,7 +9,7 @@ begin;
 
 -- See rls_profiles.sql: the CLI's login role needs this to write auth.users.
 set local role postgres;
-select plan(24);
+select plan(29);
 
 -- ── fixtures ───────────────────────────────────────────────────────────────
 --   Anna   reported, and the report was ACTIONED
@@ -240,6 +240,45 @@ select is(
   array['11111111-1111-1111-1111-111111111111',
         '33333333-3333-3333-3333-333333333333']::uuid[],
   'finishing removes an expired hold and leaves one that has not expired'
+);
+
+-- ── the admin lists show a held name, and drop it with the hold ───────────
+-- Clara's and Anna's holds are still live (Anna was reported, so hers is the long
+-- one), so a moderator sees who they were. Bruno was deleted and his hold has now
+-- ended, so he no longer appears.
+select is(
+  (select display_name from public.v_recent_signups
+    where id = '33333333-3333-3333-3333-333333333333'),
+  'Clara Ortiz',
+  'a deleted member is listed by name while their identity is held'
+);
+
+select is(
+  (select display_name from public.v_user_summary
+    where profile_id = '33333333-3333-3333-3333-333333333333'),
+  'Clara Ortiz',
+  'and their detail page names them'
+);
+
+select is(
+  (select display_name from public.v_recent_signups
+    where id = '11111111-1111-1111-1111-111111111111'),
+  'Anna Weber',
+  'a reported member is named for as long as their longer hold lasts'
+);
+
+select is(
+  (select count(*)::int from public.v_recent_signups
+    where id = '22222222-2222-2222-2222-222222222222'),
+  0,
+  'a deleted member whose hold has ended is no longer listed'
+);
+
+select is(
+  (select display_name from public.v_user_summary
+    where profile_id = '22222222-2222-2222-2222-222222222222'),
+  'Deleted member',
+  'though a direct link to them still opens, as the tombstone'
 );
 
 select * from finish();
