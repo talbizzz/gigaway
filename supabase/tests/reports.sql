@@ -215,6 +215,12 @@ values ('aaaa0000-0000-0000-0000-000000000001',
         (select id from public.cities where name = 'Munich' limit 1),
         '2027-03-03', '2027-03-10', array['couch']);
 
+-- Trip visibility: a public trip is seen by residents of its city, so Bruno
+-- lives in Munich.
+update public.profiles
+  set home_city_id = (select id from public.cities where name = 'Munich' limit 1)
+  where id = '22222222-2222-2222-2222-222222222222';
+
 set local role authenticated;
 set local request.jwt.claims to
   '{"sub":"22222222-2222-2222-2222-222222222222","role":"authenticated"}';
