@@ -1,4 +1,4 @@
-import type { DateRange, ServiceKind } from '@gigaway/shared'
+import { serviceLabel, type DateRange, type ServiceKind } from '@gigaway/shared'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
 import { useSessionStore } from '@/features/auth/session-store'
@@ -41,6 +41,21 @@ export type Availability = {
 
 const AVAILABILITY_SELECT =
   'id, city_id, start_date, end_date, always_available, offers, constraints, max_nights, note, status, cities(name, name_local, country_code)'
+
+/**
+ * The database's own words for a clash are a constraint name, which is no use to
+ * anyone. One service can be always available once per city, so a second one is
+ * what actually goes wrong here; say that, and what to do about it.
+ */
+function availabilityError(error: { message: string }, kind: ServiceKind): Error {
+  if (error.message.includes('availability_one_always_per_service')) {
+    return new Error(
+      `You already offer ${serviceLabel(kind).toLowerCase()} in this city with no dates. ` +
+        'Edit that one from your services, or choose a different city.',
+    )
+  }
+  return new Error(error.message)
+}
 
 export function useMyAvailability() {
   const session = useSessionStore((state) => state.session)
@@ -86,7 +101,7 @@ export function useCreateAvailability() {
         max_nights: input.maxNights ?? null,
         note: input.note?.trim() || null,
       })
-      if (error) throw error
+      if (error) throw availabilityError(error, input.kind)
     },
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: availabilityKeys.mine })
@@ -137,7 +152,7 @@ export function useUpdateAvailability() {
           note: input.note?.trim() || null,
         })
         .eq('id', input.id)
-      if (error) throw error
+      if (error) throw availabilityError(error, input.kind)
     },
     onSuccess: async (_data, variables) => {
       await Promise.all([
