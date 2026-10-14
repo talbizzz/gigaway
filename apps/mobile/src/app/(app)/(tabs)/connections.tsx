@@ -1,4 +1,4 @@
-import { Stack, useRouter } from 'expo-router'
+import { useRouter } from 'expo-router'
 import { useState } from 'react'
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native'
 
@@ -36,10 +36,6 @@ export default function FriendsScreen() {
 
   return (
     <Screen>
-      <Stack.Screen options={{ title: 'Connections' }} />
-
-      <Text style={[typography.display, { color: theme.text }]}>Connections</Text>
-
       <TextField
         label="Find a colleague"
         value={term}

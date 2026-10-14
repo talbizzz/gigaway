@@ -12,7 +12,7 @@ import { Callout } from '@/components/callout'
 import { PersonRow, personFrom } from '@/components/person'
 import { ReviewBanner } from '@/components/review-banner'
 import { Screen } from '@/components/screen'
-import { useIncomingConnectionRequestCount } from '@/features/connections/use-connections'
+import { TripRow } from '@/components/trip-row'
 import { useDismissRequest, useDismissedRequests } from '@/features/feed/use-dismissed-requests'
 import {
   useHomeFeed,
@@ -24,10 +24,9 @@ import {
   useMarkNotificationRead,
   useNotifications,
 } from '@/features/notifications/use-notifications'
-import { useMyProfile } from '@/features/profile/use-profile'
 import { useIncomingRequests, type StayRequest } from '@/features/requests/use-requests'
 import { useReviewableStays } from '@/features/reviews/use-reviews'
-import { useCancelTrip, useMyTrips, type Trip } from '@/features/trips/use-trips'
+import { useMyTrips } from '@/features/trips/use-trips'
 import { radius, spacing, typography } from '@/theme/tokens'
 import { useTheme } from '@/theme/use-theme'
 
@@ -47,7 +46,6 @@ export default function HomeScreen() {
   const theme = useTheme()
   const router = useRouter()
 
-  const { data: profile } = useMyProfile()
   const trips = useMyTrips()
   const feed = useHomeFeed()
   const reviewable = useReviewableStays()
@@ -70,7 +68,6 @@ export default function HomeScreen() {
   const comingToYourCity = feed.data?.comingToYourCity ?? []
   const destinations = feed.data?.destinations ?? []
   const connectionTrips = feed.data?.connections ?? []
-  const connectionRequests = useIncomingConnectionRequestCount()
   const cityName = feed.data?.homeCityName
 
   const nothingAtAll =
@@ -85,39 +82,7 @@ export default function HomeScreen() {
 
   return (
     <Screen>
-      <Text style={[typography.title, { color: theme.text }]}>
-        Hello, {profile?.display_name?.split(' ')[0] ?? 'there'}
-      </Text>
-
       <ReviewBanner />
-
-      {/* Connections: asked of you, and a way to find more. */}
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel={
-          connectionRequests > 0
-            ? `Connections, ${connectionRequests} request${connectionRequests === 1 ? '' : 's'} waiting`
-            : 'Connections'
-        }
-        onPress={() => router.push('/connections')}
-        style={({ pressed }) => [
-          styles.connectionsRow,
-          { backgroundColor: theme.bgSubtle, borderColor: theme.border },
-          pressed && styles.pressed,
-        ]}
-      >
-        <View style={styles.connectionsText}>
-          <Text style={[typography.bodyStrong, { color: theme.text }]}>
-            {connectionRequests > 0
-              ? `${connectionRequests} connection request${connectionRequests === 1 ? '' : 's'} waiting`
-              : 'Connections'}
-          </Text>
-          <Text style={[typography.caption, { color: theme.textMuted }]}>
-            Find colleagues by username or name.
-          </Text>
-        </View>
-        <Text style={[typography.body, { color: theme.accent }]}>›</Text>
-      </Pressable>
 
       {/*
         Waiting on you. Requests first: a colleague who asked and heard nothing
@@ -401,39 +366,6 @@ function ReviewPromptCard({ stayId, city }: { stayId: string; city?: string }) {
   )
 }
 
-function TripRow({ trip, onPress }: { trip: Trip; onPress: () => void }) {
-  const theme = useTheme()
-  const router = useRouter()
-  const cancel = useCancelTrip()
-  const nights = nightCount({ start: trip.start_date, end: trip.end_date })
-
-  return (
-    <Pressable
-      accessibilityRole="button"
-      onPress={onPress}
-      style={({ pressed }) => [
-        styles.row,
-        { backgroundColor: theme.bgSubtle, borderColor: theme.border },
-        pressed && styles.pressed,
-      ]}
-    >
-      <View style={styles.rowText}>
-        <Text style={[typography.bodyStrong, { color: theme.text }]}>
-          {trip.cities?.name}
-        </Text>
-        <Text style={[typography.caption, { color: theme.textMuted }]}>
-          {trip.start_date} → {trip.end_date} · {nights} night
-          {nights === 1 ? '' : 's'}
-        </Text>
-      </View>
-      <View style={styles.rowActions}>
-        <TextLink label="Edit" onPress={() => router.push(`/trip/edit/${trip.id}`)} />
-        <TextLink label="Cancel" onPress={() => cancel.mutate(trip.id)} />
-      </View>
-    </Pressable>
-  )
-}
-
 const styles = StyleSheet.create({
   section: { gap: spacing.md },
   prompt: { padding: spacing.lg, borderRadius: radius.md, gap: spacing.sm },
@@ -446,25 +378,5 @@ const styles = StyleSheet.create({
   },
   cardBody: { flex: 1, minWidth: 0, gap: 2 },
   dismiss: { fontSize: 22, lineHeight: 24 },
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
-    padding: spacing.lg,
-    borderRadius: radius.md,
-    borderWidth: StyleSheet.hairlineWidth,
-  },
-  rowText: { flex: 1, gap: 2 },
-  rowActions: { gap: spacing.sm, alignItems: 'flex-end' },
   pressed: { opacity: 0.7 },
-  connectionsRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: spacing.md,
-    padding: spacing.md,
-    borderRadius: radius.md,
-    borderWidth: 1,
-  },
-  connectionsText: { flex: 1, minWidth: 0, gap: 2 },
 })
