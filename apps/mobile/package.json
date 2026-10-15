@@ -1,7 +1,7 @@
 {
   "name": "@gigaway/mobile",
   "main": "expo-router/entry",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "private": true,
   "scripts": {
     "start": "./scripts/with-env.sh .env.dev expo start",

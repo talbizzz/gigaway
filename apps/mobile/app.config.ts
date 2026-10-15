@@ -27,7 +27,7 @@ const config: ExpoConfig = {
   name: isDev ? 'GigAway Dev' : 'GigAway',
   slug: 'gigaway',
   owner: 'talbiz',
-  version: '0.1.0',
+  version: '1.0.0',
   orientation: 'portrait',
   icon: isDev ? './assets/images/icon-dev.png' : './assets/images/icon.png',
   // Separate scheme too: with one shared scheme, iOS gives gigaway:// links to

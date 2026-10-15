@@ -66,6 +66,21 @@ dev). Pushing to **prod** is the user's call, not something to do
 proactively; dev is fair game for testing but still real, persistent, shared
 data — not a scratch pad that resets itself.
 
+## The production deploy token expires after 7 days — check it first
+
+The `SUPABASE_ACCESS_TOKEN` GitHub secret is the Supabase token named
+`gigaway-prod-deploy-backend`. The user deliberately made it valid for only
+7 days because it is a sensitive key with sensitive access. Every time before
+a production backend deploy (merging to `main`, re-running `Deploy backend`,
+or anything else that links to or pushes to prod with it), **tell the user to
+check that this token has not expired** (https://supabase.com/dashboard/account/tokens)
+and, if it has, to create a new full-access one and re-set the secret
+themselves (`gh secret set SUPABASE_ACCESS_TOKEN`; never ask for the token
+value in chat). An expired token shows up as `Invalid access token` at the
+"Link project" step, which fails before anything is applied, so it is safe but
+wastes a run, and the other deploys (admin, account, website) will already
+have gone out ahead of the backend.
+
 ## No database backups
 
 Free tier, by choice. There is no restore path if something goes wrong.
