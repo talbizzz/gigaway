@@ -178,8 +178,13 @@ describe('notificationRoute', () => {
 })
 
 describe('isRevealNotification', () => {
-  it('is true exactly for the three types that mean contact is now shared', () => {
+  it('is true exactly for the four types that mean contact is now shared', () => {
     const reveals = NOTIFICATION_TYPES.filter(isRevealNotification)
-    expect(reveals).toEqual(['offer_accepted', 'offer_confirmed', 'co_request_accepted'])
+    expect(reveals).toEqual([
+      'offer_accepted',
+      'offer_confirmed',
+      'co_request_accepted',
+      'service_offer_accepted',
+    ])
   })
 })

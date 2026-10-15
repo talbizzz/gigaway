@@ -1,16 +1,18 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useRouter } from 'expo-router'
 import { useState } from 'react'
-import { Controller, useForm } from 'react-hook-form'
+import { Controller, useForm, useWatch } from 'react-hook-form'
 import { StyleSheet, Text, View } from 'react-native'
 
 import { Button, TextLink } from '@/components/button'
 import { Callout } from '@/components/callout'
 import { OptionChips } from '@/components/option-chips'
 import { Screen } from '@/components/screen'
+import { UsernameField } from '@/components/username-field'
 import { TextField } from '@/components/text-field'
 import { SignUpSchema, type SignUpValues } from '@/features/auth/schemas'
 import { DISCIPLINES, type DisciplineValue } from '@/features/profile/use-profile'
+import { useUsernameStatus } from '@/features/profile/use-username-status'
 import { track } from '@/lib/analytics'
 import { supabase } from '@/lib/supabase'
 import { spacing, typography } from '@/theme/tokens'
@@ -23,20 +25,40 @@ export default function SignUpScreen() {
 
   const form = useForm<SignUpValues>({
     resolver: zodResolver(SignUpSchema),
-    defaultValues: { displayName: '', email: '', password: '' },
+    defaultValues: {
+      firstName: '',
+      lastName: '',
+      username: '',
+      email: '',
+      password: '',
+      confirmPassword: '',
+    },
   })
+
+  // Whether the chosen username is free, checked as it is typed. Submitting
+  // waits on it; the database still refuses a taken name, and falls back to a
+  // generated one if two people pick the same at the same instant.
+  const usernameStatus = useUsernameStatus(useWatch({ control: form.control, name: 'username' }))
 
   const onSubmit = form.handleSubmit(async (values) => {
     setSubmitError(null)
 
-    // display_name and discipline travel as auth metadata so the database
-    // trigger can build a complete profile row at sign-up.
+    if (usernameStatus.state === 'taken') {
+      form.setError('username', { message: 'That username is already taken.' })
+      return
+    }
+
+    // The names and discipline travel as auth metadata so the database
+    // trigger can build a complete profile row at sign-up. Other members only
+    // ever see the first name and the initial of the family name.
     const { data, error } = await supabase.auth.signUp({
       email: values.email,
       password: values.password,
       options: {
         data: {
-          display_name: values.displayName,
+          first_name: values.firstName,
+          last_name: values.lastName,
+          username: values.username,
           discipline: values.discipline,
         },
       },
@@ -84,18 +106,50 @@ export default function SignUpScreen() {
 
       <Controller
         control={form.control}
-        name="displayName"
+        name="firstName"
         render={({ field, fieldState }) => (
           <TextField
-            label="Your name"
+            label="First name"
             value={field.value}
             onChangeText={field.onChange}
             onBlur={field.onBlur}
             autoCapitalize="words"
-            autoComplete="name"
-            textContentType="name"
-            placeholder="Anna Weber"
-            hint="As colleagues would know you professionally."
+            autoComplete="given-name"
+            textContentType="givenName"
+            placeholder="Anna"
+            error={fieldState.error?.message}
+          />
+        )}
+      />
+
+      <Controller
+        control={form.control}
+        name="lastName"
+        render={({ field, fieldState }) => (
+          <TextField
+            label="Family name"
+            value={field.value}
+            onChangeText={field.onChange}
+            onBlur={field.onBlur}
+            autoCapitalize="words"
+            autoComplete="family-name"
+            textContentType="familyName"
+            placeholder="Weber"
+            hint="Other members only see the first letter, like “Anna W.”."
+            error={fieldState.error?.message}
+          />
+        )}
+      />
+
+      <Controller
+        control={form.control}
+        name="username"
+        render={({ field, fieldState }) => (
+          <UsernameField
+            value={field.value}
+            onChangeText={field.onChange}
+            status={usernameStatus}
+            hint="How colleagues find you. Letters, digits, dots and underscores."
             error={fieldState.error?.message}
           />
         )}
@@ -148,6 +202,26 @@ export default function SignUpScreen() {
             textContentType="newPassword"
             secureTextEntry
             hint="At least 10 characters."
+            error={fieldState.error?.message}
+          />
+        )}
+      />
+
+      <Controller
+        control={form.control}
+        name="confirmPassword"
+        render={({ field, fieldState }) => (
+          <TextField
+            label="Confirm password"
+            value={field.value}
+            onChangeText={field.onChange}
+            onBlur={field.onBlur}
+            autoCapitalize="none"
+            autoComplete="new-password"
+            textContentType="newPassword"
+            secureTextEntry
+            onSubmitEditing={onSubmit}
+            returnKeyType="go"
             error={fieldState.error?.message}
           />
         )}

@@ -30,6 +30,9 @@ export function useMyApplication() {
   return useQuery({
     queryKey: verificationKeys.mine,
     enabled: Boolean(session),
+    // Same reason as the profile: a decision on a pending application arrives
+    // while the waiting screen is open. Stop once it is no longer pending.
+    refetchInterval: (query) => (query.state.data?.status === 'pending' ? 15_000 : false),
     queryFn: async (): Promise<VerificationApplication | null> => {
       const { data, error } = await supabase
         .from('verification_applications')
@@ -142,6 +145,11 @@ export function useSubmitVerification() {
     onSuccess: async () => {
       track('verification_submitted')
       await queryClient.invalidateQueries({ queryKey: verificationKeys.mine })
+      // A rejected member who reapplies is moved back to 'pending' by the
+      // database, and that is what lets them into the app while they wait. The
+      // gate reads both, so refresh the profile too rather than waiting for its
+      // next poll.
+      await queryClient.invalidateQueries({ queryKey: ['profile', 'me'] })
     },
     onError: (error, input) => {
       reportError(error, { feature: 'verification_submission', hasCv: String(Boolean(input.cv)) })

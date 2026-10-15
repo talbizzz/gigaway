@@ -58,7 +58,7 @@ cleaning up behind you.
 payment, or use it to run a commercial letting. Splitting a hotel room you both
 booked is fine — that is what co-accommodation is for.
 
-**Keep contact details private.** When someone's email and WhatsApp are revealed
+**Keep contact details private.** When someone's email and phone number are revealed
 to you, that is for arranging your stay. Not for adding them to anything, not
 for passing on, not for anything else.
 

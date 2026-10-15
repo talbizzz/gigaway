@@ -76,10 +76,10 @@ A **host** posts availability in their home city: date ranges, what they are
 offering, and any constraints.
 
 From there the traveller sends a request, the host replies with an offer that
-may cover only part of the dates, and contact details — a WhatsApp number and an
+may cover only part of the dates, and contact details — a phone number and an
 email — are revealed to both parties only on acceptance. Either side can read
 the other's profile and reviews before committing, but never their contact
-details. Conversation continues on WhatsApp or email; there is no chat in the
+details. Conversation continues by phone, text, any messaging app or email; there is no chat in the
 app.
 
 Afterwards both parties review each other. Reviews are attributed and

@@ -1,3 +1,4 @@
+import { disciplineLabel } from "@gigaway/shared";
 import { Image } from "expo-image";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
@@ -121,7 +122,7 @@ export function PersonRow({
   if (!person) return null;
 
   const subtitle = [
-    person.specialisation ?? person.discipline,
+    person.specialisation ?? disciplineLabel(person.discipline),
     person.home_district,
   ]
     .filter(Boolean)

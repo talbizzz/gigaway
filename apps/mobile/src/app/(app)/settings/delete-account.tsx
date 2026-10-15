@@ -52,10 +52,16 @@ export default function DeleteAccountScreen() {
       <Text style={[typography.display, { color: theme.danger }]}>Delete your account</Text>
 
       <Callout tone="danger" title="This cannot be undone">
-        Your profile, trips, availability, contact details and notifications are deleted
-        outright, and you will never be able to sign in again.
+        Your profile, trips, availability and notifications are deleted outright, you
+        disappear from the app, and you will never be able to sign in again.
         {'\n\n'}
-        Two things deliberately survive, and you should know before you continue. Reviews
+        Some things are kept for a while, and you should know before you continue. Your email,
+        names, phone numbers and verification documents are held for 30 days, or 12 months if
+        anyone has reported you, so that a concern raised soon after you leave can still be
+        looked into. Only our moderators can see them, and they are erased automatically
+        afterwards.
+        {'\n\n'}
+        Two more things deliberately survive. Reviews
         you have written about other people stay published, with your name replaced by
         "Deleted member" — otherwise deleting and rejoining would be a way to erase a bad
         reputation. Stays you were part of stay in the other person's history. Any report

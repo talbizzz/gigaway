@@ -30,6 +30,10 @@ export const TextField = forwardRef<TextInput, TextFieldProps>(function TextFiel
         style={[
           styles.input,
           typography.body,
+          // A fixed lineHeight clips glyphs on iOS while the field is focused
+          // (the native editor lays text out differently), so single-line
+          // inputs let the font's own metrics decide. minHeight keeps the size.
+          !inputProps.multiline && styles.singleLine,
           {
             backgroundColor: theme.bgSubtle,
             borderColor: error ? theme.danger : theme.border,
@@ -58,4 +62,5 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.md,
   },
+  singleLine: { lineHeight: undefined },
 })

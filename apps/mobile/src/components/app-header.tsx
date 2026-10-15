@@ -1,22 +1,23 @@
 import { useRouter } from 'expo-router'
 import type { ReactNode } from 'react'
-import { Pressable, StyleSheet, Text, View, type ColorValue } from 'react-native'
+import { Pressable, StyleSheet, Text, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { CountBadge } from '@/components/badge'
 import { useUnreadCount } from '@/features/notifications/use-notifications'
+import { BellIcon, SettingsIcon } from '@/components/tab-icon'
 import { useIncomingRequests } from '@/features/requests/use-requests'
+import { useReceivedServiceOffers } from '@/features/service-offers/use-service-offers'
 import { spacing, typography } from '@/theme/tokens'
 import { useTheme } from '@/theme/use-theme'
 
 /**
- * The bar across the top of the three tab screens: the screen's name between
- * the two things that can be waiting on the member — requests on the left,
- * activity on the right, each carrying its own count.
+ * The bar across the top of the tab screens: the screen's name between the bell
+ * on the left and settings on the right.
  *
- * Both used to be rows at the top of the home screen, which meant they were
- * only reachable from there and scrolled away with everything else. Up here
- * they are reachable from all three tabs and stay put.
+ * The bell is the one place anything waiting on the member lives — activity, and
+ * the requests that used to have an envelope of their own. Its count is both
+ * added together; the Activity screen it opens leads with a Requests row.
  */
 export function AppHeader({ title }: { title?: string }) {
   const theme = useTheme()
@@ -25,20 +26,22 @@ export function AppHeader({ title }: { title?: string }) {
 
   const unread = useUnreadCount()
   const incoming = useIncomingRequests()
-  const waitingOnYou = (incoming.data ?? []).filter((row) => row.status === 'pending').length
+  const serviceOffers = useReceivedServiceOffers()
+  const waiting =
+    unread +
+    (incoming.data ?? []).filter((row) => row.status === 'pending').length +
+    (serviceOffers.data ?? []).filter((row) => row.status === 'pending').length
 
   return (
     <View style={[styles.header, { backgroundColor: theme.bg, paddingTop: insets.top }]}>
       <View style={styles.bar}>
         <HeaderButton
           side="left"
-          count={waitingOnYou}
-          accessibilityLabel={
-            waitingOnYou > 0 ? `Requests, ${waitingOnYou} waiting on you` : 'Requests'
-          }
-          onPress={() => router.push('/requests')}
+          count={waiting}
+          accessibilityLabel={waiting > 0 ? `Notifications, ${waiting} waiting` : 'Notifications'}
+          onPress={() => router.push('/activity')}
         >
-          <EnvelopeIcon color={theme.text} />
+          <BellIcon color={theme.text} />
         </HeaderButton>
 
         <Text
@@ -50,11 +53,11 @@ export function AppHeader({ title }: { title?: string }) {
 
         <HeaderButton
           side="right"
-          count={unread}
-          accessibilityLabel={unread > 0 ? `Activity, ${unread} new` : 'Activity'}
-          onPress={() => router.push('/activity')}
+          count={0}
+          accessibilityLabel="Settings"
+          onPress={() => router.push('/settings')}
         >
-          <BellIcon color={theme.text} />
+          <SettingsIcon color={theme.text} focused={false} />
         </HeaderButton>
       </View>
     </View>
@@ -101,32 +104,6 @@ function HeaderButton({
   )
 }
 
-/**
- * Requests. Drawn from primitives like the tab glyphs — there is no SVG runtime
- * in this app — so the flap is two bars meeting in the middle rather than a
- * path.
- */
-function EnvelopeIcon({ color }: { color: ColorValue }) {
-  return (
-    <View style={styles.glyph}>
-      <View style={[styles.envelope, { borderColor: color }]} />
-      <View style={[styles.flap, styles.flapLeft, { backgroundColor: color }]} />
-      <View style={[styles.flap, styles.flapRight, { backgroundColor: color }]} />
-    </View>
-  )
-}
-
-/** Activity. A dome open at the bottom, closed by its own rim. */
-function BellIcon({ color }: { color: ColorValue }) {
-  return (
-    <View style={styles.glyph}>
-      <View style={[styles.dome, { borderColor: color }]} />
-      <View style={[styles.rim, { backgroundColor: color }]} />
-      <View style={[styles.clapper, { backgroundColor: color }]} />
-    </View>
-  )
-}
-
 const ICON = 24
 const SIDE = 40
 
@@ -147,34 +124,4 @@ const styles = StyleSheet.create({
   pressed: { opacity: 0.5 },
   icon: { width: ICON, height: ICON },
   count: { position: 'absolute', top: -7, right: -7 },
-
-  glyph: { width: ICON, height: ICON },
-  envelope: {
-    position: 'absolute',
-    left: 1,
-    top: 5,
-    width: 22,
-    height: 15,
-    borderWidth: 2,
-    borderRadius: 3,
-  },
-  // Both halves run corner-to-centre: 13.6 long at 36°, which is the diagonal
-  // of the 11×8 box each one crosses.
-  flap: { position: 'absolute', top: 8, width: 13.6, height: 2, borderRadius: 1 },
-  flapLeft: { left: -0.3, transform: [{ rotate: '36deg' }] },
-  flapRight: { left: 10.7, transform: [{ rotate: '-36deg' }] },
-
-  dome: {
-    position: 'absolute',
-    left: 4,
-    top: 3,
-    width: 16,
-    height: 13,
-    borderWidth: 2,
-    borderBottomWidth: 0,
-    borderTopLeftRadius: 8,
-    borderTopRightRadius: 8,
-  },
-  rim: { position: 'absolute', left: 1, top: 15, width: 22, height: 2, borderRadius: 1 },
-  clapper: { position: 'absolute', left: 10, top: 18, width: 4, height: 4, borderRadius: 2 },
 })

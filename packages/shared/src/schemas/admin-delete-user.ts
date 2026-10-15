@@ -26,7 +26,6 @@ export const AdminDeleteUserResponseSchema = z.object({
   accountDeleted: z.boolean(),
   authUserDeleted: z.boolean(),
   avatarRemoved: z.boolean(),
-  verificationEvidenceRemoved: z.boolean(),
 })
 
 export type AdminDeleteUserResponse = z.infer<typeof AdminDeleteUserResponseSchema>

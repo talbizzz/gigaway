@@ -2,7 +2,9 @@ import { useRouter } from "expo-router";
 import { StyleSheet, Text, View } from "react-native";
 
 import { Button } from "@/components/button";
+import { Callout } from "@/components/callout";
 import { Screen } from "@/components/screen";
+import { useSessionStore } from "@/features/auth/session-store";
 import { spacing, typography } from "@/theme/tokens";
 import { useTheme } from "@/theme/use-theme";
 
@@ -20,6 +22,7 @@ import { useTheme } from "@/theme/use-theme";
 export default function WelcomeScreen() {
   const theme = useTheme();
   const router = useRouter();
+  const accountRemoved = useSessionStore((state) => state.accountRemoved);
 
   return (
     <Screen
@@ -76,6 +79,14 @@ export default function WelcomeScreen() {
         Every member is verified by hand before they can see anyone else — no invites, no
         shortcuts.
       </Text>
+
+      {accountRemoved ? (
+        <View style={{ marginTop: spacing.lg }}>
+          <Callout tone="warning" title="Your account was removed">
+            You've been signed out. If you think this is a mistake, email support@gigaway.app.
+          </Callout>
+        </View>
+      ) : null}
 
       <View style={styles.spacer} />
     </Screen>

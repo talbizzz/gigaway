@@ -40,10 +40,10 @@ for advertising and sells nothing. Processors that merely host data are not
 
 | Data type | Collected | Required | Purposes | Notes |
 |---|---|---|---|---|
-| **Name** | Yes | Required | App functionality, Account management | `profiles.display_name` |
+| **Name** | Yes | Required | App functionality, Account management | `profiles.first_name`, `profiles.last_name`; the app shows others only the "First L." form |
 | **Email address** | Yes | Required | App functionality, Account management | Auth, plus `contact_details.email` |
-| **Phone number** | Yes | Required | App functionality | WhatsApp number is required at signup |
-| **User IDs** | Yes | Required | App functionality, Account management | `profiles.id` |
+| **Phone number** | Yes | Required | App functionality | Personal phone number is required at signup |
+| **User IDs** | Yes | Required | App functionality, Account management | `profiles.id`, and a public username (`profiles.username`) other members search for; connections are stored in `friendships` |
 | **Address** | **No** | — | — | See judgement call below |
 | **Race and ethnicity** | No | — | — | Not collected |
 | **Political or religious beliefs** | No | — | — | Not collected |
@@ -61,14 +61,14 @@ for advertising and sells nothing. Processors that merely host data are not
 
 | Data type | Collected | Required | Purposes | Notes |
 |---|---|---|---|---|
-| **Photos** | Yes | Required | App functionality, Account management | Profile photo (optional, initials shown if none) and a verification selfie holding photo ID (required of every applicant). The selfie is stored and retained until account deletion — see the Files and docs row below |
+| **Photos** | Yes | Required | App functionality, Account management | Profile photo (optional, initials shown if none) and a verification selfie holding photo ID (required of every applicant). The selfie is stored and retained until account deletion, and then held for a further 30 days (12 months if the member was reported) before being erased, visible only to moderators — see the Files and docs row below |
 | Videos | No | — | — | Not collected as a file upload. Applicants may submit a link to hosted video as evidence, which is text, not a video upload |
 
 ### Files and docs
 
 | Data type | Collected | Required | Purposes | Notes |
 |---|---|---|---|---|
-| **Files and docs** | Yes | Optional | App functionality, Account management | An optional CV as part of verification. Stored, and retained — same as the verification selfie — until the account is deleted, not on a decision or a fixed schedule |
+| **Files and docs** | Yes | Optional | App functionality, Account management | An optional CV as part of verification. Stored, and retained — same as the verification selfie — until the account is deleted plus the hold period (30 days, or 12 months if reported), not on a decision or any other schedule |
 
 ### Device or other IDs
 

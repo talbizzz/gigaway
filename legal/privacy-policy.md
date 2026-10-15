@@ -46,7 +46,8 @@ the database returns no member content to you at all.
 
 | Data | Why | Lawful basis |
 |---|---|---|
-| Display name | So colleagues know who they are talking to | Contract |
+| First name and family name | So colleagues know who they are talking to. The app shows other members only your first name and the first letter of your family name (for example “Anna W.”) | Contract |
+| Username | A unique name other members can search for to find you and send a connection request. Visible to other members; you can change it once every 30 days | Contract |
 | Discipline and specialisation | Matching, and establishing professional standing | Contract |
 | Home city and district | Showing you people in your city, and you to them | Contract |
 | Short biography | Letting others decide whether to host or stay with you | Contract |
@@ -56,9 +57,44 @@ the database returns no member content to you at all.
 The district is free text and deliberately coarse. **GigAway never asks for or
 stores your street address.**
 
+### 3.1a Connections and who sees your trips
+
+You can connect with other members. A connection request only becomes a
+connection when the other person accepts it; either of you can end it at any
+time, and blocking someone ends it. We store who is connected with whom (and
+any request still waiting), which is visible to the two people involved and to
+nobody else. Connections see a little more of each other: the full name, biography and links on a
+profile, and the trips shared with connections.
+
+Each trip you post has a visibility that you choose:
+
+- **Public**: your connections, members who live in the city you are going to, and
+  members who will be in that city on overlapping dates
+- **Connections only**: only your connections
+- **Private**: only the people you send a request to (for a place to stay, local
+  tips or a coffee)
+
+This is enforced by the service, not only by the app.
+
+### 3.1b The numbers on your profile
+
+Every member's profile shows three numbers to other members: how many
+connections they have, how many trips they have posted (not counting private or
+cancelled ones), and how many services they have offered. A service is a couch
+you hosted, or tips or a coffee you gave, and counts only once it was accepted on
+both sides and has taken place.
+
+Only your connections can open those numbers. A connection sees who you are
+connected with, the trips you posted that are not private, and what you offered
+and to whom (the person you helped, and the month, with the city left out where
+their trip was private). A private trip is not counted and never listed. Someone
+you have blocked sees none of it. The district, and a
+member's other profile details shown to members you are not connected with, are described in section
+3.1 above.
+
 ### 3.2 Contact details
 
-Email address, phone number and WhatsApp number, plus which of those you prefer.
+Email address and phone number (your personal number, entered once during profile setup), plus which of those you prefer.
 
 These are held separately from your profile and are **not visible to other
 members by default.** They are disclosed to one other member only when a stay is
@@ -72,7 +108,7 @@ Every account is reviewed by a human before it can see anyone else's content.
 To apply, you submit:
 
 - A **selfie of you holding photo ID**, taken against a pose we specify at the
-  time (which hand holds the ID, a gesture with the other), so the photo
+  time (where the ID is held, and a sign made with the same hand that holds it), so the photo
   cannot be an old one reused for a later application
 - The **full legal name** as it appears on that ID
 - Evidence of professional standing — a CV, and/or links to your portfolio,
@@ -90,8 +126,9 @@ asked for, which links you provided, and the eventual decision.
   no automated face- or ID-matching — the check is a person looking at the
   photo.
 - The selfie and CV are **retained for as long as your account exists**, and
-  deleted when you delete your account (section 8) — not on a decision, and
-  not on a fixed schedule. We keep them because a decision may need
+  after you delete your account for a further limited time (30 days, or 12
+  months if a report was made about you; sections 7 and 8) — not on a decision,
+  and not on any other schedule. We keep them because a decision may need
   revisiting, and because the record that a real human was checked is part of
   what the whole network's trust rests on.
 - A rejected application may be submitted again.
@@ -174,7 +211,7 @@ infrastructure operated by Supabase.
 This is the one moment GigAway discloses your contact details to another member.
 
 When an offer is accepted, or a co-accommodation request is agreed, the two
-members involved are granted access to each other's email address and WhatsApp
+members involved are granted access to each other's email address and phone
 number. Both sides see each other's — the exchange is symmetrical.
 
 Nothing is revealed before that point. Browsing a profile, sending a request, or
@@ -212,21 +249,26 @@ advertising in GigAway.
 | Data | Retention |
 |---|---|
 | Profile and posts | Until you delete your account |
-| Contact details | Until you delete your account |
-| Verification application metadata (legal name given, links, decision) | Until you delete your account |
-| Verification selfie, ID photo and CV | Until you delete your account — not deleted on a decision, and not on a fixed schedule |
+| Contact details | Until you delete your account, then held for a limited time (see below) |
+| Verification application metadata (legal name given, links, decision) | Until you delete your account, then held for a limited time (see below) |
+| Verification selfie, ID photo and CV | Until you delete your account, then held for a limited time (see below) — not deleted on a decision, and not on a fixed schedule |
+| Your identity, held after deletion (email, names, legal name, phone numbers, links, verification files) | **30 days** after deletion, or **12 months** if a report was made about you, then erased |
+| One-way fingerprints of your email and legal name | Kept **without a time limit**, only if a report about you was acted on |
 | Trips, availability, requests, offers | Until deleted, or until the account is deleted |
 | Stays | **Retained** after deletion — they are the other person's record |
+| A coffee or local tips offered or asked for | Unanswered ones deleted with the account; **accepted ones are retained** (the person, the city and the month), because they are part of the other member's record and of what you have given |
 | Reviews you wrote, published | **Retained**, shown as written by "Deleted member" |
 | Reviews about you | Deleted with your account |
 | Reports | **Retained** after deletion, in both directions |
+| Connections and connection requests | Until you or the other person removes them, or until the account is deleted |
+| Username | Until you change it, or until the account is deleted (it is then released for others) |
 | Blocks you created | Deleted with your account |
 | Blocks against you | **Retained** |
 | Push tokens, notifications | Deleted with your account |
 
 ### Why some things survive deletion
 
-Three retentions are deliberate, and we want to be direct about them.
+Four retentions are deliberate, and we want to be direct about them.
 
 **Reports.** If deleting an account erased the reports made about it, anyone
 could clear their safety record by deleting and rejoining. Reports are kept, and
@@ -239,10 +281,29 @@ member".
 **Blocks made against you.** If these were removed, someone who blocked you for a
 reason would be silently re-exposed to you if you rejoined.
 
-**Legal basis for all three:** our legitimate interest, and the legitimate
+**Your identity, for a limited time.** Retained reports and stays would be
+useless if, the moment you deleted your account, nothing could say who you were.
+So when you delete your account we keep a copy of your email address, your
+names, your legal name, your phone number, your links and your
+verification selfie, ID photo and CV for **30 days**, or for **12 months** if a
+report has been made about you (including one made during those 30 days, which
+extends it). Only our moderators can see it; it is never shown to other members,
+and it is erased automatically, files included, when the period ends. It is kept
+so that a safety concern raised soon after you leave can still be looked into,
+and so that we can respond to legal claims.
+
+**If a report about you was acted on.** We then also keep, without a time limit,
+a one-way fingerprint of your email address and legal name. It is not readable
+as a name or an address. If someone later applies with a matching email or name,
+a moderator is shown a warning and decides for themselves; nothing is blocked
+automatically, and a name can match by coincidence.
+
+**Legal basis for all four:** our legitimate interest, and the legitimate
 interests of other members, in a community where safety records and reputation
-cannot be erased by leaving and returning. You may object under Article 21 GDPR
-(section 9).
+cannot be erased by leaving and returning, and our interest in establishing or
+defending legal claims. You may object under Article 21 GDPR (section 9). If you
+want your held details erased earlier, you can ask; we will do so unless a
+report or a legal claim means we need them.
 
 ---
 
@@ -250,13 +311,19 @@ cannot be erased by leaving and returning. You may object under Article 21 GDPR
 
 Deleting your account is **irreversible**. When you do:
 
-**Permanently erased:** your login and password, email address, phone and
-WhatsApp numbers, profile photo, biography, specialisation, home city and
-district, professional links, your verification application record — including
-your verification selfie, ID photo and CV, which exist only until this point —
-push tokens, notification history, contact-sharing grants, blocks you created,
-reviews written about you, unpublished reviews you wrote, pending requests and
-offers, your availability, and trips that never led to a stay.
+**Erased immediately:** your login and password, profile photo, biography,
+specialisation, home city and district, push tokens, notification history,
+contact-sharing grants, blocks you created, reviews written about you,
+unpublished reviews you wrote, pending requests and offers, your availability,
+and trips that never led to a stay. Your details are also removed from the app
+and from every other member's view.
+
+**Kept for a limited time, visible only to our moderators:** your email address,
+names, legal name, phone number, professional links, and your
+verification selfie, ID photo and CV. This is 30 days, or 12 months if a report
+was made about you, and then it is erased automatically, files included. If a
+report about you was acted on, a one-way fingerprint of your email and legal
+name is kept beyond that. See section 7.
 
 **Retained, no longer linked to you:** your profile becomes an anonymised record
 showing "Deleted member". Stays you took part in, published reviews you wrote,

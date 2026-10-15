@@ -51,15 +51,15 @@ select is(
 select is(
   (select display_name from public.profiles
     where id = '11111111-1111-1111-1111-111111111111'),
-  'Anna Weber',
-  'display_name is carried through from sign-up metadata'
+  'Anna W.',
+  'a legacy single-field display_name is split and shortened to first name + initial'
 );
 
 select is(
   (select discipline from public.profiles
     where id = '22222222-2222-2222-2222-222222222222'),
-  'strings',
-  'discipline is carried through from sign-up metadata'
+  'instrumentalist',
+  'a previous-list discipline from sign-up metadata is translated to the new list'
 );
 
 select is(

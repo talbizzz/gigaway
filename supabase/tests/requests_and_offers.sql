@@ -213,10 +213,10 @@ select throws_ok(
              'aaaa0000-0000-0000-0000-000000000001',
              '22222222-2222-2222-2222-222222222222',
              '11111111-1111-1111-1111-111111111111',
-             '2027-03-03', '2027-03-08') $$,
+             '2027-03-03', '2027-03-12') $$,
   '23514',
   null,
-  'a host cannot offer nights beyond their own availability'
+  'a host cannot offer nights that fall outside the trip'
 );
 
 select throws_ok(

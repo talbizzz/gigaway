@@ -81,7 +81,7 @@ begin
   -- ── the demo account itself ─────────────────────────────────────────────
   update public.profiles set
     display_name   = coalesce(nullif(display_name, ''), 'App Review'),
-    discipline     = 'voice',
+    discipline     = 'singer',
     specialisation = 'Mezzo-soprano',
     bio            = 'Freelance mezzo, mostly oratorio and Lieder. Based in Munich, on the road about fifteen weeks a year. Happy to lend the couch when I am home.',
     home_city_id   = v_munich,
@@ -90,48 +90,48 @@ begin
     verified_at    = coalesce(verified_at, now() - interval '40 days')
   where id = v_me;
 
-  insert into public.contact_details (profile_id, email, whatsapp, preferred_channel)
-  values (v_me, v_email, '+491701234567', 'whatsapp')
+  insert into public.contact_details (profile_id, email, phone, preferred_channel)
+  values (v_me, v_email, '+491701234567', 'phone')
   on conflict (profile_id) do update
-    set whatsapp = excluded.whatsapp, preferred_channel = excluded.preferred_channel;
+    set phone = excluded.phone, preferred_channel = excluded.preferred_channel;
 
   -- ── the cast ────────────────────────────────────────────────────────────
   insert into public.profiles
-    (id, display_name, discipline, specialisation, home_city_id, home_district,
+    (id, display_name, first_name, last_name, discipline, specialisation, home_city_id, home_district,
      bio, status, verified_at, created_at)
   values
-    (v_lena, 'Lena Vogt', 'voice', 'Soprano', v_munich, 'Haidhausen',
+    (v_lena, 'Lena Vogt', 'Lena', 'Vogt', 'singer', 'Soprano', v_munich, 'Haidhausen',
      'Soprano, opera and concert. Munich for six years now — I know which pianists rehearse cheaply and where to warm up on a Sunday.',
      'approved', now() - interval '8 months', now() - interval '8 months'),
 
-    (v_tomas, 'Tomás Ferreira', 'strings', 'Cello', v_munich, 'Schwabing',
+    (v_tomas, 'Tomás Ferreira', 'Tomás', 'Ferreira', 'instrumentalist', 'Cello', v_munich, 'Schwabing',
      'Cellist, orchestral and chamber. Portuguese, in Munich since my studies. Spare room whenever my flatmate is on tour, which is often.',
      'approved', now() - interval '6 months', now() - interval '6 months'),
 
-    (v_chiara, 'Chiara Bellini', 'dance', 'Contemporary', v_munich, 'Sendling',
+    (v_chiara, 'Chiara Bellini', 'Chiara', 'Bellini', 'dancer', 'Contemporary', v_munich, 'Sendling',
      'Contemporary dancer, currently freelancing between companies. Small flat, good couch, excellent coffee.',
      'approved', now() - interval '5 months', now() - interval '5 months'),
 
-    (v_marek, 'Marek Sobczak', 'winds', 'Clarinet', v_berlin, 'Kreuzberg',
+    (v_marek, 'Marek Sobczak', 'Marek', 'Sobczak', 'instrumentalist', 'Clarinet', v_berlin, 'Kreuzberg',
      'Clarinettist, mostly new music. Berlin-based. I have hosted eleven people and stayed with seven — it works.',
      'approved', now() - interval '10 months', now() - interval '10 months'),
 
-    (v_anneke, 'Anneke de Vries', 'keyboard', 'Piano', v_vienna, 'Leopoldstadt',
+    (v_anneke, 'Anneke de Vries', 'Anneke', 'de Vries', 'instrumentalist', 'Piano', v_vienna, 'Leopoldstadt',
      'Pianist and répétiteur in Vienna. Quiet flat, upright piano you are welcome to use, cat who will ignore you.',
      'approved', now() - interval '11 months', now() - interval '11 months'),
 
-    (v_jonas, 'Jonas Lindqvist', 'brass', 'Horn', v_berlin, 'Neukölln',
+    (v_jonas, 'Jonas Lindqvist', 'Jonas', 'Lindqvist', 'instrumentalist', 'Horn', v_berlin, 'Neukölln',
      'Horn player, Swedish, Berlin for now. Auditioning constantly, so I am away more than I am home.',
      'approved', now() - interval '4 months', now() - interval '4 months');
 
-  insert into public.contact_details (profile_id, email, whatsapp, preferred_channel)
+  insert into public.contact_details (profile_id, email, phone, preferred_channel)
   values
-    (v_lena,   'lena.vogt@example.com',       '+491621112233', 'whatsapp'),
-    (v_tomas,  'tomas.ferreira@example.com',  '+491622223344', 'whatsapp'),
-    (v_chiara, 'chiara.bellini@example.com',  '+391623334455', 'whatsapp'),
-    (v_marek,  'marek.sobczak@example.com',   '+491624445566', 'whatsapp'),
+    (v_lena,   'lena.vogt@example.com',       '+491621112233', 'phone'),
+    (v_tomas,  'tomas.ferreira@example.com',  '+491622223344', 'phone'),
+    (v_chiara, 'chiara.bellini@example.com',  '+391623334455', 'phone'),
+    (v_marek,  'marek.sobczak@example.com',   '+491624445566', 'phone'),
     (v_anneke, 'anneke.devries@example.com',  '+431625556677', 'email'),
-    (v_jonas,  'jonas.lindqvist@example.com', '+461626667788', 'whatsapp');
+    (v_jonas,  'jonas.lindqvist@example.com', '+461626667788', 'phone');
 
   -- ── availability ────────────────────────────────────────────────────────
   -- Munich hosts: these populate the home feed's "in your city" band and the

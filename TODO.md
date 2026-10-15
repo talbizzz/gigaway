@@ -31,7 +31,7 @@ Progress checklist. Detail lives in the `Milestone-N-*.md` files.
 - [x] Overwrite the two Vault secrets — done 2026-09-06, verified by calling
       `dispatch-notifications` through `call_edge_function` and reading a 200 out
       of `net._http_response`. All five cron jobs are live.
-- [ ] Create Sentry, PostHog (EU) accounts _(Resend moved to Milestone 5)_
+- [x] Create Sentry (EU) account _(Resend moved to Milestone 5; PostHog deferred until analytics consent exists — see Milestone 5)_
 - [x] Draft privacy policy — `legal/privacy-policy.md`
 - [x] Draft terms of service / EULA — `legal/terms-of-service.md`
 - [x] Draft community guidelines — `legal/community-guidelines.md`
@@ -201,7 +201,7 @@ Progress checklist. Detail lives in the `Milestone-N-*.md` files.
       implementation while doing this (see "corrections" section below)
 - [ ] Confirm a report reaches `MODERATOR_EMAIL` within a minute
       (needs RESEND_API_KEY and MODERATOR_EMAIL, which arrive in Milestone 5)
-- [ ] Add a pgTAP test asserting a co-accommodation match is never reviewable
+- [x] Add a pgTAP test asserting a co-accommodation match is never reviewable _(added to `acceptance.sql`, passes on dev 2026-10-04)_
       _(holds by construction today — `accept_co_request` creates a contact grant
       and never a stay, and reviews hang off stays — but nothing asserts it, so a
       future change to that path could silently break the guarantee)_
@@ -222,9 +222,10 @@ Progress checklist. Detail lives in the `Milestone-N-*.md` files.
 - [x] Save disabled until something actually changes
 - [x] Home city could never be changed — one `null` meant both "untouched" and
       "cleared", so the picker always fell back to the stored city
-- [x] WhatsApp number collected and required, stored E.164, revealed with the
-      email on acceptance _(there was no screen to enter one, so the reveal
-      screen's WhatsApp row could never show anything)_
+- [x] Personal phone number collected and required, stored E.164, revealed with
+      the email on acceptance _(first built as a WhatsApp number; replaced by the
+      one phone number once it was clear most people use an ordinary number or
+      other messengers)_
 - [x] Profiles readable from every match card before asking or offering, with
       the ask / offer action carried onto the profile
 - [x] Initials placeholder where a member has no photo _(the empty circle was
@@ -265,7 +266,7 @@ Progress checklist. Detail lives in the `Milestone-N-*.md` files.
 - [x] Walk all of the above on a device — dev client blocker resolved for both
       platforms; the settings restructure, avatar fix and keyboard fix above
       were themselves found and fixed by doing this
-- [ ] Re-run `offer_revision.sql` to confirm the two assertions corrected after
+- [x] Re-run `offer_revision.sql` to confirm the two assertions corrected after _(passes on dev 2026-10-04)_
       the first live run _(the migration behaviour was right; the test's
       expectations were not)_
 - [x] Decide what to do about the pgTAP suite assuming an empty database — ~22
@@ -322,8 +323,11 @@ Progress checklist. Detail lives in the `Milestone-N-*.md` files.
 
 ## Milestone 5: Ship It
 
-- [ ] Next.js landing page (`/`, store badges) — not started
-- [ ] Universal links + Android app links — not started
+- [ ] Next.js landing page (`/`, store badges) — not started. `gigaway.app` serves a
+      placeholder with redirects until then
+- [x] Universal links + Android app links — live on `account.gigaway.app` and
+      `account-dev.gigaway.app`, carrying the auth callbacks; see the "Auth
+      callbacks" item below
 - [x] Publish privacy, terms, guidelines _(plus Impressum and the account-deletion
       page Google requires; done early — the Play track was blocked on the URL)_
       as a plain static site (`legal/*.md` → `scripts/build-legal.mjs` → `site/`),
@@ -335,7 +339,6 @@ Progress checklist. Detail lives in the `Milestone-N-*.md` files.
 - [x] EAS build profiles — `apps/mobile/eas.json`, three profiles
       (development/preview/production), plus the dev/prod app-variant work
       under "Infrastructure & tooling" above
-- [ ] OTA channels — needs `expo-updates`, which is not installed
 - [x] GitHub Actions CI — `ci.yml`, built well ahead of schedule as part of the
       branching/CI setup (see "Infrastructure & tooling" above), not as
       Milestone 5 work specifically
@@ -358,28 +361,34 @@ Progress checklist. Detail lives in the `Milestone-N-*.md` files.
       genuinely moderator-ops mail) and `NOTIFICATION_FROM`
       (`dispatch-notifications`'s offer-accepted fallback, the one
       member-facing case)
-- [ ] Confirm moderation-digest returns emailed: true and the mail arrives
+- [ ] Confirm moderation-digest returns emailed: true and the mail arrives — waiting on a
+      natural run. The prod cron job runs daily at 09:00 UTC and has succeeded, but there
+      were no pending applications on 2026-10-04, so it sent nothing. The next check is the
+      first run after an application has waited more than `doc_nudge_days` (3 by default),
+      then the moderator inbox the next morning. Forcing it sooner needs a prod write and
+      the service-role key.
 - [x] Point Supabase Auth at Resend via custom SMTP — done on **prod**
       2026-09-24: sender `noreply@gigaway.app` (deliberately not
       `notifications@gigaway.app` — nothing should ever reply to it, so it
       skips needing a Cloudflare Email Routing rule), `smtp.resend.com:587`,
-      username `resend`. Still needed on **dev** before the auth-callback
-      round trip below can be tested there.
+      username `resend`. The dev project's password-reset round trip has
+      passed, so dev's own SMTP is only needed for the confirmation test below.
 - [ ] **Send mail as `support@`/`moderation@`/`privacy@gigaway.app` from the
       dedicated Gmail account** _(deferred from Milestone 0 — see there for
       why Gmail's own SMTP-relay option can't do this)_: once the Resend
       account above exists, add its SMTP credentials (`smtp.resend.com:587`,
       user `resend`, password = API key) as a second "Send mail as" entry on
       that Gmail account — same domain, same DKIM/SPF, no new service
-- [ ] Raise auth email rate limits off the shared-sender defaults — reviewed
-      2026-09-24: prod's "Rate limit for sending emails" is 30/h. Resend's
-      free plan caps at 100 emails/**day**, shared between dev and prod
-      across every mail path (Auth plus all four Edge Function senders), so
-      that's the real ceiling regardless of this number — 30/h is probably
-      already fine. No change made yet; final call still open.
-- [ ] Set site_url and redirect URLs to production (never 127.0.0.1) —
-      paused: there is nothing for it to point at yet, see the auth-callback
-      item below
+- [x] Raise auth email rate limits off the shared-sender defaults — prod's "Rate limit
+      for sending emails" raised from 30/h by hand on 2026-10-04. Resend's free plan caps
+      at 100 emails/**day**, shared between dev and prod across every mail path, so that
+      is the real ceiling regardless of this number.
+- [x] Set site_url and redirect URLs to production (never 127.0.0.1) — prod's
+      redirect allowlist includes `https://account.gigaway.app/callback` and the
+      reset template uses the `token_hash` link (2026-10-04)
+- [ ] Point the privacy policy URL in Play Console (and App Store Connect, once set
+      up) at `https://legal.gigaway.app/privacy`. The old `gigaway.app/privacy` still
+      works through a redirect, so this isn't urgent.
 - [ ] **Auth callbacks via Universal Links (confirmation + password reset)**
       — scoped 2026-09-24, rescoped 2026-10-01 onto three domains instead of
       one. Supersedes the old `/i/[code]` invite-link plan in
@@ -394,9 +403,10 @@ Progress checklist. Detail lives in the `Milestone-N-*.md` files.
         email" confirmation regardless of the outcome.
   - [x] Deep-link listener (`features/auth/deep-link.ts`, Expo `Linking`) —
         handles cold start (`getInitialURL`) and warm start (the `url`
-        event), extracts a PKCE `code` param and exchanges it via
-        `exchangeCodeForSession`. The client now sets `flowType: 'pkce'`
-        (was the implicit-flow default). Navigation is the auth gate's job,
+        event), reads the `token_hash` and `type` params and calls
+        `verifyOtp`. The email links straight to this domain, and
+        `verifyOtp` needs no device-bound PKCE verifier, so it also works
+        from a desktop. Navigation is the auth gate's job,
         not the listener's: a confirmation link's session is an ordinary
         sign-in the gate already routes on; a recovery link's session is
         flagged via Supabase's `PASSWORD_RECOVERY` event (new `isRecovering`
@@ -472,26 +482,29 @@ Progress checklist. Detail lives in the `Milestone-N-*.md` files.
         the internal filename rather than the externally-requested path.
         `verify-account-deploy.mjs` now checks both the content-type bugs
         specifically, not just status 200.
-  - [ ] **`legal.gigaway.app` and `account.gigaway.app` (prod) still need
-        the same treatment.** Both require merging to `main` first (neither
-        deploy workflow runs on `develop` for these two), then attaching
-        the custom domain by hand in Cloudflare, same manual step as
-        `account-dev.gigaway.app` and `admin.gigaway.app` before it. Given
-        what `account-dev` just went through, re-verify the response
-        headers directly after attaching each domain rather than assuming
-        the dev fixes automatically carry over. Also: update the privacy
-        policy URL on file in Play Console once `legal.gigaway.app` is
-        live — not urgent, since neither store submission is actually under
-        review yet.
-  - [ ] Custom SMTP + site_url/redirect URLs on **dev**, flip
-        `enable_confirmations` on for dev, walk the full round trip on a
-        real device: confirmation email → tap → lands in app; request
-        reset → tap → set new password; same link opened on a desktop →
-        web form completes it
-  - [ ] Only once verified on dev: flip `enable_confirmations` on for prod
-        (its custom SMTP and mail secrets are already done)
-- [ ] TestFlight build to beta testers
-- [ ] Play closed test track live
+  - [x] **Prod domains live** (2026-10-04): `legal.gigaway.app` and
+        `account.gigaway.app` are attached and serve correctly, checked by IP
+        because a stale local DNS cache got in the way. `gigaway.app/privacy`
+        redirects to `legal.gigaway.app/privacy`.
+  - [x] **Password reset verified on dev, both paths** — native app opens
+        directly on set-new-password, and the desktop/browser fallback
+        completes the reset. This needed three more fixes after the first
+        attempt: the email template's `token_hash` link, `verifyOtp` in place
+        of the PKCE exchange, and a `callback` route so Expo Router no longer
+        shows "Unmatched Route" for the incoming link.
+  - [ ] **Email confirmation, not yet tested anywhere.** The "Confirm signup"
+        template still uses `{{ .ConfirmationURL }}` on both projects, so it
+        needs the same `token_hash` treatment with `type=signup`. Then flip
+        `enable_confirmations` on for dev and walk the round trip: sign up →
+        check-email screen → tap → lands in the app. Repeat on prod only after
+        dev passes.
+  - [ ] **Password reset from a production build**, once the production
+        build below is installed. Use a throwaway prod account, not a member's.
+- [ ] **Production mobile build**: `eas build --profile production --platform all`
+      from `apps/mobile`. It carries the auth changes and the
+      `account.gigaway.app` association. Nothing has been built or submitted yet.
+- [ ] TestFlight build to beta testers (after the production build)
+- [ ] Play closed test track live (after the production build)
 - [ ] End-to-end smoke test on real devices
 
 ## Milestone 6: Admin Platform
@@ -722,8 +735,40 @@ application bug, but both would have looked like one.
       app instead of its absence (they name `admin.gigaway.app` /
       `admin-dev.gigaway.app`, which don't resolve until the domains above
       are attached).
-- [ ] Icon/favicon for the admin website's browser tab — still the default
+- [x] Icon/favicon for the admin website's browser tab — environment-specific, dev and prod differ _(done 2026-10-04)_
       Vite icon.
+
+## Milestone 7: Usernames, Friends and Trip Visibility
+
+_Plan and decisions: `Milestone-7-Friends-and-Visibility.md`. Started 2026-10-06._
+
+- [x] Phase 1 — usernames: unique, lower case, once-a-month change, auto-assigned
+      to existing members, chosen at sign-up with a live availability check,
+      editable in Edit profile _(`20260921170000`)_
+- [x] Phase 2 — connections (first built as "friends", renamed by
+      `20260921230000`): request / accept / decline / unfriend, blocking and
+      account deletion remove a friendship, member search by username or name,
+      Friends screen, notifications _(`20260921180000`)_
+- [x] Phase 3 — trip visibility (public / friends / private) in row-level
+      security; selector in the trip form _(`20260921190000`)_
+- [x] Phase 4 — tips and coffee requests, sent to hosts who offer them, accepted
+      like a co-accommodation request (contact is shared) _(`20260921200000`,
+      `20260921210000`)_
+- [x] Phase 5 — home feed gains a friends band; friend requests surfaced on Home
+      _(`20260921220000`)_
+- [x] Profile numbers: connections, trips and services offered on every profile;
+      details (trips that are not private, connections, services and to whom)
+      open for connections only _(`20260921240000`)_
+- [x] Services (2026-10-07): the Couch tab became Services; one service per post
+      chosen on its own screen first; "Always available" toggle with no dates;
+      matching groups a host's services and only a couch or room can offer nights
+      _(`20260921250000`, `20260921260000`)_
+- [x] Offer a service without being asked (2026-10-07): open any trip you can see,
+      offer a coffee or tips in one tap, or nights through the existing form;
+      the owner accepts (contact is shared) or declines _(`20260921270000`)_
+- [ ] Not done, on purpose: bio, links and family name are hidden from
+      non-friends **in the app only**, not in the database (see the milestone doc)
+- [ ] Not done: admin does not show or search by username yet
 
 ## In progress, on other branches (not detailed here)
 
@@ -735,6 +780,19 @@ application bug, but both would have looked like one.
   system gating trip creation, earned by offering availability, plus an
   open-ended "ongoing availability" type). Not detailed here since it's still
   being built; see that branch directly for its current state.
+
+## Future (lower priority)
+
+> Real work, but not before the launch blockers above. Ordered roughly by when
+> it would start to matter.
+
+- [ ] OTA channels with `expo-updates` — ship JavaScript fixes to installed apps
+      without a store review. Native change, so it needs a rebuilt dev client.
+      To verify on dev: publish a visible JS-only change to the `development`
+      channel, relaunch twice, confirm it lands, then roll back. Always publish
+      through `./scripts/with-env.sh .env.dev` so the right Supabase values are
+      baked in. Prod channel only after the production build is tested. Free
+      tier per third-party summaries of Expo's pricing; confirm on expo.dev/pricing.
 
 ## Ideas to discuss (not yet planned)
 

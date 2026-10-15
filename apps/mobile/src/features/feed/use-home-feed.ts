@@ -21,6 +21,12 @@ export type FeedVisitor = {
   needs: string[]
 }
 
+/** A connection's trip, wherever it goes. */
+export type FeedConnectionTrip = FeedVisitor & {
+  cityId: string
+  cityName: string
+}
+
 /**
  * What a person will be doing in a city the member is travelling to. `host` has
  * posted nights covering the trip, `local` lives there with nothing taking them
@@ -52,6 +58,8 @@ export type HomeFeed = {
   inYourCity: FeedVisitor[]
   comingToYourCity: FeedVisitor[]
   destinations: FeedDestination[]
+  /** What connections are doing: their trips that have not finished, soonest first. */
+  connections: FeedConnectionTrip[]
 }
 
 export const feedKeys = {

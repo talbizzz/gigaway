@@ -70,7 +70,7 @@ where u.email = 'you@example.com';   -- ← your email
 -- Restart the app. You should land on the home feed rather than the waiting
 -- screen — the session caches your profile, so a reload is needed.
 --
--- The WhatsApp number is collected in the app and is required before contact
+-- The phone number is collected in the app and is required before contact
 -- details can be revealed. Fill it in under Profile → Edit.
 --
 -- For a populated feed, run scripts/seed-demo-data.sql now. It hangs its trips

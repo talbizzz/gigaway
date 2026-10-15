@@ -51,7 +51,9 @@ one.
   calls the RPC now. Confirmed working directly against dev's live database
   before pushing, and via updated pgTAP coverage in `supabase/tests/notifications.sql`.
 
-- [ ] **Look at what the destructive migrations will drop, on prod**
+- [x] **Look at what the destructive migrations will drop, on prod** — done 2026-09-23:
+  6 invites, 6 redemptions, 6 profiles with `invited_by` set, 0 applications. The
+  invite lineage was lost with the migration, which was accepted.
   Run in prod's SQL editor first. If any of these counts is not what you
   expect — real invites, real applications — stop and think before applying:
   ```sql
@@ -61,7 +63,9 @@ one.
   union all select 'verification_applications', count(*) from public.verification_applications;
   ```
 
-- [ ] **Push the thirteen pending migrations**
+- [x] **Push the thirteen pending migrations** — done 2026-09-23. Verified with
+  `supabase migration list --linked`: every local migration matches its remote
+  entry. The destructive ones included.
   Preferred: through CI, so the review is on record. Merge `develop` into
   `main`; `deploy-backend.yml`'s **preview** job then runs on its own and
   writes "Production deploy — what will change" to the run's summary page
@@ -81,7 +85,10 @@ one.
   `feature/artist-verification-gate`'s migration applied, unlike dev, so
   there's no phantom migration-history entry to fix here.
 
-- [ ] **Deploy the current Edge Functions**
+- [x] **Deploy the current Edge Functions** — done. Re-verified 2026-10-04: all nine
+  current functions are ACTIVE on prod, including `admin-delete-user` and
+  `submit-verification`, which were missing before. `redeem-invite` and
+  `purge-verification-docs` are gone.
   Confirmed on prod 2026-09-21: it runs nine functions, but not the same nine
   — `accept-co-request`, `accept-offer`, `delete-account`,
   `dispatch-notifications`, `export-data`, `moderation-digest`,
@@ -131,7 +138,10 @@ one.
   genuinely live. If a prod send to one of these ever bounces the same way,
   check Resend's suppression list before assuming the routing is broken.
 
-- [ ] **Regenerate `database.types.ts` for real**
+- [x] **Regenerate `database.types.ts` for real** — done 2026-10-04 from prod, after
+  checking the generated file covers every admin function and table. Typecheck, lint
+  and the 55 shared unit tests all pass. The old hand-edited stubs and their comments
+  are gone. Original notes below.
   Currently hand-edited against the migrations' expected end-state — the
   verification changes, and now the whole admin platform
   (`admin_users`, `audit_log`, fourteen `admin_*` functions). **Do not run this
@@ -166,7 +176,9 @@ is **not yet published** (waiting on the secrets below and a first push); **prod
 has none of it** — its database doesn't have the tables and functions the app
 calls, so a prod admin site would load and then refuse every login.
 
-- [ ] **GitHub repository secrets.** As of 2026-09-21 the repo has
+- [x] **GitHub repository secrets.** Added by 2026-10-02; the prod admin and website
+  deploys have since run with them. The list below is the record of what's needed.
+  As of 2026-09-21 the repo had
   `ADMIN_DEV_SUPABASE_ANON_KEY`, and `SUPABASE_URL` / `SUPABASE_ANON_KEY` (those
   two belong to the keep-alive workflow). Still missing:
   - `CLOUDFLARE_API_TOKEN` (permission **Account → Cloudflare Pages → Edit**)
@@ -185,10 +197,12 @@ calls, so a prod admin site would load and then refuse every login.
   environment-only ones (it fails with a message saying so).
 
 - [ ] **The `production` GitHub environment exists with a required reviewer.**
-  Both `deploy-backend.yml` and the prod half of `deploy-admin.yml` use it. Not
-  checked — needs the repo settings.
+  Both `deploy-backend.yml` and the prod half of `deploy-admin.yml` use it. The
+  environment was created on 2026-10-02, but the reviewer rule hasn't been tested
+  yet: the first backend deploy that gets past the secrets check will be the real
+  test of it.
 
-- [ ] **Backend first.** Do the migration and function items above *before*
+- [x] **Backend first.** Done 2026-10-01: the grants check below passes on prod. Do the migration and function items above *before*
   approving the prod admin deploy. Then verify on prod directly that the admin
   functions are locked down (this project's default privileges hand `EXECUTE` to
   `anon` and `authenticated`, and an ordinary `revoke … from public` silently
@@ -205,18 +219,20 @@ calls, so a prod admin site would load and then refuse every login.
   Expected: `anon` false on every row; `authenticated` true on every `admin_*`
   row; **both false** on `log_admin_action`.
 
-- [ ] **Create the first prod admin.** Put prod's URL and **service-role** key in
+- [x] **Create the first prod admin** — done (`admin_users` has one row on prod,
+  checked 2026-10-01). Original instructions below. Put prod's URL and **service-role** key in
   `admin-scripts/.env.prod` (gitignored — see `.env.example`; never commit or
   paste it anywhere), then `pnpm create-admin`, answer `prod`, and type `prod` at
   the confirmation. The admin gets no member profile. It only works once the
   migrations above have landed (`admin_users` has to exist).
 
-- [ ] **Deploy the prod admin site.** Push to `main` also starts the prod half
+- [x] **Deploy the prod admin site** — done: `admin.gigaway.app` and `gigaway-admin.pages.dev`
+  both return 200 (checked 2026-10-01). Original instructions below. Push to `main` also starts the prod half
   of `deploy-admin.yml`; approve it after the backend deploy has finished. It
   creates the `gigaway-admin` Pages project on its first run. Reachable at its
   `*.pages.dev` address straight away.
 
-- [ ] **Attach `admin.gigaway.app`.** Cloudflare → Workers & Pages →
+- [x] **Attach `admin.gigaway.app`** — done (resolves and serves 200, checked 2026-10-01). Cloudflare → Workers & Pages →
   gigaway-admin → Custom domains. The zone is already on Cloudflare, so it
   creates the DNS record itself. `MODERATION.md` already names this address.
 
@@ -242,11 +258,473 @@ calls, so a prod admin site would load and then refuse every login.
   - do **not** test Delete on a real member — sign up a throwaway account and
     delete that instead
 
+## First and family name (added 2026-10-06)
+
+Members now enter a first and a family name; other members see only
+"Aziz T." (`profiles.display_name`, derived by a trigger from the new
+`profiles.first_name` / `last_name`). Admins and moderators see the full name.
+Two migrations, already applied by hand to **dev** and tested there:
+`20260921100000_split_member_names` and `20260921110000_admin_full_names`.
+Neither drops anything, but the first one **rewrites `display_name` on every
+existing member** — the original text is kept, split on its first space, in
+`first_name` / `last_name`, so nothing is lost, but there is no undo and no
+backup.
+
+### Before merging to `develop`
+
+- [ ] Everything committed (mobile sign-up and edit profile, shared types,
+      both migrations, `member_names.sql`, the four edited pgTAP files, seed
+      script, privacy-policy and Play data-safety wording)
+- [ ] CI green — `Migrations and pgTAP` runs the whole suite on an empty
+      database, which is the one run that is not polluted by dev's real data
+- [ ] `supabase migration list` against dev shows both migrations applied
+      (they were pushed by hand, so CI has nothing to do for dev)
+
+### Smoke test on dev, with a build pointed at dev
+
+- [ ] Sign up with the new form: both name fields required, the family-name
+      hint shows, and the new member appears to others as "First L."
+- [ ] Edit profile: both fields saved, the preview under Family name matches
+      what another account then sees
+- [ ] A member from before the split (no family name) can still save their
+      profile without being forced to add one
+- [ ] Feed, a trip, a request, an offer and a review all show "First L."
+- [ ] Admin (dev site): users list and user detail show the full name, and a
+      search by family name finds the member
+- [ ] The web password-reset page asks for the password twice (account pages
+      redeploy on merge)
+
+### Before merging to `main` (this is what reaches prod)
+
+- [ ] `supabase link --project-ref hrhoqmmxgfpyxwncmpjx`, confirm the output
+      names `gigaway`
+- [ ] Look at what will be rewritten, and be happy with how each splits:
+      `select display_name from public.profiles where status <> 'deleted';`
+      — a name like "Mary Jane Smith" becomes first "Mary", family "Jane
+      Smith", shown as "Mary J."; a single word keeps no family name
+- [ ] The backend preview's dry run lists these two **together with every
+      other pending migration** (prod is behind — see above). Read all of it,
+      not only these two
+- [ ] Approve **Deploy backend** first. The admin site and the new app build
+      both assume the columns exist
+- [ ] Then let the admin and account-page deploys finish (they run on the same
+      merge)
+- [ ] Only then ship the new mobile build. Older builds keep working: they
+      send one name and the database splits it on the first space
+- [ ] Play Console data-safety form: the "Name" row wording changed in
+      `legal/play-data-safety.md`; update the console if it should match
+
+### After it is live on prod
+
+- [ ] `select count(*) from public.profiles where status <> 'deleted' and
+      first_name is null;` returns 0
+- [ ] No non-deleted profile has a `display_name` that still holds a full
+      family name: `select display_name from public.profiles where status <>
+      'deleted' and display_name !~ '^\S+( \S\.)?$';` returns nothing
+      except members who signed up with a single name
+- [ ] Sign up a throwaway account, check it shows as "First L.", delete it
+- [ ] Run `pnpm db:types` against prod only once prod has caught up with dev;
+      until then the committed `database.types.ts` is generated from dev
+
+## Members in review can use the app (added 2026-10-06)
+
+A member who has **submitted** a verification now gets into the app while it is
+reviewed: they can browse (feed, matches, trips, availability, profiles,
+reviews) and post their own trips and availability. They cannot request a stay,
+offer one, review, or block; nobody else sees them or their trips until they are
+approved. Rejection sends them back to the verification screens to apply again,
+and reapplying puts them back in. No new status: it is `profiles.status =
+'pending'` plus a `pending` application, and 'rejected' / 'suspended' work as
+before. One migration, `20260921120000_members_in_review_can_browse` — policy
+and helper-function changes only, nothing dropped, applied to dev and tested
+there (`members_in_review.sql`).
+
+### Before merging to `main`
+
+- [ ] **Backend first.** Approve **Deploy backend** before any app build with
+      this change reaches users. A new build on an old backend lets an in-review
+      member into the app where every read comes back empty. Old builds on the
+      new backend are fine: they still send every non-approved member to the
+      verify screens.
+- [ ] The dry run is policy changes only (six policies replaced, two functions
+      added) — nothing destructive — but read it with the other pending
+      migrations
+
+### Smoke test on dev, with a build pointed at dev
+
+- [ ] New account: submit verification → profile setup → lands in the app with
+      the "in review" banner on Home
+- [ ] Can browse the feed, matches, a verified member's profile and reviews;
+      can post a trip and availability
+- [ ] "Ask about these nights", "Offer nights", "Block" show "Available once
+      your verification is approved" instead of a button
+- [ ] A second, approved account does **not** see the in-review member or the
+      trip they posted
+- [ ] Approve them in the admin site: within about 15 seconds the banner goes,
+      the buttons appear, matches refill, and the second account now sees their
+      trip
+- [ ] Reject a different in-review account: it drops back to the verification
+      screens with the rejection reason, and their trip disappears for others
+- [ ] That rejected account reapplies and is back in the app, in review
+
+### Before telling members
+
+- [ ] The privacy policy and guidelines should say that people awaiting
+      verification can look at verified members' profiles (name, photo, bio,
+      neighbourhood, reviews). Until now nobody saw any of it before approval.
+      Contact details are still only revealed after an accepted stay.
+
+## Identity hold after account deletion (added 2026-10-06)
+
+Deleting an account used to erase everything that said who the member was, so a
+report against someone who then deleted and rejoined led nowhere. Now
+`delete_account` first copies their identity (email, names, legal name, phone,
+links, and the paths of the selfie and CV, which stay in Storage) into
+`deletion_holds`: **30 days**, or **12 months** if a report against them is
+open, in review or actioned, extended to 12 months by any later report. A daily
+job, `purge-deletion-holds`, erases expired holds and their files. Members
+removed after an **actioned** report leave one-way fingerprints of email and
+legal name in `conduct_bans`, which flag a matching application as "Possible
+repeat" for a human moderator; nothing is blocked automatically.
+
+One migration, `20260921130000_deletion_hold`, plus a new Edge Function
+(`purge-deletion-holds`) and changes to `delete-account`, `admin-delete-user`
+and `submit-verification`. Applied to dev and tested there (`deletion_hold.sql`).
+The periods are `deletion_hold_days` and `deletion_hold_reported_days` in
+`app_config`.
+
+### Before merging to `main`
+
+- [ ] **A lawyer reads the privacy-policy and `account-deletion.md` changes.**
+      Keeping identity data after deletion is a legitimate-interest decision and
+      has to be stated accurately before this reaches prod. The wording is a
+      draft written from what the code does, not legal advice.
+- [ ] Decide the periods are right (30 days / 12 months). They are settings, not
+      code, so they can change later without a deploy
+- [ ] **Approve the backend deploy** so the migration and the three changed
+      functions go together, and `purge-deletion-holds` is deployed for the cron
+      job to call. The cron job and Edge Function use the existing vault secrets
+      (`edge_function_base_url`, `edge_function_service_key`); check they are
+      set on prod, as the notification dispatcher already relies on them
+- [ ] Update `legal/play-data-safety.md` answers in the Play Console if the
+      deletion or retention answers there should match the repo copy
+
+### Smoke test on dev
+
+- [ ] Delete a test account that has a verification application: its row appears
+      under **Identity held after deletion** on the admin page, with the 30-day
+      date, and the selfie file is **still** in the `verification-docs` bucket
+- [ ] Report a test member, then delete them: the hold is 12 months
+- [ ] On a held account, **Keep for 12 months** extends it and writes an audit
+      row
+- [ ] Set a hold's `held_until` into the past, run the function by hand (or wait
+      for 03:30 UTC): the row and the files are gone
+- [ ] A new application with the same legal name as a removed, actioned member
+      shows **Possible repeat** in Verifications and in the moderator email
+
+### Known limits
+
+- Accounts deleted **before** this ships have nothing held, and never will.
+- Members who deleted their account cannot be reported from the app's profile
+  screens (the profile no longer loads); a report can still be made against a
+  held account through the report flow if the app has the id, and a moderator
+  can extend a hold by hand from the admin page.
+- A fingerprint of a guessable email can be confirmed by guessing it. It keeps
+  the readable details out of the table; it is not a secret.
+
+## Phone number replaces WhatsApp (added 2026-10-06)
+
+The profile gate now asks for one personal phone number instead of a WhatsApp
+number, and the reveal screen offers Call and Email. One migration,
+`20260921160000_phone_replaces_whatsapp`: it moves each member's WhatsApp number
+into `contact_details.phone`, drops `whatsapp`, makes `phone` E.164-only,
+removes 'whatsapp' as a preferred channel, and rebuilds the three functions that
+read the old column (admin user detail, the identity hold, `delete_account`).
+Applied to dev and tested there.
+
+### Before merging to `main`
+
+- [ ] **The migration drops a column.** The dry run's review will flag it. It is
+      safe only because the numbers are copied into `phone` first; check on prod
+      afterwards that `select count(*) from contact_details where phone is null`
+      is no larger than before
+- [ ] **Backend first.** An old app build on the new backend reads a column that
+      no longer exists: its profile edit and contact reveal would fail until the
+      member updates. The auth gate in the old build reads `whatsapp` too, so a
+      member who is already complete would be sent back to the profile setup.
+      Ship the new build promptly after the backend, and say so in the release
+      notes
+- [ ] The privacy policy, account-deletion page, community guidelines and Play
+      data-safety copy now say "phone number" rather than "WhatsApp number"
+
+### Smoke test on dev
+
+- [ ] A member who had a WhatsApp number is still complete and goes straight into
+      the app, with the same number shown under Profile → "Phone"
+- [ ] A new member is asked for "Your phone number" (not WhatsApp), with the country
+      code chosen in its own box (starting from the device's region) and the number
+      typed separately; a leading 0 is dropped, pasting a whole +49 … number sets
+      the country, and an existing member's number shows split correctly in Edit
+      profile
+- [ ] After an accepted offer the reveal shows Phone (Call) and Email
+
+## Usernames, connections and trip visibility (Milestone 7, added 2026-10-06)
+
+Members get a unique username, can connect with each other, and choose per trip who
+sees it (public / connections only / private). Tips and coffee join stays as things
+a traveller can ask for. Home gains a connections band. Plan and decisions:
+`Milestone-7-Friends-and-Visibility.md`. Seven migrations, applied to dev and
+tested there: `20260921170000_usernames`, `180000_friendships`,
+`190000_trip_visibility`, `200000_request_kinds`, `210000_tips_and_coffee_requests`,
+`220000_home_feed_friends`, and `230000_friends_become_connections`, which renames
+"friends" to "connections" throughout (table, helpers, the stored visibility
+value, notification types, the setting). Prod runs the earlier ones and then this
+rename in the same push.
+
+### Before merging to `main`
+
+- [ ] **This changes who can see what, for everyone.** Every existing trip becomes
+      public, which is **much narrower than today** (every approved member saw
+      every active trip). After this, a trip is visible only to the owner's
+      connections, people living in the destination, people there on overlapping
+      dates, and people the owner asked. Tell members before it ships
+- [ ] **Backend first.** The new app build expects usernames, `friendships`,
+      `trips.visibility` and the new request kinds. Old builds on the new backend
+      keep working (a sign-up with no username gets a generated one; a trip with
+      no visibility is public) but will show a tips or coffee request as if it
+      were a stay request, and cannot use connections
+- [ ] **Existing members get an automatic username** such as `aziz_4821`. They can
+      change it once, immediately, in Edit profile. Say so in the release notes
+- [ ] Read the dry run: `20260921200000` adds enum values (it must be its own
+      migration, and is), and `20260921190000` replaces the trips viewing policy
+- [ ] **Privacy policy / terms.** The privacy policy and account-deletion page now
+      describe usernames, connections and trip visibility. Have them read before
+      release: connections see a full name, bio and links that other members do not
+- [ ] **Known limit:** bio, links and the family name are hidden from non-connections
+      in the app only. Any approved member can still read them through the API
+      (the family name already could be). Hiding them in the database means moving
+      columns out of `profiles`, a later hardening
+
+### Profile numbers (`20260921240000_member_stats`)
+
+- [ ] Every profile shows Connections, Trips and Services offered. A stranger
+      pressing a number does nothing; a connection pressing one sees the list
+- [ ] Trips: a connection sees only trips that are not private; the count leaves
+      private ones out (your own count includes them)
+- [ ] Services: a stay counts once its last night has passed, tips and coffee once
+      the trip they were for has ended; a pending or declined one never counts
+- [ ] A service for someone's private trip shows the person but not the city
+- [ ] Privacy policy now has a section on these numbers (3.1b): have it read
+
+### Smoke test on dev, with builds pointed at dev (two accounts, then three)
+
+- [ ] Sign up with a username; a taken one says so as you type; an existing
+      account shows its generated `@username` on the Profile tab and can change it
+- [ ] Search the other account by username and by name; tap Connect; the other
+      sees it on Home and under Connections, and gets a notification
+- [ ] Accept: both appear under Connections and the count beside each profile
+      picture goes up; the connection's page now shows their full name, bio and
+      links; a stranger's page does not
+- [ ] Post a trip as Public, Connections only and Private, and check from a third,
+      unrelated account that only the right one is visible; send a request about
+      the private trip and check the person asked can now see it
+- [ ] A host who lists "tips" and "coffee" shows "Ask for local tips" and "Invite
+      for a coffee" on a trip's matches; accepting shares contact both ways
+- [ ] Home shows a connection's upcoming trip under "Your connections"
+- [ ] Block a connection: it disappears for both, silently
+- [ ] Delete a test account: its connections and username go
+
+## Services: one per post, and "always available" (added 2026-10-07)
+
+The Couch tab is now **Services**. Each post offers ONE service (couch, spare room,
+coffee or local tips), chosen first on its own screen, and can be **always
+available**: no dates, open until switched off, so requests keep arriving. Two
+migrations, applied to dev and tested there (`always_available.sql`):
+`20260921250000_services_always_available`, `20260921260000_group_services_in_matching`.
+
+What they do: availability dates become optional (an unbounded range, which
+matching already reads as "free on any dates"); existing posts that bundled several
+services are **split into one row per service**; matching lists a host once with
+every service they offer; and **only a couch or a spare room can be used to offer
+nights**, which was not enforced before (a host with only tips posted could be
+matched with, and offer nights to, a traveller).
+
+### Before merging to `main`
+
+- [ ] **Backend first.** Old builds on the new backend still work, with two visible
+      differences: a post they make with several services is accepted but listed as
+      before (only an always-available post is limited to one), and a host who has
+      posted only coffee or tips no longer appears in "Coming your way" or can offer
+      nights. Say so in the release notes
+- [ ] Look at the dry run: it **splits existing rows** (an insert, then an update).
+      Dev had no bundled posts, so the split ran only against a synthetic row in a
+      rolled-back transaction. Check the count on prod first:
+      `select count(*) from availability where array_length(offers,1) > 1;`
+- [ ] Hosting conditions (women only, no pets, ...) and the maximum nights **stay
+      with the couch or room** when a post is split, and are dropped from a coffee or
+      tips post. That is a judgement call: confirm it is what you want
+
+### Smoke test on dev
+
+- [ ] The Couch tab is now Services; the centre button says "Offer a service" and
+      opens a chooser of the four; each leads to its own form
+- [ ] Couch and spare room ask for nights, house rules and a maximum stay; coffee
+      and tips ask for neither
+- [ ] The "Always available" switch removes the dates; the post shows an "Always
+      available" badge and can be switched off from the list
+- [ ] A traveller whose trip is months away finds the always-available host, with
+      "N of your N nights"; a host who offers a couch and a coffee appears **once**
+- [ ] A host who offers only a coffee shows no nights and no stay button, only
+      "Ask for ... / Invite for a coffee"
+- [ ] An existing multi-service post now shows as separate posts in the list
+
+## Offering a service without being asked (added 2026-10-07)
+
+A member can now open somebody's trip (from Home, or from a connection's list of
+trips) and offer them one of their own posted services, unprompted. A couch or a
+room goes through the existing nights offer; a **coffee or local tips** use a new
+table, `service_offers`: the owner accepts (and both get each other's contact
+details) or declines. One migration, `20260921270000_service_offers`, applied to dev
+and tested there (`service_offers.sql`).
+
+Rules: only a trip the giver can already see (the trip visibility rule, enforced
+through RLS, so a private trip can never be offered on); one offer of each service per
+person per trip (**the giver no longer has to have posted the service first** — see
+"Direct offers and navigation rework" below, which supersedes that rule); an accepted one counts toward the giver's
+"services offered" once the trip has ended.
+
+### Before merging to `main`
+
+- [ ] **Backend first.** Old builds on the new backend simply do not show these
+      offers. A coffee or tips offer made to a member on an old build produces a
+      notification they can read but cannot answer in the app until they update.
+      Say so in the release notes
+- [ ] The migration **changes `delete_account`**: a trip now survives its owner's
+      deletion (stripped of its text) if an accepted service offer or an accepted
+      tips or coffee request rests on it, as a trip with a stay already did. Read
+      that part of the dry run
+- [ ] Privacy policy and account-deletion page now say accepted coffee or tips are
+      retained after deletion (who, the city and the month): have them read
+
+### Smoke test on dev (two accounts)
+
+- [ ] Account A has posted coffee and local tips in a city; account B has a public
+      trip there. From A, open B's trip from Home: both services appear, and
+      offering one is a single tap
+- [ ] B sees it under "Waiting on you" on Requests, with the header badge raised,
+      and accepts: both land on the contact screen, and a notification arrives
+- [ ] A's couch or spare room shows "Offer nights" on the same screen and opens the
+      nights form
+- [ ] B declines another: A is told. A withdraws a third before it is answered
+- [ ] A private trip cannot be reached. (A service you have not posted *is* now
+      offered: see the next section.)
+- [ ] After the trip ends, the accepted coffee adds one to A's "Services offered"
+
+## Direct offers, navigation rework and admin names (added 2026-10-14)
+
+Everything below is on `develop`, applied to dev and tested there. **Four
+migrations**, all after `20260921270000`, so prod's `db push` will list them last:
+
+| Migration | What it does | Destructive? |
+|---|---|---|
+| `20260921280000_block_clears_notifications` | Blocking deletes the pair's notifications, both ways (incl. unsent pushes); a **one-off backfill** clears those left by earlier blocks | **Yes** — deletes `notifications` rows |
+| `20260921290000_service_offers_without_a_post` | A coffee or tips offer no longer needs a posted service: replaces `enforce_service_offer` | No (function replace) |
+| `20260921300000_offer_nights_without_a_post` | Nights can be offered with no posted couch: replaces `enforce_offer_range`, falling back to the trip's city | No (function replace) |
+| `20260921310000_admin_shows_held_names` | Admin shows a deleted member's held name, hides them once the hold ends: two helper functions, three views and `admin_search_profiles` replaced | No (views keep their columns) |
+
+### Before merging to `main`
+
+- [ ] **Look at what the backfill in `20260921280000` will delete, on prod, first.**
+      It removes notifications where one person has blocked the other. There are no
+      backups. Run in prod's SQL editor and decide the count is acceptable:
+      ```sql
+      select count(*) from public.notifications n
+       join public.blocks b
+         on (n.profile_id = b.blocker_id and b.blocked_id::text in
+               (n.payload ->> 'fromProfileId', n.payload ->> 'withProfileId', n.payload ->> 'toProfileId'))
+         or (n.profile_id = b.blocked_id and b.blocker_id::text in
+               (n.payload ->> 'fromProfileId', n.payload ->> 'withProfileId', n.payload ->> 'toProfileId'));
+      ```
+- [ ] **Backend first**, as with every release. Old builds on the new backend are
+      fine for the three database changes (they only loosen rules or hide rows). One
+      visible effect: an old build's edit screen for a direct offer of nights still
+      says "No availability covers these nights any more"; new builds do not.
+- [ ] **A new native build is required, not just a JavaScript update.** Icons now
+      come from `@expo/vector-icons` (Ionicons), whose font is a native asset; a
+      build without it shows blank icons. Check the production build profile
+      includes it (`pnpm install` in `apps/mobile`, then a fresh EAS build)
+- [ ] The dry run is function and view replacements plus the one notifications
+      delete above. Read it together with every other pending migration: prod is
+      many behind, and `db push` applies them all
+- [ ] Release notes: the navigation changed (see below), and **offering a coffee,
+      tips or nights to one person no longer needs a posted service**
+
+### What changed for members
+
+- **Navigation.** Bottom bar is a floating island: Home, Trips, Services,
+  Connections, Profile, with a sliding glass pill on the current tab and no centre
+  "+" button (Add a trip is on Trips, offering a service on Services). Requests and
+  activity share **one bell** at the top left (count = unread + requests and offers
+  waiting on you); **Settings** is a gear at the top right, no longer a tab. Home
+  lost its Connections row and "Hello, name".
+- **What is waiting on you** on Home is now floating banners, stacked when there are
+  several, with "N waiting" opening the whole pile.
+- **Direct offers.** From someone's trip: a place to stay, a coffee or local tips, each
+  sent to that person alone with no need to have posted anything. Nights can be edited
+  afterwards. A posted couch or room still decides where the stay happens, if one
+  covers the nights; otherwise it is in the trip's city. **This loosens the rule for
+  everyone**: a host can now offer nights outside their own posted dates, and a
+  coffee-only host can offer nights directly. They still must fall inside the trip.
+- **Errors** on Edit profile show as a banner at the top, and an always-available
+  clash reads in plain words instead of naming a database index.
+- **Fixes.** Signing out and into another account no longer shows the first account's
+  data until a refresh (the query cache is emptied when the member changes). Blocking
+  someone no longer leaves their earlier request notification behind to open onto
+  nothing.
+- **Admin.** A deleted member shows by name in the user search, user detail, recent
+  sign-ups and the report queue **while their identity is held** (30 days, or 12
+  months if reported), then drops out of the search and sign-ups. A direct link still
+  opens, as "Deleted member".
+
+### Smoke test on dev
+
+- [ ] Account A offers a **coffee** and **local tips** to B's trip having posted
+      neither: both go through; B sees them under Waiting on you and can accept
+- [ ] A offers **nights** to B's trip with no couch posted; A taps Edit offer: the
+      date picker is there, bounded by the trip, and saving works
+- [ ] Nights outside the trip's dates are still refused
+- [ ] A asks B about a stay, B's banner shows on Home; A blocks B: B's banner and
+      Activity row are gone on the next refresh, and A's too
+- [ ] Sign out of one account and into another: no data from the first appears
+- [ ] Several things waiting: Home shows a stack with "N waiting"; dismissing the
+      front one reveals the next; "N waiting" opens the list and "Show less" closes it
+- [ ] Edit profile, trigger an error (e.g. a username changed twice within 30 days):
+      the message is the real one and appears at the top
+- [ ] Admin: delete a test account, it is listed **by name**; set its hold into the
+      past: it disappears from the search and sign-ups
+- [ ] Android: the tab bar's shadow and the banner shadows look right (the bar clips
+      its sliding pill, which can cost the shadow there)
+
+### Known limits
+
+- **Accepting a stay with no posted couch behind it** (stay, contact reveal, reviews)
+  was checked by reading the accept function, which never looks at availability, not
+  by running one end to end. Do that once on dev.
+- The tab bar and banners fake glass with a tint and a rim; there is no real blur
+  (it would need `expo-blur`, a native module).
+- Dev's real data trips three tests that count whole tables, none caused by this
+  work: `acceptance` 8, `expiry` 3 and 4 (a real stay exists) and `notifications`
+  19, 21 and 25 (real unsent notifications are due). CI runs on an empty database,
+  where they pass; they are the same kind of noise as the six listed in `CLAUDE.md`.
+
 ## Carried over from Milestone 5 (already tracked in `TODO.md`, listed here only because prod is where they land)
 
 - [ ] Upgrade Supabase to Pro
 - [x] Create Resend account, verify the sending domain (SPF + DKIM + DMARC)
       — see above, done 2026-09-18
 - [ ] Raise auth email rate limits off the shared-sender defaults
-- [ ] Set `site_url` and redirect URLs to production (never `127.0.0.1`)
-- [ ] Confirmation email and password reset round trips from a production build
+- [x] Set `site_url` and redirect URLs to production (never `127.0.0.1`) — prod's
+      allowlist includes `account.gigaway.app/callback`, done 2026-10-04
+- [ ] Confirmation email and password reset round trips from a production build —
+      neither has run on prod yet. Both need the production mobile build first, and
+      confirmation also needs `enable_confirmations` turned on for prod.

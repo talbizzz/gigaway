@@ -11,7 +11,7 @@ export const requestKeys = {
   forTrip: (tripId: string) => ['requests', 'trip', tripId] as const,
 }
 
-export type RequestKind = 'host_stay' | 'co_accommodation'
+export type RequestKind = 'host_stay' | 'co_accommodation' | 'tips' | 'coffee'
 export type RequestStatus = 'pending' | 'accepted' | 'declined' | 'withdrawn' | 'expired'
 
 export type RequestPerson = {

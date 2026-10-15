@@ -1,4 +1,4 @@
-import { useRouter } from 'expo-router'
+import { Stack, useRouter } from 'expo-router'
 import { StyleSheet, View } from 'react-native'
 
 import { TextLink } from '@/components/button'
@@ -12,10 +12,10 @@ import { spacing } from '@/theme/tokens'
 /**
  * Settings, as a menu rather than one long scroll of every section at once.
  *
- * Each row opens its own page under (app)/settings/ — the same pattern as
- * guidelines.tsx and every member/trip/offer detail screen already use, so
- * these get a back button and a place to breathe for free from the (app)
- * layout's shared screenOptions.
+ * Opened from the gear in the header of the tab screens. Each row opens its own
+ * page under (app)/settings/ — the same pattern as guidelines.tsx and every
+ * member/trip/offer detail screen already use, so these get a back button and a
+ * place to breathe for free from the (app) layout's shared screenOptions.
  *
  * The blocked-member count shown here comes from the same hook the
  * destination page uses. Fetching it here is not wasted work: React Query
@@ -32,6 +32,7 @@ export default function SettingsScreen() {
 
   return (
     <Screen>
+      <Stack.Screen options={{ title: 'Settings' }} />
       <SettingsRow
         title="Blocked members"
         description="Everyone you have made invisible to yourself, and to you."

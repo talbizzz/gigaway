@@ -79,6 +79,12 @@ insert into public.trips (id, profile_id, city_id, start_date, end_date, needs) 
    (select id from public.cities where name = 'Hamburg' limit 1),
    current_date + 6, current_date + 12, array['couch']);
 
+-- Anna is connected to Gita. Trip visibility hides a trip in a city the viewer
+-- neither lives in nor visits unless they are connected, and without this
+-- Anna could not see that Gita is away.
+insert into public.connections (requester_id, addressee_id, status)
+values ('11111111-1111-1111-1111-111111111111', '77777777-7777-7777-7777-777777777777', 'accepted');
+
 insert into public.availability (profile_id, city_id, start_date, end_date, offers) values
   ('55555555-5555-5555-5555-555555555555',
    (select id from public.cities where name = 'Berlin' limit 1),
@@ -104,7 +110,7 @@ select is(
 
 select is(
   (select public.home_feed() -> 'inYourCity' -> 0 -> 'profile' ->> 'displayName'),
-  'Bruno Kraus',
+  'Bruno K.',
   'and it is the one who is actually here'
 );
 
@@ -116,7 +122,7 @@ select is(
 
 select is(
   (select public.home_feed() -> 'comingToYourCity' -> 0 -> 'profile' ->> 'displayName'),
-  'Clara Ortiz',
+  'Clara O.',
   'and it is the one who is on the way'
 );
 
@@ -141,7 +147,7 @@ select is(
 
 select is(
   (select public.home_feed() -> 'destinations' -> 0 -> 'people' -> 0 -> 'profile' ->> 'displayName'),
-  'Erik Sund',
+  'Erik S.',
   'and although Erik also lives there, he appears once, as the host'
 );
 

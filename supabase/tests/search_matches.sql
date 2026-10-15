@@ -77,7 +77,7 @@ select is(
 
 select is(
   (select m -> 'hosts' -> 0 -> 'profile' ->> 'displayName' from result),
-  'Clara Ortiz',
+  'Clara O.',
   'hosts are ranked by overlap nights, so the six-night match leads'
 );
 
@@ -114,7 +114,7 @@ select is(
 
 select is(
   (select m -> 'travellers' -> 0 -> 'profile' ->> 'displayName' from result),
-  'Dora Lang',
+  'Dora L.',
   'the co-accommodation candidate is the other traveller, not the caller'
 );
 

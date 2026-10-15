@@ -12,7 +12,7 @@ begin;
 -- the CLI recreates on every run, so the privileges these fixtures need (writing
 -- to auth.users) must be claimed explicitly. Locally this is a no-op.
 set local role postgres;
-select plan(30);
+select plan(31);
 
 -- ── fixtures ───────────────────────────────────────────────────────────────
 -- Anna travels to Munich. Bruno and Clara both offer her a couch; Dieter is an
@@ -30,9 +30,9 @@ insert into auth.users (id, email, raw_user_meta_data) values
 update public.profiles set status = 'approved';
 
 update public.contact_details
-  -- whatsapp is E.164 only (whatsapp_is_e164); phone carries no such rule.
-  set phone = '+49 170 1234567', whatsapp = '+491701234567',
-      preferred_channel = 'whatsapp'
+  -- phone is E.164 only (phone_is_e164).
+  set phone = '+491701234567',
+      preferred_channel = 'phone'
   where profile_id = '22222222-2222-2222-2222-222222222222';
 
 insert into public.trips (id, profile_id, city_id, start_date, end_date, needs)
@@ -159,10 +159,10 @@ set local request.jwt.claims to
   '{"sub":"11111111-1111-1111-1111-111111111111","role":"authenticated"}';
 
 select is(
-  (select whatsapp from public.contact_details
+  (select phone from public.contact_details
     where profile_id = '22222222-2222-2222-2222-222222222222'),
   '+491701234567',
-  'the traveller can now read the host''s WhatsApp number'
+  'the traveller can now read the host''s phone number'
 );
 
 set local role postgres;
@@ -322,6 +322,18 @@ select is(
   (select count(*)::int from public.notifications where type = 'co_request_accepted'),
   2,
   'both travellers are told the co-accommodation request was accepted'
+);
+
+-- Reviews hang off stays (reviews.stay_id is not null), so no stay between the
+-- pair means nothing to review. Scoped to the two fixture profiles.
+select is(
+  (select count(*)::int from public.stays
+    where (host_id = '44444444-4444-4444-4444-444444444444'
+           and guest_id = '11111111-1111-1111-1111-111111111111')
+       or (host_id = '11111111-1111-1111-1111-111111111111'
+           and guest_id = '44444444-4444-4444-4444-444444444444')),
+  0,
+  'a co-accommodation pair has no stay, so it can never be reviewed'
 );
 
 select * from finish();

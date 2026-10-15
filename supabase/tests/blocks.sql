@@ -12,7 +12,7 @@ begin;
 -- the CLI recreates on every run, so the privileges these fixtures need (writing
 -- to auth.users) must be claimed explicitly. Locally this is a no-op.
 set local role postgres;
-select plan(32);
+select plan(33);
 
 insert into auth.users (id, email, raw_user_meta_data) values
   ('11111111-1111-1111-1111-111111111111', 'anna@example.test',
@@ -25,7 +25,7 @@ insert into auth.users (id, email, raw_user_meta_data) values
 update public.profiles set status = 'approved';
 
 update public.contact_details
-  set phone = '+49 170 1234567', preferred_channel = 'phone'
+  set phone = '+491701234567', preferred_channel = 'phone'
   where profile_id = '22222222-2222-2222-2222-222222222222';
 
 -- Anna travels to Munich twice. Bruno hosts there and is free throughout.
@@ -108,7 +108,7 @@ select is(
 select is(
   (select phone from public.contact_details
     where profile_id = '22222222-2222-2222-2222-222222222222'),
-  '+49 170 1234567',
+  '+491701234567',
   'and the accepted stay has revealed contact details'
 );
 
@@ -283,6 +283,19 @@ select is(
   'and no future notification can cross the block either'
 );
 
+-- The request notifications written before the block (the fixtures' requests
+-- each notified the host) must be gone too: left behind, they sit in the blocked
+-- person's feed and open onto a request they can no longer see.
+select is(
+  (select count(*)::int from public.notifications
+    where (profile_id = '22222222-2222-2222-2222-222222222222'
+           and payload ->> 'fromProfileId' = '11111111-1111-1111-1111-111111111111')
+       or (profile_id = '11111111-1111-1111-1111-111111111111'
+           and payload ->> 'fromProfileId' = '22222222-2222-2222-2222-222222222222')),
+  0,
+  'notifications already sent between the pair were cleared when the block was made'
+);
+
 -- ── a third party is unaffected ────────────────────────────────────────────
 set local role authenticated;
 set local request.jwt.claims to
@@ -342,7 +355,7 @@ select is(
 select is(
   (select phone from public.contact_details
     where profile_id = '22222222-2222-2222-2222-222222222222'),
-  '+49 170 1234567',
+  '+491701234567',
   'and the earlier stay''s contact grant works again'
 );
 

@@ -322,13 +322,13 @@ None. This milestone adds no tables.
 
 ## Done Criteria
 
-- [ ] `https://gigaway.app/` is live and describes the product (Correction 6: or still the
+- [x] `https://gigaway.app/` is live and describes the product (Correction 6: or still the
       placeholder, until the real landing page exists)
-- [ ] `https://legal.gigaway.app/privacy`, `/terms` and `/guidelines` are live and
+- [x] `https://legal.gigaway.app/privacy`, `/terms` and `/guidelines` are live and
       reachable without JavaScript (Correction 6: moved off the root domain)
-- [ ] `/.well-known/apple-app-site-association` serves as `application/json`, no redirect,
+- [x] `/.well-known/apple-app-site-association` serves as `application/json`, no redirect,
       on both `account.gigaway.app` and `account-dev.gigaway.app`
-- [ ] `/.well-known/assetlinks.json` carries the SHA-256 of **the certificate that actually
+- [x] `/.well-known/assetlinks.json` carries the SHA-256 of **the certificate that actually
       signs the installed build** — Play Console's App Signing certificate for prod (not
       `eas credentials`'s upload-key certificate, a different thing), the local debug
       keystore's for a local dev build (Correction 6 has the exact command either way)
@@ -342,7 +342,7 @@ None. This milestone adds no tables.
 - [ ] CI runs typecheck, lint, Vitest, pgTAP and the `sync:shared` freshness check on PRs
 - [ ] CI fails when a deliberately broken RLS policy is pushed *(verify this once)*
 - [ ] Supabase is on Pro and will not pause
-- [ ] All Edge Functions are deployed to production with secrets set
+- [x] All Edge Functions are deployed to production with secrets set (nine, re-verified 2026-10-04)
 - [ ] `pg_cron` jobs are scheduled and running in the production project
 - [ ] Analytics is enabled and `/privacy` names PostHog, Sentry, Expo, Resend and Cloudflare Pages
 - [ ] TestFlight build installs on a device that is not the developer's
@@ -353,8 +353,8 @@ None. This milestone adds no tables.
       push received → review submitted → reviews published
 - [ ] Sending domain shows DKIM and SPF verified in Resend; a DMARC record exists
 - [ ] A test send from the domain lands in a Gmail inbox, not its spam folder
-- [ ] Supabase Auth uses custom SMTP; the 2-emails-per-hour cap no longer applies
-- [ ] `RESEND_API_KEY`, `MODERATOR_FROM`, `NOTIFICATION_FROM`, `MODERATOR_EMAIL` and
+- [x] Supabase Auth uses custom SMTP; the 2-emails-per-hour cap no longer applies (prod, 2026-09-24)
+- [x] `RESEND_API_KEY`, `MODERATOR_FROM`, `NOTIFICATION_FROM`, `MODERATOR_EMAIL` and
       `VERIFICATION_EMAIL` are set on the project
 - [ ] `moderation-digest` returns `emailed: true` and the mail actually arrives
 - [ ] Email confirmation is switched back on (Authentication → Sign In / Providers, and
@@ -490,11 +490,11 @@ choice changed.
      `deploy-backend.yml`/`deploy-admin.yml`'s prod jobs. This is static content with no
      migration risk, the data-safety reasoning behind that gate doesn't apply here — same
      risk profile the legal pages already deployed under unattended.
-   - **Not yet live anywhere.** Needs three new Cloudflare Pages custom domains attached
-     by hand (`legal.gigaway.app`, `account.gigaway.app`, `account-dev.gigaway.app`), the
-     same manual step `admin.gigaway.app` needed earlier — the deploy workflows create the
-     underlying Pages projects automatically on first run, but cannot attach a custom
-     domain themselves.
+   - **Live as of 2026-10-04.** `account-dev.gigaway.app`, `account.gigaway.app`,
+     `legal.gigaway.app` and the `gigaway.app` placeholder are all serving correctly,
+     each with its custom domain attached by hand — the deploy workflows create the Pages
+     projects, but cannot attach a custom domain themselves. Password reset is verified on
+     dev. Production still needs the production mobile build to test it there.
 
 ## Known Risks & Watch-Outs
 

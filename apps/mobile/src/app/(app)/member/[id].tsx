@@ -4,8 +4,13 @@ import { ActivityIndicator, Alert, Linking, StyleSheet, Text, View } from 'react
 import { Badge } from '@/components/badge'
 import { Button, TextLink } from '@/components/button'
 import { Callout } from '@/components/callout'
+import { ConnectionActions } from '@/components/connection-actions'
+import { ProfileHeader } from '@/components/profile-header'
 import { PersonRow } from '@/components/person'
 import { Screen } from '@/components/screen'
+import { VerifiedOnly } from '@/components/verified-only'
+import { useRelationshipWith } from '@/features/connections/use-connections'
+import { useMemberStats } from '@/features/members/use-member-stats'
 import { useBlockMember, useHasBlocked, useUnblockMember } from '@/features/blocks/use-blocks'
 import { useMemberProfile } from '@/features/profile/use-profile'
 import {
@@ -45,6 +50,8 @@ export default function MemberProfileScreen() {
   }>()
 
   const profile = useMemberProfile(id)
+  const link = useRelationshipWith(id)
+  const stats = useMemberStats(id)
   const reviews = useReviewsFor(id)
   const summary = useReviewSummary(id)
   const hasBlocked = useHasBlocked(id)
@@ -85,6 +92,7 @@ export default function MemberProfileScreen() {
   const ratio = wouldAgainLabel(summary.data)
   const published = reviews.data ?? []
   const links = (person.links ?? []) as ProfileLink[]
+  const isConnected = link.relationship === 'connected'
 
   const confirmBlock = () => {
     Alert.alert(
@@ -105,19 +113,50 @@ export default function MemberProfileScreen() {
     <Screen>
       <Stack.Screen options={{ title: person.display_name }} />
 
-      <PersonRow person={person} size={64} />
+      <ProfileHeader
+        person={person}
+        stats={stats.data}
+        canOpen={isConnected}
+        onOpen={(section) =>
+          router.push({ pathname: '/member-details/[id]', params: { id, section } })
+        }
+      >
+        {/* Connections see more of each other. A connection's full name, bio and
+            links are shown only to connections; everyone else sees the card above
+            and, below, what colleagues say. */}
+        {isConnected && person.last_name ? (
+          <Text style={[typography.bodyStrong, { color: theme.text }]}>
+            {[person.first_name, person.last_name].filter(Boolean).join(' ')}
+          </Text>
+        ) : null}
+      </ProfileHeader>
 
-      {person.bio ? (
+      <ConnectionActions
+        profileId={id}
+        firstName={person.display_name.split(' ')[0] ?? 'them'}
+        relationship={link.relationship}
+        connectionId={link.connectionId}
+      />
+
+      {isConnected && person.bio ? (
         <Text style={[typography.body, { color: theme.text }]}>{person.bio}</Text>
       ) : null}
 
-      {links.map((link) => (
-        <TextLink
-          key={link.url}
-          label={link.label || link.url}
-          onPress={() => Linking.openURL(link.url)}
-        />
-      ))}
+      {isConnected
+        ? links.map((link) => (
+            <TextLink
+              key={link.url}
+              label={link.label || link.url}
+              onPress={() => Linking.openURL(link.url)}
+            />
+          ))
+        : null}
+
+      {!isConnected && (person.bio || links.length > 0) ? (
+        <Text style={[typography.caption, { color: theme.textMuted }]}>
+          Connections see {person.display_name.split(' ')[0]}'s full name, bio and links.
+        </Text>
+      ) : null}
 
       {/* ── Reputation ──────────────────────────────────────────────────── */}
       <View style={styles.section}>
@@ -154,12 +193,14 @@ export default function MemberProfileScreen() {
             loading={unblock.isPending}
           />
         ) : (
-          <Button
-            label="Block"
-            variant="secondary"
-            onPress={confirmBlock}
-            loading={block.isPending}
-          />
+          <VerifiedOnly>
+            <Button
+              label="Block"
+              variant="secondary"
+              onPress={confirmBlock}
+              loading={block.isPending}
+            />
+          </VerifiedOnly>
         )}
         <TextLink
           label="Report a concern"
@@ -200,10 +241,12 @@ function MatchActionSection({
   if (action === 'offer') {
     return (
       <View style={styles.section}>
-        <Button
-          label="Offer nights"
-          onPress={() => router.push({ pathname: '/offer/new', params: { tripId } })}
-        />
+        <VerifiedOnly>
+          <Button
+            label="Offer nights"
+            onPress={() => router.push({ pathname: '/offer/new', params: { tripId } })}
+          />
+        </VerifiedOnly>
       </View>
     )
   }
@@ -227,18 +270,20 @@ function MatchActionSection({
 
   return (
     <View style={styles.section}>
-      <Button
-        label={action === 'ask_co' ? 'Ask about splitting a place' : 'Ask about these nights'}
-        variant={action === 'ask_co' ? 'secondary' : 'primary'}
-        onPress={() =>
-          sendRequest.mutate({
-            kind: action === 'ask_co' ? 'co_accommodation' : 'host_stay',
-            tripId,
-            toProfile: profileId,
-          })
-        }
-        loading={sendRequest.isPending}
-      />
+      <VerifiedOnly>
+        <Button
+          label={action === 'ask_co' ? 'Ask about splitting a place' : 'Ask about these nights'}
+          variant={action === 'ask_co' ? 'secondary' : 'primary'}
+          onPress={() =>
+            sendRequest.mutate({
+              kind: action === 'ask_co' ? 'co_accommodation' : 'host_stay',
+              tripId,
+              toProfile: profileId,
+            })
+          }
+          loading={sendRequest.isPending}
+        />
+      </VerifiedOnly>
     </View>
   )
 }

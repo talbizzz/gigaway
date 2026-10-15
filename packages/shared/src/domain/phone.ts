@@ -1,7 +1,7 @@
 import { z } from 'zod'
 
 /**
- * WhatsApp numbers.
+ * The member's personal phone number.
  *
  * Stored in E.164 — a leading `+`, country code, then the national number, no
  * spaces or punctuation. That is not house style for its own sake: wa.me takes
@@ -31,7 +31,7 @@ export function normalisePhoneNumber(input: string): string {
   return stripped
 }
 
-export const WhatsAppNumberSchema = z
+export const PhoneNumberSchema = z
   .string()
   .transform(normalisePhoneNumber)
   .refine((value) => E164.test(value), {
@@ -39,14 +39,11 @@ export const WhatsAppNumberSchema = z
   })
 
 /** True when the input normalises to something dialable internationally. */
-export function isValidWhatsAppNumber(input: string): boolean {
+export function isValidPhoneNumber(input: string): boolean {
   return E164.test(normalisePhoneNumber(input))
 }
 
-/**
- * The wa.me deep link. Digits only — wa.me rejects the `+`, spaces and dashes,
- * so this is the one place that conversion should live.
- */
-export function whatsAppLink(number: string): string {
-  return `https://wa.me/${normalisePhoneNumber(number).replace(/\D/g, '')}`
+/** The `tel:` link for a stored number: dialable, with no spaces or punctuation. */
+export function telLink(number: string): string {
+  return `tel:${normalisePhoneNumber(number)}`
 }

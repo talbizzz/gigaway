@@ -5,12 +5,16 @@ import {
   notificationRoute,
 } from '@gigaway/shared'
 import { useRouter } from 'expo-router'
-import { Pressable, StyleSheet, Text, View } from 'react-native'
+import { useState } from 'react'
+import { StyleSheet, Text, View } from 'react-native'
 
 import { Button, TextLink } from '@/components/button'
 import { Callout } from '@/components/callout'
+import { NotificationStack, type Banner } from '@/components/notification-stack'
 import { PersonRow, personFrom } from '@/components/person'
+import { ReviewBanner } from '@/components/review-banner'
 import { Screen } from '@/components/screen'
+import { TripRow } from '@/components/trip-row'
 import { useDismissRequest, useDismissedRequests } from '@/features/feed/use-dismissed-requests'
 import {
   useHomeFeed,
@@ -22,10 +26,9 @@ import {
   useMarkNotificationRead,
   useNotifications,
 } from '@/features/notifications/use-notifications'
-import { useMyProfile } from '@/features/profile/use-profile'
 import { useIncomingRequests, type StayRequest } from '@/features/requests/use-requests'
 import { useReviewableStays } from '@/features/reviews/use-reviews'
-import { useCancelTrip, useMyTrips, type Trip } from '@/features/trips/use-trips'
+import { useMyTrips } from '@/features/trips/use-trips'
 import { radius, spacing, typography } from '@/theme/tokens'
 import { useTheme } from '@/theme/use-theme'
 
@@ -45,7 +48,7 @@ export default function HomeScreen() {
   const theme = useTheme()
   const router = useRouter()
 
-  const { data: profile } = useMyProfile()
+  const [stackHeight, setStackHeight] = useState(0)
   const trips = useMyTrips()
   const feed = useHomeFeed()
   const reviewable = useReviewableStays()
@@ -64,9 +67,37 @@ export default function HomeScreen() {
   const requestCards = pendingRequests.filter((row) => !dismissedIds.has(row.id))
   const activityCards = (notifications.data ?? []).filter((row) => row.read_at === null)
 
+  // Waiting on you, as floating banners. Requests first: a colleague who asked and
+  // heard nothing is the worst outcome this product has, and it stays until it is
+  // answered or swept aside. Sweeping a request is local — it has not been
+  // answered just because it was pushed out of the way — while sweeping an
+  // activity banner marks it read, which is exactly what it means.
+  const banners: Banner[] = [
+    ...requestCards.map((request) => ({
+      id: `request-${request.id}`,
+      ...requestCopy(request),
+      onPress: () => router.push('/requests'),
+      onDismiss: () =>
+        dismissRequest.mutate({
+          id: request.id,
+          liveIds: pendingRequests.map((row) => row.id),
+        }),
+    })),
+    ...activityCards.map((row) => {
+      const payload = row.payload ?? {}
+      return {
+        id: `activity-${row.id}`,
+        ...notificationCopy(row.type, payload),
+        onPress: () => router.push(notificationRoute(row.type, payload) as never),
+        onDismiss: () => markRead.mutate(row.id),
+      }
+    }),
+  ]
+
   const inYourCity = feed.data?.inYourCity ?? []
   const comingToYourCity = feed.data?.comingToYourCity ?? []
   const destinations = feed.data?.destinations ?? []
+  const connectionTrips = feed.data?.connections ?? []
   const cityName = feed.data?.homeCityName
 
   const nothingAtAll =
@@ -76,49 +107,15 @@ export default function HomeScreen() {
     activeTrips.length === 0 &&
     inYourCity.length === 0 &&
     comingToYourCity.length === 0 &&
+    connectionTrips.length === 0 &&
     destinations.length === 0
 
   return (
-    <Screen>
-      <Text style={[typography.title, { color: theme.text }]}>
-        Hello, {profile?.display_name?.split(' ')[0] ?? 'there'}
-      </Text>
+    <Screen overlay={<NotificationStack banners={banners} onHeight={setStackHeight} />}>
+      {/* The banners float over the screen, so the feed starts below them. */}
+      {stackHeight > 0 ? <View style={{ height: stackHeight - spacing.lg }} /> : null}
 
-      {/*
-        Waiting on you. Requests first: a colleague who asked and heard nothing
-        is the worst outcome this product has, and it stays on the card until
-        it is answered or swept aside. Sweeping a request is local — it has not
-        been answered just because it was pushed out of the way — while sweeping
-        an activity card marks it read, which is exactly what it means.
-      */}
-      {requestCards.map((request) => (
-        <RequestCard
-          key={request.id}
-          request={request}
-          onPress={() => router.push('/requests')}
-          onDismiss={() =>
-            dismissRequest.mutate({
-              id: request.id,
-              liveIds: pendingRequests.map((row) => row.id),
-            })
-          }
-        />
-      ))}
-
-      {activityCards.map((row) => {
-        const payload = row.payload ?? {}
-        const copy = notificationCopy(row.type, payload)
-
-        return (
-          <FeedCard
-            key={row.id}
-            title={copy.title}
-            body={copy.body}
-            onPress={() => router.push(notificationRoute(row.type, payload) as never)}
-            onDismiss={() => markRead.mutate(row.id)}
-          />
-        )
-      })}
+      <ReviewBanner />
 
       {/*
         Reviews owed. The only thing here with a deadline attached — the window
@@ -190,6 +187,19 @@ export default function HomeScreen() {
         </View>
       ) : null}
 
+      {/* ── What connections are doing ──────────────────────────────────────── */}
+      {connectionTrips.length > 0 ? (
+        <View style={styles.section}>
+          <Text style={[typography.heading, { color: theme.text }]}>Your connections</Text>
+          <Text style={[typography.caption, { color: theme.textMuted }]}>
+            Where they are going next.
+          </Text>
+          {connectionTrips.map((trip) => (
+            <VisitorRow key={trip.tripId} visitor={trip} place={trip.cityName} />
+          ))}
+        </View>
+      ) : null}
+
       {/* ── Who will be where you are going ─────────────────────────────── */}
       {destinations.map((destination) => (
         <DestinationSection key={destination.tripId} destination={destination} />
@@ -199,86 +209,34 @@ export default function HomeScreen() {
 }
 
 /**
- * A request, as the feed shows it: who asked and for what, with the answering
- * left to the Requests screen. Deciding is a screen's worth of context — dates,
- * how many nights, what else you have on — and none of that belongs on a card.
+ * A request, as a banner shows it: who asked and for what, with the answering left
+ * to the Requests screen. Deciding is a screen's worth of context — dates, how many
+ * nights, what else you have on — and none of that belongs on a banner.
  */
-function RequestCard({
-  request,
-  onPress,
-  onDismiss,
-}: {
-  request: StayRequest
-  onPress: () => void
-  onDismiss: () => void
-}) {
+function requestCopy(request: StayRequest): { title: string; body: string } {
   const name = request.sender?.display_name ?? 'A colleague'
   const city = request.trips?.cities?.name
   const dates = formatDateRange(request.trips?.start_date, request.trips?.end_date)
 
-  return (
-    <FeedCard
-      title={
-        request.kind === 'co_accommodation'
-          ? `${name} wants to split a place`
-          : `${name} asked about your couch`
-      }
-      body={[city, dates].filter(Boolean).join(', ')}
-      onPress={onPress}
-      onDismiss={onDismiss}
-    />
-  )
-}
-
-/** The card shape shared by requests and activity. */
-function FeedCard({
-  title,
-  body,
-  onPress,
-  onDismiss,
-}: {
-  title: string
-  body: string
-  onPress: () => void
-  onDismiss: () => void
-}) {
-  const theme = useTheme()
-
-  return (
-    <View style={[styles.card, { backgroundColor: theme.accentSubtle }]}>
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel={`${title}. ${body}`}
-        onPress={onPress}
-        style={({ pressed }) => [styles.cardBody, pressed && styles.pressed]}
-      >
-        <Text style={[typography.bodyStrong, { color: theme.text }]}>{title}</Text>
-        <Text style={[typography.caption, { color: theme.textMuted }]}>{body}</Text>
-      </Pressable>
-
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel="Dismiss"
-        onPress={onDismiss}
-        hitSlop={12}
-        style={({ pressed }) => [pressed && styles.pressed]}
-      >
-        <Text style={[styles.dismiss, { color: theme.textMuted }]}>×</Text>
-      </Pressable>
-    </View>
-  )
+  return {
+    title:
+      request.kind === 'co_accommodation'
+        ? `${name} wants to split a place`
+        : `${name} asked about your couch`,
+    body: [city, dates].filter(Boolean).join(', '),
+  }
 }
 
 /** Somebody whose own trip brings them here. */
-function VisitorRow({ visitor }: { visitor: FeedVisitor }) {
+function VisitorRow({ visitor, place }: { visitor: FeedVisitor; place?: string }) {
   const router = useRouter()
 
   return (
     <PersonRow
       person={personFrom(visitor.profile)}
       size={36}
-      trailing={formatDateRange(visitor.start, visitor.end)}
-      onPress={() => router.push(`/member/${visitor.profile.id}`)}
+      trailing={[place, formatDateRange(visitor.start, visitor.end)].filter(Boolean).join(' · ')}
+      onPress={() => router.push(`/trip-view/${visitor.tripId}`)}
     />
   )
 }
@@ -305,7 +263,7 @@ function DestinationSection({ destination }: { destination: FeedDestination }) {
 
       {destination.people.length === 0 ? (
         <Callout>
-          Nobody yet. The list fills as colleagues post trips and free nights, so it is
+          Nobody yet. The list fills as colleagues post trips and services, so it is
           worth looking again closer to the date.
         </Callout>
       ) : (
@@ -353,60 +311,8 @@ function ReviewPromptCard({ stayId, city }: { stayId: string; city?: string }) {
   )
 }
 
-function TripRow({ trip, onPress }: { trip: Trip; onPress: () => void }) {
-  const theme = useTheme()
-  const router = useRouter()
-  const cancel = useCancelTrip()
-  const nights = nightCount({ start: trip.start_date, end: trip.end_date })
-
-  return (
-    <Pressable
-      accessibilityRole="button"
-      onPress={onPress}
-      style={({ pressed }) => [
-        styles.row,
-        { backgroundColor: theme.bgSubtle, borderColor: theme.border },
-        pressed && styles.pressed,
-      ]}
-    >
-      <View style={styles.rowText}>
-        <Text style={[typography.bodyStrong, { color: theme.text }]}>
-          {trip.cities?.name}
-        </Text>
-        <Text style={[typography.caption, { color: theme.textMuted }]}>
-          {trip.start_date} → {trip.end_date} · {nights} night
-          {nights === 1 ? '' : 's'}
-        </Text>
-      </View>
-      <View style={styles.rowActions}>
-        <TextLink label="Edit" onPress={() => router.push(`/trip/edit/${trip.id}`)} />
-        <TextLink label="Cancel" onPress={() => cancel.mutate(trip.id)} />
-      </View>
-    </Pressable>
-  )
-}
-
 const styles = StyleSheet.create({
   section: { gap: spacing.md },
   prompt: { padding: spacing.lg, borderRadius: radius.md, gap: spacing.sm },
-  card: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: spacing.md,
-    padding: spacing.lg,
-    borderRadius: radius.md,
-  },
-  cardBody: { flex: 1, minWidth: 0, gap: 2 },
-  dismiss: { fontSize: 22, lineHeight: 24 },
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
-    padding: spacing.lg,
-    borderRadius: radius.md,
-    borderWidth: StyleSheet.hairlineWidth,
-  },
-  rowText: { flex: 1, gap: 2 },
-  rowActions: { gap: spacing.sm, alignItems: 'flex-end' },
   pressed: { opacity: 0.7 },
 })

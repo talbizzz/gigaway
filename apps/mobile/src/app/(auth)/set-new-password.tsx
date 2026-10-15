@@ -24,7 +24,7 @@ export default function SetNewPasswordScreen() {
 
   const form = useForm<SetNewPasswordValues>({
     resolver: zodResolver(SetNewPasswordSchema),
-    defaultValues: { password: '' },
+    defaultValues: { password: '', confirmPassword: '' },
   })
 
   const onSubmit = form.handleSubmit(async (values) => {
@@ -67,9 +67,27 @@ export default function SetNewPasswordScreen() {
             autoComplete="new-password"
             textContentType="newPassword"
             secureTextEntry
+            hint="At least 10 characters."
+            error={fieldState.error?.message}
+          />
+        )}
+      />
+
+      <Controller
+        control={form.control}
+        name="confirmPassword"
+        render={({ field, fieldState }) => (
+          <TextField
+            label="Confirm new password"
+            value={field.value}
+            onChangeText={field.onChange}
+            onBlur={field.onBlur}
+            autoCapitalize="none"
+            autoComplete="new-password"
+            textContentType="newPassword"
+            secureTextEntry
             onSubmitEditing={onSubmit}
             returnKeyType="go"
-            hint="At least 10 characters."
             error={fieldState.error?.message}
           />
         )}

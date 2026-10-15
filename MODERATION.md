@@ -171,8 +171,9 @@ name, checks that server-side against the record it is about to erase, and then
 does all of the following in one go, telling you which steps succeeded if one
 fails:
 
-1. `delete_account` — the SQL tombstone below,
-2. removes their avatar and any verification selfie/CV from Storage,
+1. `delete_account` — copies their identity into the hold (below), then the SQL
+   tombstone,
+2. removes their avatar from Storage (the selfie and CV stay, see below),
 3. deletes the auth user, last,
 4. writes an audit-log row.
 
@@ -183,8 +184,8 @@ select delete_account('…');
 ```
 
 then delete the auth user in **Authentication → Users**, and remove their avatar
-and their verification files (`verification-docs/<their id>/`) from Storage. The
-SQL function can do none of the last two.
+from Storage. The SQL function can do neither of those. Do **not** delete their
+verification files: they belong to the hold and are removed with it.
 
 What survives, and why:
 
@@ -201,6 +202,28 @@ free-text field cleared. Their name appears nowhere in anybody else's app.
 > **Not shippable until the privacy policy covers this.** Retaining reports
 > after deletion is a legitimate-interest decision and has to be stated. See
 > Milestone 0.
+
+### The identity hold
+
+Erasing a member also erases the only thing tying a retained report or stay to a
+real person. So `delete_account` first copies their identity — email, names,
+legal name, phone, links, and the paths of the selfie and CV, which
+stay in Storage — into `deletion_holds`. It is kept for **30 days**, or **12
+months** if any report against them is open, under review or actioned. A report
+made against them afterwards extends it to 12 months. When it runs out the
+`purge-deletion-holds` job erases the row and the files.
+
+To read one, open the deleted member's page in the admin app: **Identity held
+after deletion**. If you learn of an infraction after they left and the hold has
+not run out, **Keep for 12 months** extends it (and is audit-logged). Once it
+has run out there is nothing to recover. The periods are `deletion_hold_days`
+and `deletion_hold_reported_days` in `app_config`.
+
+If a report against them was **actioned**, a one-way fingerprint of their email
+and legal name is kept for good in `conduct_bans`. A later application that
+matches either is marked **Possible repeat** in the Verifications queue and in
+the notification email. It is only a prompt: a name can match by coincidence,
+and nothing is blocked automatically. Look closely, then decide as usual.
 
 ---
 
@@ -240,6 +263,7 @@ select jobname, schedule, active from cron.job order by jobname;
 | `dispatch-notifications` | every minute | Drains the notification outbox; the real delivery guarantee |
 | `expire-stale-requests-and-offers` | 04:00 | Closes requests and offers whose dates have passed |
 | `notify-pending-verifications` | 09:00 | Emails you about applications waiting over three days |
+| `purge-deletion-holds` | 03:30 | Erases deleted members' held identity and files once their hold has run out |
 | `release-reviews` | 02:00 | Publishes reviews whose two-week window has closed |
 | `prompt-reviews` | 10:00 | Asks both parties for a review the day after a stay |
 | `remind-reviews` | 10:15 | One reminder at seven days to whoever has not written |

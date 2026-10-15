@@ -1,4 +1,4 @@
-import type { DateRange } from '@gigaway/shared'
+import { serviceLabel, type DateRange, type ServiceKind } from '@gigaway/shared'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
 import { useSessionStore } from '@/features/auth/session-store'
@@ -8,20 +8,12 @@ export const availabilityKeys = {
   mine: ['availability', 'mine'] as const,
 }
 
-export type OfferKind = 'couch' | 'spare_room' | 'tips' | 'coffee'
 export type HostConstraint =
   | 'no_pets'
   | 'no_smoking'
   | 'women_only'
   | 'no_children'
   | 'quiet_household'
-
-export const OFFER_KINDS: { value: OfferKind; label: string }[] = [
-  { value: 'couch', label: 'A couch' },
-  { value: 'spare_room', label: 'A spare room' },
-  { value: 'tips', label: 'Local tips' },
-  { value: 'coffee', label: 'Coffee & company' },
-]
 
 export const HOST_CONSTRAINTS: { value: HostConstraint; label: string }[] = [
   { value: 'women_only', label: 'Women only' },
@@ -34,8 +26,11 @@ export const HOST_CONSTRAINTS: { value: HostConstraint; label: string }[] = [
 export type Availability = {
   id: string
   city_id: string
-  start_date: string
-  end_date: string
+  /** Null for a service that is always available. */
+  start_date: string | null
+  end_date: string | null
+  always_available: boolean
+  /** One service per post; an older post may still list several. */
   offers: string[]
   constraints: string[]
   max_nights: number | null
@@ -45,7 +40,22 @@ export type Availability = {
 }
 
 const AVAILABILITY_SELECT =
-  'id, city_id, start_date, end_date, offers, constraints, max_nights, note, status, cities(name, name_local, country_code)'
+  'id, city_id, start_date, end_date, always_available, offers, constraints, max_nights, note, status, cities(name, name_local, country_code)'
+
+/**
+ * The database's own words for a clash are a constraint name, which is no use to
+ * anyone. One service can be always available once per city, so a second one is
+ * what actually goes wrong here; say that, and what to do about it.
+ */
+function availabilityError(error: { message: string }, kind: ServiceKind): Error {
+  if (error.message.includes('availability_one_always_per_service')) {
+    return new Error(
+      `You already offer ${serviceLabel(kind).toLowerCase()} in this city with no dates. ` +
+        'Edit that one from your services, or choose a different city.',
+    )
+  }
+  return new Error(error.message)
+}
 
 export function useMyAvailability() {
   const session = useSessionStore((state) => state.session)
@@ -58,7 +68,7 @@ export function useMyAvailability() {
         .from('availability')
         .select(AVAILABILITY_SELECT)
         .eq('profile_id', session!.user.id)
-        .order('start_date', { ascending: true })
+        .order('start_date', { ascending: true, nullsFirst: true })
       if (error) throw error
       return data as unknown as Availability[]
     },
@@ -72,8 +82,10 @@ export function useCreateAvailability() {
   return useMutation({
     mutationFn: async (input: {
       cityId: string
-      range: DateRange
-      offers: OfferKind[]
+      kind: ServiceKind
+      /** Null when the service is always available. */
+      range: DateRange | null
+      alwaysAvailable: boolean
       constraints: HostConstraint[]
       maxNights?: number | null
       note?: string
@@ -81,14 +93,15 @@ export function useCreateAvailability() {
       const { error } = await supabase.from('availability').insert({
         profile_id: session!.user.id,
         city_id: input.cityId,
-        start_date: input.range.start,
-        end_date: input.range.end,
-        offers: input.offers,
+        start_date: input.alwaysAvailable ? null : (input.range?.start ?? null),
+        end_date: input.alwaysAvailable ? null : (input.range?.end ?? null),
+        always_available: input.alwaysAvailable,
+        offers: [input.kind],
         constraints: input.constraints,
         max_nights: input.maxNights ?? null,
         note: input.note?.trim() || null,
       })
-      if (error) throw error
+      if (error) throw availabilityError(error, input.kind)
     },
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: availabilityKeys.mine })
@@ -119,8 +132,9 @@ export function useUpdateAvailability() {
     mutationFn: async (input: {
       id: string
       cityId: string
-      range: DateRange
-      offers: OfferKind[]
+      kind: ServiceKind
+      range: DateRange | null
+      alwaysAvailable: boolean
       constraints: HostConstraint[]
       maxNights?: number | null
       note?: string
@@ -129,15 +143,16 @@ export function useUpdateAvailability() {
         .from('availability')
         .update({
           city_id: input.cityId,
-          start_date: input.range.start,
-          end_date: input.range.end,
-          offers: input.offers,
+          start_date: input.alwaysAvailable ? null : (input.range?.start ?? null),
+          end_date: input.alwaysAvailable ? null : (input.range?.end ?? null),
+          always_available: input.alwaysAvailable,
+          offers: [input.kind],
           constraints: input.constraints,
           max_nights: input.maxNights ?? null,
           note: input.note?.trim() || null,
         })
         .eq('id', input.id)
-      if (error) throw error
+      if (error) throw availabilityError(error, input.kind)
     },
     onSuccess: async (_data, variables) => {
       await Promise.all([

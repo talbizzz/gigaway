@@ -1,3 +1,4 @@
+import { isServiceKind, serviceDefinition } from '@gigaway/shared'
 import { useQuery } from '@tanstack/react-query'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { ActivityIndicator, View } from 'react-native'
@@ -8,7 +9,6 @@ import {
   useAvailability,
   useUpdateAvailability,
   type HostConstraint,
-  type OfferKind,
 } from '@/features/availability/use-availability'
 import { supabase } from '@/lib/supabase'
 import { useTheme } from '@/theme/use-theme'
@@ -42,14 +42,22 @@ export default function EditAvailabilityScreen() {
     )
   }
 
+  // One service per post. An older post may still list several; the first is
+  // the one it is edited as.
+  const kind = availability.offers.find(isServiceKind) ?? 'couch'
+
   return (
     <>
-      <Stack.Screen options={{ title: 'Edit availability' }} />
+      <Stack.Screen options={{ title: `Edit: ${serviceDefinition(kind)?.label ?? 'service'}` }} />
       <AvailabilityForm
+        kind={kind}
         initial={{
           city: city.data,
-          range: { start: availability.start_date, end: availability.end_date },
-          offers: availability.offers as OfferKind[],
+          alwaysAvailable: availability.always_available,
+          range:
+            availability.start_date && availability.end_date
+              ? { start: availability.start_date, end: availability.end_date }
+              : null,
           constraints: availability.constraints as HostConstraint[],
           maxNights: availability.max_nights,
           note: availability.note ?? '',
@@ -57,12 +65,13 @@ export default function EditAvailabilityScreen() {
         submitLabel="Save changes"
         submitting={update.isPending}
         error={update.isError ? (update.error as Error).message : undefined}
-        onSubmit={async ({ city: nextCity, range, offers, constraints, maxNights, note }) => {
+        onSubmit={async ({ city: nextCity, range, alwaysAvailable, constraints, maxNights, note }) => {
           await update.mutateAsync({
             id: availability.id,
             cityId: nextCity.id,
+            kind,
             range,
-            offers,
+            alwaysAvailable,
             constraints,
             maxNights,
             note,

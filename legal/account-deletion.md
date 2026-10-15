@@ -27,35 +27,57 @@ deleted. We complete the request within 30 days, and usually much sooner.
 
 ## Deletion is permanent
 
-There is no undo and no grace period. The account cannot be restored, and
-signing up again later creates a new account with no connection to the old one.
+There is no undo. The account cannot be restored, and you cannot sign in again.
+Some details are kept for a limited time after deletion; see "What is kept for a
+limited time" below.
 
 ---
 
-## What is permanently erased
+## What is erased immediately
 
 - Your login and password
-- Your email address, phone number and WhatsApp number
-- Your profile photo, biography, specialisation, home city and district, and
-  professional links
-- Your verification application record, **including the selfie, ID photo and
-  CV you submitted with it** — these are kept for as long as your account
-  exists specifically so this is the point they go; see the Privacy Policy,
-  section 3.3
+- Your profile photo, biography, specialisation, home city and district
 - Push notification tokens and your notification history
 - Contact-sharing grants, so nobody keeps access to your details
 - Blocks you created
+- Your connections and any connection requests, in both directions, and your username (which then becomes available to others)
 - Reviews other people wrote **about** you
 - Reviews you wrote that had not yet been published
 - Pending requests and offers
 - Your availability
 - Trips that never led to a stay
 
+## What is kept for a limited time
+
+So that a safety concern raised soon after you leave can still be looked into,
+we keep the following for **30 days** after deletion, or **12 months** if a
+report has been made about you (including one made during those 30 days):
+
+- Your email address and phone number
+- Your first and family name and your legal name
+- Your professional links
+- Your verification selfie, ID photo and CV
+
+Only our moderators can see them. They are never shown to other members, and
+they are erased automatically, files included, when the period ends.
+
+If a report about you was acted on, we also keep, without a time limit, a
+one-way fingerprint of your email address and legal name. It cannot be read back
+as a name or an address. It exists so that a later application with the same
+details can be looked at closely by a person; nothing is blocked automatically.
+
+The legal basis is our legitimate interest, and other members' interest, in
+safety, and our interest in establishing or defending legal claims. You may
+object under Article 21 GDPR, or ask for earlier erasure, by writing to
+`privacy@gigaway.app`. We will erase these details unless a report or a legal
+claim means we need them. See the Privacy Policy, sections 7 and 8.
+
 ## What is kept, no longer linked to you
 
 Your profile becomes an anonymised record showing **"Deleted member"**. The
 following survive and point at that record rather than at you:
 
+- **A coffee or local tips you gave or received**, once accepted: who it was with, the city and when. The same reasoning as stays
 - **Stays you took part in** — dates and city. This is the other person's record
   of where they hosted, or were hosted
 - **Published reviews you wrote about other people**, shown as written by
@@ -85,8 +107,9 @@ object under Article 21 GDPR by writing to `privacy@gigaway.app`.
 
 ## Retention period
 
-Everything in the "permanently erased" list is deleted **immediately**, not after
-a delay. There is no backup retention window during which your account could be
+Everything in the "erased immediately" list is deleted at once, not after a
+delay. The held details above are erased after 30 days, or 12 months if you were
+reported. There is no backup retention window during which your account could be
 restored.
 
 Anonymised records are kept for as long as GigAway operates, because they belong

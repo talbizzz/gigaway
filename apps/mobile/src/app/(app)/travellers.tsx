@@ -1,4 +1,4 @@
-import { formatDateRange, nightCount } from '@gigaway/shared'
+import { formatDateRange, nightCount, offersAStay } from '@gigaway/shared'
 import { Stack, useRouter } from 'expo-router'
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native'
 
@@ -7,6 +7,7 @@ import { Button } from '@/components/button'
 import { Callout } from '@/components/callout'
 import { PersonRow } from '@/components/person'
 import { Screen } from '@/components/screen'
+import { VerifiedOnly } from '@/components/verified-only'
 import { useMyAvailability } from '@/features/availability/use-availability'
 import { useOpenTrips, useSentOffers, type OpenTrip } from '@/features/offers/use-offers'
 import { radius, spacing, typography } from '@/theme/tokens'
@@ -42,7 +43,11 @@ export default function TravellersScreen() {
   }
 
   const rows = trips.data ?? []
-  const hasAvailability = (availability.data ?? []).some((row) => row.status === 'active')
+  // Only a couch or a spare room can be offered as nights, so only those give a
+  // host trips to offer on.
+  const hasAvailability = (availability.data ?? []).some(
+    (row) => row.status === 'active' && offersAStay(row.offers),
+  )
 
   // already_offered tells the card to stop offering the action, but not which
   // offer to open. At most one can be live per trip.
@@ -57,9 +62,10 @@ export default function TravellersScreen() {
       <Stack.Screen options={{ title: 'Coming your way' }} />
 
       {!hasAvailability ? (
-        <Callout title="Post your free nights first">
-          This list is built from your own availability — it shows travellers whose dates
-          overlap yours. Post some nights and they will appear here.
+        <Callout title="Offer a couch or a room first">
+          This list is built from the couch or spare room you offer. It shows travellers
+          whose dates overlap yours, or everyone coming if it is always available. Offer one
+          and they will appear here.
         </Callout>
       ) : rows.length === 0 ? (
         <Callout title="Nobody yet">
@@ -161,13 +167,15 @@ function OpenTripCard({
           />
         ) : null
       ) : (
-        <Button
-          label="Offer nights"
-          onPress={() =>
-            router.push({ pathname: '/offer/new', params: { tripId: trip.trip_id } })
-          }
-          style={styles.action}
-        />
+        <VerifiedOnly>
+          <Button
+            label="Offer nights"
+            onPress={() =>
+              router.push({ pathname: '/offer/new', params: { tripId: trip.trip_id } })
+            }
+            style={styles.action}
+          />
+        </VerifiedOnly>
       )}
     </View>
   )

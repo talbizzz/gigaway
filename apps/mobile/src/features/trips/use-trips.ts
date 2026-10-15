@@ -1,4 +1,4 @@
-import type { DateRange } from '@gigaway/shared'
+import type { DateRange, TripVisibility } from '@gigaway/shared'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
 import { useSessionStore } from '@/features/auth/session-store'
@@ -25,11 +25,13 @@ export type Trip = {
   end_date: string
   needs: string[]
   note: string | null
+  visibility: TripVisibility
   status: 'active' | 'cancelled' | 'completed'
   cities: { name: string; name_local: string | null; country_code: string } | null
 }
 
-const TRIP_SELECT = 'id, city_id, start_date, end_date, needs, note, status, cities(name, name_local, country_code)'
+const TRIP_SELECT =
+  'id, city_id, start_date, end_date, needs, note, visibility, status, cities(name, name_local, country_code)'
 
 export function useMyTrips() {
   const session = useSessionStore((state) => state.session)
@@ -75,6 +77,7 @@ export function useCreateTrip() {
       range: DateRange
       needs: TripNeed[]
       note?: string
+      visibility: TripVisibility
     }): Promise<Trip> => {
       const { data, error } = await supabase
         .from('trips')
@@ -85,6 +88,7 @@ export function useCreateTrip() {
           end_date: input.range.end,
           needs: input.needs,
           note: input.note?.trim() || null,
+          visibility: input.visibility,
         })
         .select(TRIP_SELECT)
         .single()
@@ -107,6 +111,7 @@ export function useUpdateTrip() {
       range: DateRange
       needs: TripNeed[]
       note?: string
+      visibility: TripVisibility
     }) => {
       const { error } = await supabase
         .from('trips')
@@ -116,6 +121,7 @@ export function useUpdateTrip() {
           end_date: input.range.end,
           needs: input.needs,
           note: input.note?.trim() || null,
+          visibility: input.visibility,
         })
         .eq('id', input.tripId)
       if (error) throw error

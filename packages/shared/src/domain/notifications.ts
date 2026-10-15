@@ -28,6 +28,14 @@ export const NOTIFICATION_TYPES = [
   'review_reminder',
   'review_published',
   'report_received',
+  // Milestone 7
+  'connection_request_received',
+  'connection_request_accepted',
+  'tips_request_received',
+  'coffee_request_received',
+  'service_offer_received',
+  'service_offer_accepted',
+  'service_offer_declined',
 ] as const
 
 export type NotificationType = (typeof NOTIFICATION_TYPES)[number]
@@ -55,6 +63,8 @@ export type NotificationPayload = {
   reviewId?: string
   reportId?: string
   closesAt?: string
+  // Milestone 7. Which kind of request this notification is about.
+  kind?: 'host_stay' | 'co_accommodation' | 'tips' | 'coffee'
 }
 
 export type NotificationCopy = {
@@ -144,13 +154,74 @@ export function notificationCopy(
             body: `${city}, ${offerDates}. Your nights are free again.`,
           }
 
+    case 'tips_request_received':
+      return {
+        title: `${someone(payload.fromName)} would like your tips`,
+        body: `${city}, ${tripDates}. Anything you can tell them about the place is welcome.`,
+      }
+
+    case 'coffee_request_received':
+      return {
+        title: `${someone(payload.fromName)} would like to meet for a coffee`,
+        body: `${city}, ${tripDates}.`,
+      }
+
+    case 'service_offer_received':
+      return {
+        title:
+          payload.kind === 'coffee'
+            ? `${someone(payload.fromName)} offered you a coffee`
+            : `${someone(payload.fromName)} offered you local tips`,
+        body: `For your trip to ${city}, ${tripDates}. Say yes and you swap contact details.`,
+      }
+
+    case 'service_offer_accepted':
+      return {
+        title: `${someone(payload.withName)} said yes`,
+        body:
+          payload.kind === 'coffee'
+            ? `A coffee in ${city}. Contact details are in the app, so you can pick a time.`
+            : `Local tips for ${city}. Contact details are in the app.`,
+      }
+
+    case 'service_offer_declined':
+      return {
+        title: `${someone(payload.toName)} cannot take you up on it`,
+        body: `Your ${payload.kind === 'coffee' ? 'coffee' : 'tips'} offer for ${city}, ${tripDates}.`,
+      }
+
     case 'co_request_accepted':
+      // This type also answers tips and coffee requests; the payload says which.
+      if (payload.kind === 'tips') {
+        return {
+          title: `${someone(payload.withName)} said yes to your tips request`,
+          body: `${city}. Contact details are in the app.`,
+        }
+      }
+      if (payload.kind === 'coffee') {
+        return {
+          title: `${someone(payload.withName)} said yes to a coffee`,
+          body: `${city}. Contact details are in the app, so you can pick a time.`,
+        }
+      }
       return {
         title: `${someone(payload.withName)} said yes`,
         body: `You are splitting a place in ${city}. Contact details are in the app.`,
       }
 
     case 'co_request_declined':
+      if (payload.kind === 'tips') {
+        return {
+          title: `${someone(payload.toName)} cannot help with tips this time`,
+          body: `${city}, ${tripDates}.`,
+        }
+      }
+      if (payload.kind === 'coffee') {
+        return {
+          title: `${someone(payload.toName)} cannot make a coffee this time`,
+          body: `${city}, ${tripDates}.`,
+        }
+      }
       return {
         title: `${someone(payload.toName)} cannot split a place`,
         body: `${city}, ${tripDates}.`,
@@ -188,6 +259,18 @@ export function notificationCopy(
         title: 'Your report has gone to a moderator',
         body: 'A person reads every report. You will not hear back automatically.',
       }
+
+    case 'connection_request_received':
+      return {
+        title: `${someone(payload.fromName)} sent you a connection request`,
+        body: 'Connections see more of each other, and the trips they share with connections.',
+      }
+
+    case 'connection_request_accepted':
+      return {
+        title: `${someone(payload.fromName)} accepted your connection request`,
+        body: 'You are connected now.',
+      }
   }
 }
 
@@ -206,6 +289,7 @@ export function notificationRoute(
     case 'offer_accepted':
     case 'offer_confirmed':
     case 'co_request_accepted':
+    case 'service_offer_accepted':
       return payload.withProfileId ? `/contact/${payload.withProfileId}` : '/activity'
 
     case 'offer_received':
@@ -213,6 +297,10 @@ export function notificationRoute(
 
     case 'request_received':
     case 'co_request_received':
+    case 'tips_request_received':
+    case 'coffee_request_received':
+    case 'service_offer_received':
+    case 'service_offer_declined':
     case 'request_withdrawn':
     case 'co_request_declined':
     case 'offer_declined':
@@ -229,12 +317,21 @@ export function notificationRoute(
     // client read path at all, which is the point.
     case 'report_received':
       return '/activity'
+
+    case 'connection_request_received':
+      return '/connections'
+
+    case 'connection_request_accepted':
+      return payload.fromProfileId ? `/member/${payload.fromProfileId}` : '/connections'
   }
 }
 
 /** True for the types that mean "you now have someone to contact". */
 export function isRevealNotification(type: NotificationType): boolean {
   return (
-    type === 'offer_accepted' || type === 'offer_confirmed' || type === 'co_request_accepted'
+    type === 'offer_accepted' ||
+    type === 'offer_confirmed' ||
+    type === 'co_request_accepted' ||
+    type === 'service_offer_accepted'
   )
 }

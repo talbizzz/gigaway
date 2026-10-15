@@ -1,3 +1,4 @@
+import { disciplineLabel } from '@gigaway/shared'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
@@ -14,6 +15,9 @@ export function VerificationsPage() {
 
   const { data, isLoading, error } = useQuery({
     queryKey: ['admin_pending_verifications'],
+    // New applications arrive while this page sits open. Refetch on a timer so
+    // the queue fills in without a manual reload.
+    refetchInterval: 30_000,
     queryFn: async () => {
       const { data, error } = await supabase.rpc('admin_pending_verifications')
       if (error) throw error
@@ -71,8 +75,22 @@ export function VerificationsPage() {
                 }}
               >
                 <div style={{ flex: 1 }}>
-                  <strong>{app.display_name}</strong> — {app.discipline}
+                  <strong>{app.display_name}</strong> — {disciplineLabel(app.discipline)}
                   {app.specialisation ? ` (${app.specialisation})` : ''}
+                  {app.matches_removed_member && (
+                    <span
+                      style={{
+                        marginLeft: 'var(--space-sm)',
+                        padding: '2px 8px',
+                        borderRadius: 999,
+                        fontSize: 12,
+                        background: 'var(--warning-subtle)',
+                        color: 'var(--warning)',
+                      }}
+                    >
+                      Possible repeat
+                    </span>
+                  )}
                 </div>
                 <span style={{ color: 'var(--text-muted)', fontSize: 13 }}>
                   waiting {app.days_waiting} {app.days_waiting === 1 ? 'day' : 'days'}
@@ -81,6 +99,20 @@ export function VerificationsPage() {
 
               {isOpen && (
                 <div style={{ marginTop: 'var(--space-lg)' }}>
+                  {app.matches_removed_member && (
+                    <p
+                      style={{
+                        padding: 'var(--space-md)',
+                        borderRadius: 'var(--radius-md)',
+                        background: 'var(--warning-subtle)',
+                        color: 'var(--warning)',
+                        marginBottom: 'var(--space-lg)',
+                      }}
+                    >
+                      This email or legal name matches someone removed after an actioned report.
+                      Look closely before deciding. A name can match by coincidence.
+                    </p>
+                  )}
                   <dl className="detail-grid" style={{ marginBottom: 'var(--space-lg)' }}>
                     <div className="detail-item">
                       <dt>Legal name</dt>

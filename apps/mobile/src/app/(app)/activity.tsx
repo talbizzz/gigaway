@@ -10,6 +10,8 @@ import {
   useNotifications,
   type AppNotification,
 } from '@/features/notifications/use-notifications'
+import { useIncomingRequests } from '@/features/requests/use-requests'
+import { useReceivedServiceOffers } from '@/features/service-offers/use-service-offers'
 import { radius, spacing, typography } from '@/theme/tokens'
 import { useTheme } from '@/theme/use-theme'
 
@@ -28,6 +30,12 @@ export default function ActivityScreen() {
   const theme = useTheme()
   const notifications = useNotifications()
   const markAllRead = useMarkAllRead()
+  const router = useRouter()
+  const incoming = useIncomingRequests()
+  const serviceOffers = useReceivedServiceOffers()
+  const waitingOnYou =
+    (incoming.data ?? []).filter((row) => row.status === 'pending').length +
+    (serviceOffers.data ?? []).filter((row) => row.status === 'pending').length
 
   // Opening the screen IS the acknowledgement. Making the user tap each row to
   // clear a badge is busywork.
@@ -51,7 +59,28 @@ export default function ActivityScreen() {
 
   return (
     <Screen>
-      <Stack.Screen options={{ title: 'Activity' }} />
+      <Stack.Screen options={{ title: 'Notifications' }} />
+
+      {/* Requests used to have their own icon in the header; they live here now,
+          above the activity, so the bell is the one place to look. */}
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={
+          waitingOnYou > 0 ? `Requests, ${waitingOnYou} waiting on you` : 'Requests'
+        }
+        onPress={() => router.push('/requests')}
+        style={({ pressed }) => [
+          styles.row,
+          styles.requestsRow,
+          { backgroundColor: theme.bgSubtle, borderColor: theme.border },
+          pressed && styles.pressed,
+        ]}
+      >
+        <Text style={[typography.bodyStrong, styles.rowText, { color: theme.text }]}>
+          {waitingOnYou > 0 ? `Requests · ${waitingOnYou} waiting on you` : 'Requests'}
+        </Text>
+        <Text style={[typography.body, { color: theme.accent }]}>›</Text>
+      </Pressable>
 
       {rows.length === 0 ? (
         <Callout title="Nothing yet">
@@ -122,6 +151,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.md,
     borderWidth: StyleSheet.hairlineWidth,
   },
-  rowText: { gap: spacing.xs },
+  rowText: { flex: 1, gap: spacing.xs },
+  requestsRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
   pressed: { opacity: 0.7 },
 })

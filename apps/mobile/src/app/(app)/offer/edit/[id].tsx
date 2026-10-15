@@ -85,7 +85,29 @@ function EditOfferForm({ offer }: { offer: Offer }) {
   const [message, setMessage] = useState(offer.message ?? '')
   const [error, setError] = useState<string | null>(null)
 
-  const windowList = windows.data ?? []
+  const trip = offer.trips
+  const posted = windows.data ?? []
+
+  // An offer made with no couch or room posted, or whose nights no post covers any
+  // more, is bounded by the trip itself: the nights only have to fall inside it.
+  const covered = posted.some(
+    (option) => option.window_start <= offer.start_date && option.window_end >= offer.end_date,
+  )
+  const direct = !covered && Boolean(trip)
+  const windowList: OfferableWindow[] =
+    direct && trip
+      ? [
+          {
+            availability_id: 'direct',
+            city_id: '',
+            city_name: offer.cities?.name ?? trip.cities?.name ?? '',
+            distance_km: 0,
+            window_start: trip.start_date,
+            window_end: trip.end_date,
+            max_nights: null,
+          },
+        ]
+      : posted
 
   // Seeded from the offer as it stands, not from the first window: the host
   // came here to change what they already said, so that is what the form has
@@ -105,7 +127,6 @@ function EditOfferForm({ offer }: { offer: Offer }) {
     setPickedRange({ start: option.window_start, end: option.window_end })
   }
 
-  const trip = offer.trips
   const tripNights = trip ? nightCount({ start: trip.start_date, end: trip.end_date }) : 0
   const offeredNights = nightCount(range)
   const firstName = offer.traveller?.display_name?.split(' ')[0] ?? 'They'
@@ -220,14 +241,13 @@ function EditOfferForm({ offer }: { offer: Offer }) {
           onChange={setPickedRange}
           windowStart={selectedWindow.window_start}
           windowEnd={selectedWindow.window_end}
-          hint={`You are free ${formatDateRange(selectedWindow.window_start, selectedWindow.window_end)}. Offer any part of it.`}
+          hint={
+            direct
+              ? `${firstName} is there ${formatDateRange(selectedWindow.window_start, selectedWindow.window_end)}. Offer any part of it.`
+              : `You are free ${formatDateRange(selectedWindow.window_start, selectedWindow.window_end)}. Offer any part of it.`
+          }
         />
-      ) : (
-        <Callout tone="warning" title="No availability covers these nights any more">
-          You can still withdraw this offer. To offer different nights, post availability
-          that covers them first.
-        </Callout>
-      )}
+      ) : null}
 
       <TextField
         label="A note (optional)"
